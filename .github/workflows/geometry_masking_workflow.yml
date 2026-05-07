@@ -13,6 +13,13 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
 
+      # 🔧 GLOBAL ROBOT IDENTITY + NOTES INITIALIZATION
+      - name: 🤖 Initialize Robot Identity & Notes
+        run: |
+          git config --global user.name "Automation Engine"
+          git config --global user.email "automation@yourdomain"
+          git config --global notes.rewriteRef "refs/notes/*"
+
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
@@ -39,17 +46,16 @@ jobs:
           jscpd src --min-lines 5 --threshold 5 --reporters console || echo "⚠️ jscpd found duplication — review manually if needed"
 
       - name: 🚀 Commit autoflake changes
-        env:
-          GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
-          GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
         run: |
-          git config --global user.name "${GIT_USER_NAME}"
-          git config --global user.email "${GIT_USER_EMAIL}"
           git add .
-          git diff --cached --quiet || (
-            git commit -m "🧹 Auto-clean: removed unused imports and variables"
-            git push || echo "No changes to push"
-          )
+          if ! git diff --cached --quiet; then
+            git commit -m "🤖 robot: auto-clean unused imports & variables"
+            git notes add -m "robot: true"
+            git push origin HEAD
+            git push origin refs/notes/* || true
+          else
+            echo "No autoflake changes to commit."
+          fi
 
   process_step_for_coordinates:
     needs: code_quality_check
@@ -62,8 +68,14 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
         with:
-          # Token is needed for the final commit/push of logs/error reports
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 🔧 GLOBAL ROBOT IDENTITY + NOTES INITIALIZATION
+      - name: 🤖 Initialize Robot Identity & Notes
+        run: |
+          git config --global user.name "Automation Engine"
+          git config --global user.email "automation@yourdomain"
+          git config --global notes.rewriteRef "refs/notes/*"
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
@@ -145,7 +157,7 @@ jobs:
             --resolution 0.5 \
             --flow_region internal \
             --no_slip true \
-            --output "$TEMP_OUTPUT_FILE" \
+            --output "$TEMP_OUTPUT_FILE"
 
           python3 tests/helpers/compare_json.py "$EXPECTED_OUTPUT_PATH" "$TEMP_OUTPUT_FILE"
 
@@ -173,7 +185,7 @@ jobs:
             --resolution 0.5 \
             --flow_region internal \
             --no_slip true \
-            --output "$TEMP_OUTPUT_FILE" \
+            --output "$TEMP_OUTPUT_FILE"
 
           python3 tests/helpers/compare_json.py "$EXPECTED_OUTPUT_PATH" "$TEMP_OUTPUT_FILE"
 
@@ -201,7 +213,7 @@ jobs:
             --resolution 0.5 \
             --flow_region internal \
             --no_slip false \
-            --output "$TEMP_OUTPUT_FILE" \
+            --output "$TEMP_OUTPUT_FILE"
 
           python3 tests/helpers/compare_json.py "$EXPECTED_OUTPUT_PATH" "$TEMP_OUTPUT_FILE"
 
@@ -229,7 +241,7 @@ jobs:
             --resolution 0.5 \
             --flow_region internal \
             --no_slip false \
-            --output "$TEMP_OUTPUT_FILE" \
+            --output "$TEMP_OUTPUT_FILE"
 
           python3 tests/helpers/compare_json.py "$EXPECTED_OUTPUT_PATH" "$TEMP_OUTPUT_FILE"
 
@@ -258,7 +270,7 @@ jobs:
             --flow_region external \
             --padding_factor 0 \
             --no_slip false \
-            --output "$TEMP_OUTPUT_FILE" \
+            --output "$TEMP_OUTPUT_FILE"
 
           python3 tests/helpers/compare_json.py "$EXPECTED_OUTPUT_PATH" "$TEMP_OUTPUT_FILE"
 
@@ -311,14 +323,9 @@ jobs:
           src/upload_to_dropbox.sh
 
       - name: 📝 Log trigger & push
-        if: always() # Run even if previous steps failed to ensure log and error reports are committed
-        env:
-          GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
-          GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+        if: always()
         run: |
           echo "$(date '+%Y-%m-%d %H:%M:%S'): STEP processor triggered by '${{ github.actor }}' via '${{ github.event_name }}' event" >> trigger.txt
-          git config --global user.name "${GIT_USER_NAME}"
-          git config --global user.email "${GIT_USER_EMAIL}"
 
           # Commit error reports and trigger log
           if [ -d "tests/integration_tests_errors" ]; then
@@ -330,8 +337,13 @@ jobs:
           fi
 
           git add trigger.txt
-          git commit -m "Log STEP processor trigger by ${{ github.actor }} via ${{ github.event_name }}" || echo "No new log or errors to commit"
 
-          # Pull and rebase before pushing to avoid rejection
-          git pull --rebase origin main || echo "⚠️ Rebase failed — check for conflicts"
-          git push origin main || echo "❌ Push failed — remote may have diverged"
+          if ! git diff --cached --quiet; then
+            git commit -m "🤖 robot: STEP processor trigger log"
+            git notes add -m "robot: true"
+            git pull --rebase origin main || echo "⚠️ Rebase failed — check for conflicts"
+            git push origin main
+            git push origin refs/notes/* || true
+          else
+            echo "No new logs or errors to commit."
+          fi
