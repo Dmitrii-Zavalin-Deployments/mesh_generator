@@ -20,16 +20,6 @@ jobs:
           git config --global user.email "automation@yourdomain"
           git config --global notes.rewriteRef "refs/notes/*"
 
-      - name: ♻️ Install Universal Robot Note Hook
-        run: |
-          mkdir -p .git/hooks
-          cat <<'EOF' > .git/hooks/post-commit
-          #!/bin/sh
-          git notes add -m "robot: true" || true
-          git push origin refs/notes/* || true
-          EOF
-          chmod +x .git/hooks/post-commit
-
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
@@ -60,6 +50,11 @@ jobs:
           git add .
           if ! git diff --cached --quiet; then
             git commit -m "🤖 robot: auto-clean unused imports & variables"
+
+            # Inline Git Notes
+            git notes add -m "robot: true" || true
+            git push origin refs/notes/* || true
+
             git push origin HEAD
           else
             echo "No autoflake changes to commit."
@@ -84,16 +79,6 @@ jobs:
           git config --global user.name "Automation Engine"
           git config --global user.email "automation@yourdomain"
           git config --global notes.rewriteRef "refs/notes/*"
-
-      - name: ♻️ Install Universal Robot Note Hook
-        run: |
-          mkdir -p .git/hooks
-          cat <<'EOF' > .git/hooks/post-commit
-          #!/bin/sh
-          git notes add -m "robot: true" || true
-          git push origin refs/notes/* || true
-          EOF
-          chmod +x .git/hooks/post-commit
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
@@ -359,6 +344,11 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "🤖 robot: STEP processor trigger log"
+
+            # Inline Git Notes
+            git notes add -m "robot: true" || true
+            git push origin refs/notes/* || true
+
             git pull --rebase origin main || echo "⚠️ Rebase failed — check for conflicts"
             git push origin main
           else
