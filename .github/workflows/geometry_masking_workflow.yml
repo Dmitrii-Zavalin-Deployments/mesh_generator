@@ -20,6 +20,16 @@ jobs:
           git config --global user.email "automation@yourdomain"
           git config --global notes.rewriteRef "refs/notes/*"
 
+      - name: ♻️ Install Universal Robot Note Hook
+        run: |
+          mkdir -p .git/hooks
+          cat <<'EOF' > .git/hooks/post-commit
+          #!/bin/sh
+          git notes add -m "robot: true" || true
+          git push origin refs/notes/* || true
+          EOF
+          chmod +x .git/hooks/post-commit
+
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
@@ -50,9 +60,7 @@ jobs:
           git add .
           if ! git diff --cached --quiet; then
             git commit -m "🤖 robot: auto-clean unused imports & variables"
-            git notes add -m "robot: true"
             git push origin HEAD
-            git push origin refs/notes/* || true
           else
             echo "No autoflake changes to commit."
           fi
@@ -76,6 +84,16 @@ jobs:
           git config --global user.name "Automation Engine"
           git config --global user.email "automation@yourdomain"
           git config --global notes.rewriteRef "refs/notes/*"
+
+      - name: ♻️ Install Universal Robot Note Hook
+        run: |
+          mkdir -p .git/hooks
+          cat <<'EOF' > .git/hooks/post-commit
+          #!/bin/sh
+          git notes add -m "robot: true" || true
+          git push origin refs/notes/* || true
+          EOF
+          chmod +x .git/hooks/post-commit
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
@@ -138,6 +156,7 @@ jobs:
       # ----------------------------------------------------------------------
       # Integration Test 1: test_cube_no_slip (HARD FAIL on mismatch)
       # ----------------------------------------------------------------------
+
       - name: 🏃 Run Integration Test (test_cube_no_slip)
         id: integration_test_cube_no_slip
         run: |
@@ -340,10 +359,8 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "🤖 robot: STEP processor trigger log"
-            git notes add -m "robot: true"
             git pull --rebase origin main || echo "⚠️ Rebase failed — check for conflicts"
             git push origin main
-            git push origin refs/notes/* || true
           else
             echo "No new logs or errors to commit."
           fi
