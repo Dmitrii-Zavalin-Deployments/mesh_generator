@@ -1,0 +1,90 @@
+{
+  "$id": "mesh_generator_output.schema.json",
+  "title": "Mesh Generator Output Schema",
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+
+    "inputs": {
+      "type": "object",
+      "description": "Structured STEP model provided to the mesh generator.",
+      "additionalProperties": false,
+      "properties": {
+        "step_model": {
+          "type": "object",
+          "description": "Parsed STEP model represented as structured geometry/topology data."
+        }
+      },
+      "required": ["step_model"]
+    },
+
+    "config": {
+      "type": "object",
+      "description": "Mesh generator configuration used to produce the CFD-ready grid and mask.",
+      "additionalProperties": false,
+      "properties": {
+        "solver_version": { "type": "string" },
+        "tolerance": { "type": "number" },
+        "max_element_size": { "type": "number" },
+        "min_element_size": { "type": "number" }
+      },
+      "required": ["solver_version"]
+    },
+
+    "results": {
+      "type": "object",
+      "description": "CFD-ready domain representation: grid extents, resolution, mask, and boundary conditions.",
+      "additionalProperties": false,
+      "properties": {
+
+        "grid": {
+          "type": "object",
+          "description": "Structured grid extents and resolution for Navier–Stokes solver.",
+          "properties": {
+            "x_min": { "type": "number" },
+            "x_max": { "type": "number" },
+            "y_min": { "type": "number" },
+            "y_max": { "type": "number" },
+            "z_min": { "type": "number" },
+            "z_max": { "type": "number" },
+            "nx": { "type": "integer", "minimum": 1 },
+            "ny": { "type": "integer", "minimum": 1 },
+            "nz": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "nx", "ny", "nz"]
+        },
+
+        "mask": {
+          "type": "array",
+          "description": "Solid/fluid mask for Navier–Stokes solver. Canonical flattening: i + nx*(j + ny*k).",
+          "items": { "type": "integer", "enum": [-1, 0, 1] }
+        },
+
+        "boundary_conditions": {
+          "type": "array",
+          "description": "Boundary condition locations and types derived from geometry.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "enum": ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "wall"]
+              },
+              "type": {
+                "type": "string",
+                "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"]
+              },
+              "surface_id": { "type": "string" }
+            },
+            "required": ["location", "type"]
+          }
+        }
+      },
+
+      "required": ["grid", "mask", "boundary_conditions"]
+    }
+  },
+
+  "required": ["inputs", "config", "results"]
+}
