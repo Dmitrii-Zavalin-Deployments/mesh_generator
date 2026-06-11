@@ -17,5 +17,7 @@
       },
       "required": ["step_file"]
     }
-  }
+  },
+
+  "required": ["inputs"]
 }
