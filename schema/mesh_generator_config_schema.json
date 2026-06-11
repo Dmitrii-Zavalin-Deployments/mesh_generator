@@ -1,0 +1,31 @@
+{
+  "$id": "mesh_generator_config_schema.json",
+  "title": "Mesh Generator Configuration Schema",
+  "type": "object",
+  "description": "External configuration parameters used by the Mesh Generator to produce the CFD-ready grid, mask, and boundary conditions.",
+  "additionalProperties": false,
+
+  "properties": {
+    "solver_version": {
+      "type": "string",
+      "description": "Version identifier of the meshing/solver backend."
+    },
+
+    "tolerance": {
+      "type": "number",
+      "description": "Geometric tolerance used during STEP parsing, surface reconstruction, and point-in-solid classification."
+    },
+
+    "max_element_size": {
+      "type": "number",
+      "description": "Maximum allowed mesh element size used when computing grid resolution."
+    },
+
+    "min_element_size": {
+      "type": "number",
+      "description": "Minimum allowed mesh element size used when computing grid resolution."
+    }
+  },
+
+  "required": ["solver_version"]
+}
