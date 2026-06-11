@@ -1,5 +1,5 @@
 {
-  "$id": "mesh_generator_output.schema.json",
+  "$id": "mesh_generator_output_schema.json",
   "title": "Mesh Generator Output Schema",
   "type": "object",
   "additionalProperties": false,
@@ -21,13 +21,25 @@
 
     "config": {
       "type": "object",
-      "description": "Mesh generator configuration used to produce the CFD-ready grid and mask.",
+      "description": "Configuration parameters used during this mesh generation run. Included for reproducibility and documentation.",
       "additionalProperties": false,
       "properties": {
-        "solver_version": { "type": "string" },
-        "tolerance": { "type": "number" },
-        "max_element_size": { "type": "number" },
-        "min_element_size": { "type": "number" }
+        "solver_version": {
+          "type": "string",
+          "description": "Version identifier of the meshing/solver backend."
+        },
+        "tolerance": {
+          "type": "number",
+          "description": "Geometric tolerance used during STEP parsing, surface reconstruction, and point-in-solid classification."
+        },
+        "max_element_size": {
+          "type": "number",
+          "description": "Maximum allowed mesh element size used when computing grid resolution."
+        },
+        "min_element_size": {
+          "type": "number",
+          "description": "Minimum allowed mesh element size used when computing grid resolution."
+        }
       },
       "required": ["solver_version"]
     },
@@ -36,11 +48,13 @@
       "type": "object",
       "description": "CFD-ready domain representation: grid extents, resolution, mask, and boundary conditions.",
       "additionalProperties": false,
+
       "properties": {
 
         "grid": {
           "type": "object",
           "description": "Structured grid extents and resolution for Navier–Stokes solver.",
+          "additionalProperties": false,
           "properties": {
             "x_min": { "type": "number" },
             "x_max": { "type": "number" },
@@ -52,13 +66,21 @@
             "ny": { "type": "integer", "minimum": 1 },
             "nz": { "type": "integer", "minimum": 1 }
           },
-          "required": ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "nx", "ny", "nz"]
+          "required": [
+            "x_min", "x_max",
+            "y_min", "y_max",
+            "z_min", "z_max",
+            "nx", "ny", "nz"
+          ]
         },
 
         "mask": {
           "type": "array",
           "description": "Solid/fluid mask for Navier–Stokes solver. Canonical flattening: i + nx*(j + ny*k).",
-          "items": { "type": "integer", "enum": [-1, 0, 1] }
+          "items": {
+            "type": "integer",
+            "enum": [-1, 0, 1]
+          }
         },
 
         "boundary_conditions": {
@@ -66,16 +88,31 @@
           "description": "Boundary condition locations and types derived from geometry.",
           "items": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
               "location": {
                 "type": "string",
-                "enum": ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "wall"]
+                "enum": [
+                  "x_min", "x_max",
+                  "y_min", "y_max",
+                  "z_min", "z_max",
+                  "wall"
+                ]
               },
               "type": {
                 "type": "string",
-                "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"]
+                "enum": [
+                  "no-slip",
+                  "free-slip",
+                  "inflow",
+                  "outflow",
+                  "pressure"
+                ]
               },
-              "surface_id": { "type": "string" }
+              "surface_id": {
+                "type": "string",
+                "description": "Identifier of the originating geometric surface."
+              }
             },
             "required": ["location", "type"]
           }

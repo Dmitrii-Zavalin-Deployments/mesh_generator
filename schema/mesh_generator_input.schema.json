@@ -1,5 +1,5 @@
 {
-  "$id": "mesh_generator_input.schema.json",
+  "$id": "mesh_generator_input_schema.json",
   "title": "Mesh Generator Input Schema",
   "type": "object",
   "additionalProperties": false,
