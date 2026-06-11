@@ -1,0 +1,21 @@
+{
+  "$id": "mesh_generator_input.schema.json",
+  "title": "Mesh Generator Input Schema",
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+    "inputs": {
+      "type": "object",
+      "description": "Raw STEP file provided to the mesh generator.",
+      "additionalProperties": false,
+      "properties": {
+        "step_file": {
+          "type": "string",
+          "description": "Path or filename of the uploaded STEP (.step/.stp) file."
+        }
+      },
+      "required": ["step_file"]
+    }
+  }
+}
