@@ -145,5 +145,36 @@ jobs:
           print(f'✔ S12 Dependency (pythonOCC TopExp_Explorer & NumPy Math): OK | Faces found: {face_count}')
           "
 
+      - name: 🔍 Forensic Audit
+        if: always()
+        run: |
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "✅ All systems nominal. No anomalies detected in solver lifecycle."
+            cat <<EOF > src/debug/forensic_audit.sh
+          #!/bin/bash
+          # Description: Automated forensic audit for Navier-Stokes solver failures.
+          # Status: Dormant (All systems nominal)
+          exit 0
+          EOF
+            chmod +x src/debug/forensic_audit.sh
+            echo "🧹 Diagnostic script has been reset to Dormant mode."
+          else
+            echo "⚠️ CI Failure Detected. Initiating Deep Forensic Audit..."
+            echo "============================================================"
+            echo "ls -R output:"
+            ls -R
+            echo "============================================================"
+            echo "src/debug/forensic_audit.sh run results:"
+            if [ -f "src/debug/forensic_audit.sh" ]; then
+              bash src/debug/forensic_audit.sh
+            else
+              echo "❌ Critical: Diagnostic script 'src/debug/forensic_audit.sh' not found."
+            fi
+            echo "============================================================"
+            echo "📉 RE-RUNNING FAILED TEST FOR FINAL SIGNAL"
+            $TEST_COMMAND || true
+            exit 1
+          fi
+
       - name: 🎉 Experiment Complete
         run: echo "✔ All required external and alternative dependencies for the Minimal Step Path are validated and functional."
