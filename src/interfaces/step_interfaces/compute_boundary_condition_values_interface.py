@@ -1,5 +1,5 @@
 from .step_interface_base import StepInterfaceBase
-from mesh_generator.state.state_interface import MeshGeneratorStateInterface
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 
 class ComputeBoundaryConditionValuesInterface(StepInterfaceBase):
