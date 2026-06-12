@@ -38,7 +38,7 @@ jobs:
       #######################################################################
       # S1 — parse_step_geometry
       #######################################################################
-      - name: 🧪 S1: STEP Parsing (Minimal Real Parse)
+      - name: 🧪 S1 - STEP Parsing (Minimal Real Parse)
         run: |
           python - << 'EOF'
           from OCC.Core.STEPControl import STEPControl_Reader
@@ -59,7 +59,7 @@ jobs:
       #######################################################################
       # S2–S7 — bounding box components
       #######################################################################
-      - name: 🧪 S2–S7: Bounding Box Computation
+      - name: 🧪 S2–S7 - Bounding Box Computation
         run: |
           python - << 'EOF'
           from OCC.Core.Bnd import Bnd_Box
@@ -77,7 +77,7 @@ jobs:
       #######################################################################
       # S8–S10 — grid resolution
       #######################################################################
-      - name: 🧪 S8–S10: Grid Resolution Calculation
+      - name: 🧪 S8–S10 - Grid Resolution Calculation
         run: |
           python - << 'EOF'
           import numpy as np
@@ -90,7 +90,7 @@ jobs:
       #######################################################################
       # S11 — mask generation
       #######################################################################
-      - name: 🧪 S11: Solid Classifier (Point-in-Solid Mock)
+      - name: 🧪 S11 - Solid Classifier (Point-in-Solid Mock)
         run: |
           python - << 'EOF'
           from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
@@ -107,7 +107,7 @@ jobs:
       #######################################################################
       # S12 — FULL OCCT FACE CLASSIFICATION MOCK
       #######################################################################
-      - name: 🧪 S12: Full OCCT Face Classification (Location, Type, Values)
+      - name: 🧪 S12 - Full OCCT Face Classification (Location, Type, Values)
         run: |
           python - << 'EOF'
           import numpy as np
