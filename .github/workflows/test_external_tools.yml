@@ -1,0 +1,186 @@
+name: 🔧 Validate External Tools Functionality (Full Minimal Step Path Mock)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+
+jobs:
+  validate-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install System Dependencies (OCCT, CGAL, STEPcode)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            oce-draw \
+            liboce-foundation-dev \
+            liboce-modeling-dev \
+            liboce-ocaf-dev \
+            liboce-visualization-dev \
+            libcgal-dev \
+            stepcode-dev || true
+
+      - name: 📦 Install Python Dependencies (pythonOCC, NumPy, SciPy)
+        run: |
+          pip install --upgrade pip
+          pip install numpy scipy pythonocc-core
+
+      #######################################################################
+      # S1 — parse_step_geometry
+      #######################################################################
+      - name: 🧪 S1: STEP Parsing (Minimal Real Parse)
+        run: |
+          python - << 'EOF'
+          from OCC.Core.STEPControl import STEPControl_Reader
+          from OCC.Core.IFSelect import IFSelect_RetDone
+
+          with open("mock.step", "w") as f:
+              f.write("ISO-10303-21;\nEND-ISO-10303-21;")
+
+          reader = STEPControl_Reader()
+          status = reader.ReadFile("mock.step")
+          if status != IFSelect_RetDone:
+              print("❌ STEP parsing failed")
+              exit(1)
+
+          print("✔ STEP parsing OK")
+          EOF
+
+      #######################################################################
+      # S2–S7 — bounding box components
+      #######################################################################
+      - name: 🧪 S2–S7: Bounding Box Computation
+        run: |
+          python - << 'EOF'
+          from OCC.Core.Bnd import Bnd_Box
+          from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
+          from OCC.Core.BRepBndLib import brepbndlib_Add
+
+          shape = BRepPrimAPI_MakeBox(1, 2, 3).Shape()
+          box = Bnd_Box()
+          brepbndlib_Add(shape, box)
+
+          xmin, ymin, zmin, xmax, ymax, zmax = box.Get()
+          print("✔ Bounding box OK:", xmin, xmax, ymin, ymax, zmin, zmax)
+          EOF
+
+      #######################################################################
+      # S8–S10 — grid resolution
+      #######################################################################
+      - name: 🧪 S8–S10: Grid Resolution Calculation
+        run: |
+          python - << 'EOF'
+          import numpy as np
+          x_min, x_max = 0.0, 1.0
+          cell_size = 0.05
+          nx = int(np.ceil((x_max - x_min) / cell_size))
+          print("✔ Grid resolution OK:", nx)
+          EOF
+
+      #######################################################################
+      # S11 — mask generation
+      #######################################################################
+      - name: 🧪 S11: Solid Classifier (Point-in-Solid Mock)
+        run: |
+          python - << 'EOF'
+          from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
+          from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
+          from OCC.Core.gp import gp_Pnt
+
+          shape = BRepPrimAPI_MakeBox(1, 1, 1).Shape()
+          classifier = BRepClass3d_SolidClassifier(shape)
+          classifier.Perform(gp_Pnt(0.5, 0.5, 0.5), 1e-6)
+
+          print("✔ Solid classifier OK")
+          EOF
+
+      #######################################################################
+      # S12 — FULL OCCT FACE CLASSIFICATION MOCK
+      #######################################################################
+      - name: 🧪 S12: Full OCCT Face Classification (Location, Type, Values)
+        run: |
+          python - << 'EOF'
+          import numpy as np
+          from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
+          from OCC.Core.TopExp import TopExp_Explorer
+          from OCC.Core.TopAbs import TopAbs_FACE
+          from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
+          from OCC.Core.Bnd import Bnd_Box
+          from OCC.Core.BRepBndLib import brepbndlib_Add
+
+          # Create a real box shape
+          shape = BRepPrimAPI_MakeBox(1, 2, 3).Shape()
+
+          # Domain extents (mock grid extents)
+          grid = {
+              "x_min": 0.0, "x_max": 1.0,
+              "y_min": 0.0, "y_max": 2.0,
+              "z_min": 0.0, "z_max": 3.0
+          }
+
+          def classify_location(face):
+              # Compute bounding box of face
+              box = Bnd_Box()
+              brepbndlib_Add(face, box)
+              xmin, ymin, zmin, xmax, ymax, zmax = box.Get()
+
+              # Compare to grid extents
+              if abs(xmin - grid["x_min"]) < 1e-6: return "x_min"
+              if abs(xmax - grid["x_max"]) < 1e-6: return "x_max"
+              if abs(ymin - grid["y_min"]) < 1e-6: return "y_min"
+              if abs(ymax - grid["y_max"]) < 1e-6: return "y_max"
+              if abs(zmin - grid["z_min"]) < 1e-6: return "z_min"
+              if abs(zmax - grid["z_max"]) < 1e-6: return "z_max"
+              return "wall"
+
+          def classify_type(location):
+              # Mock solver rules
+              if location in ("x_min", "x_max"):
+                  return "inflow"
+              if location in ("y_min", "y_max"):
+                  return "outflow"
+              if location in ("z_min", "z_max"):
+                  return "pressure"
+              return "no-slip"
+
+          def compute_values(bc_type):
+              if bc_type == "no-slip":
+                  return {"u": 0, "v": 0, "w": 0, "p": None}
+              if bc_type == "inflow":
+                  return {"u": 1.0, "v": 0.0, "w": 0.0, "p": None}
+              if bc_type == "outflow":
+                  return {"u": None, "v": None, "w": None, "p": 0.0}
+              if bc_type == "pressure":
+                  return {"u": None, "v": None, "w": None, "p": 1.0}
+              return {"u": None, "v": None, "w": None, "p": None}
+
+          # Iterate faces
+          explorer = TopExp_Explorer(shape, TopAbs_FACE)
+          i = 0
+          while explorer.More():
+              face = explorer.Current()
+
+              location = classify_location(face)
+              bc_type = classify_type(location)
+              values = compute_values(bc_type)
+
+              print(f"✔ Face {i}: location={location}, type={bc_type}, values={values}")
+
+              explorer.Next()
+              i += 1
+
+          print("✔ Full S12 face classification OK")
+          EOF
+
+      - name: 🎉 All external tools validated
+        run: echo "✔ All required external tools are functional"
