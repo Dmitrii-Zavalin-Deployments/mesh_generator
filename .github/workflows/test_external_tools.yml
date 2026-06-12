@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        # Crucial for pythonOCC: Ensures Conda environment variables and C++ links are active
+        # Crucial for pythonOCC and FreeCAD: Ensures Conda environment variables and C++ links are active
         shell: bash -el {0} 
 
     steps:
@@ -25,9 +25,9 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: 📦 Install Selected Stack (pythonOCC, NumPy, SciPy)
+      - name: 📦 Install Selected Stack (pythonOCC, NumPy, SciPy, FreeCAD, CGAL)
         run: |
-          conda install -c conda-forge pythonocc-core numpy scipy
+          conda install -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp
 
       - name: 🧪 Test S1 Capabilities (STEP Parsing Initiation)
         run: |
@@ -36,6 +36,17 @@ jobs:
           # Instantiate the reader to prove the library and C++ bindings are functional
           reader = STEPControl_Reader()
           print('✔ S1 Dependency (pythonOCC STEPControl_Reader): OK')
+          "
+
+      - name: 🧪 Test FreeCAD Reference Implementation (S1 Alternative / Reference)
+        run: |
+          python -c "
+          import FreeCAD
+          import Part
+          # Test reading/generating a reference solid and extracting a bounding box via FreeCAD
+          shape = Part.makeBox(10.0, 20.0, 30.0)
+          bbox = shape.BoundBox
+          print(f'✔ FreeCAD Kernel: OK | Reference BBox Extents: X({bbox.XMin}->{bbox.XMax}), Y({bbox.YMin}->{bbox.YMax}), Z({bbox.ZMin}->{bbox.ZMax})')
           "
 
       - name: 🧪 Test S2–S7 Capabilities (Bounding Box Extents)
@@ -72,7 +83,7 @@ jobs:
           print(f'✔ S8-S10 Dependency (NumPy / SciPy): OK | Computed nx: {nx}')
           "
 
-      - name: 🧪 Test S11 Capabilities (Mask Generation Tools)
+      - name: 🧪 Test S11 Capabilities (Mask Generation Tools via pythonOCC)
         run: |
           python -c "
           import numpy as np
@@ -91,6 +102,28 @@ jobs:
           
           print('✔ S11 Dependency (pythonOCC SolidClassifier & NumPy Arrays): OK')
           "
+
+      - name: 🧪 Test CGAL Capabilities (S11 Alternative for Robust Voxelization & Primitives)
+        run: |
+          # Create a minimal test program to verify CGAL headers, kernels, and GMP linking are accessible
+          cat << 'EOF' > test_cgal.cpp
+          #include <CGAL/Simple_cartesian.h>
+          #include <CGAL/Point_3.h>
+          #include <iostream>
+
+          typedef CGAL::Simple_cartesian<double> Kernel;
+          typedef Kernel::Point_3 Point;
+
+          int main() {
+              Point p(2.5, 2.5, 2.5);
+              std::cout << "✔ CGAL Core Kernel: OK | Spatial test point verified at (" << p.x() << ", " << p.y() << ", " << p.z() << ")" << std::endl;
+              return 0;
+          }
+          EOF
+          
+          # Compile using Conda's environment-aware compiler flags
+          g++ test_cgal.cpp -I$CONDA_PREFIX/include -L$CONDA_PREFIX/lib -lCGAL -lgmp -o test_cgal
+          ./test_cgal
 
       - name: 🧪 Test S12 Capabilities (Boundary Condition Topo Traversal)
         run: |
@@ -113,4 +146,4 @@ jobs:
           "
 
       - name: 🎉 Experiment Complete
-        run: echo "✔ All required external dependencies for the Minimal Step Path are validated and functional."
+        run: echo "✔ All required external and alternative dependencies for the Minimal Step Path are validated and functional."
