@@ -41,6 +41,8 @@ jobs:
       - name: 🧪 Test FreeCAD Reference Implementation (S1 Alternative / Reference)
         run: |
           python -c "
+          import sys
+          sys.path.append('/usr/share/miniconda/envs/test/lib')
           import FreeCAD
           import Part
           # Test reading/generating a reference solid and extracting a bounding box via FreeCAD
