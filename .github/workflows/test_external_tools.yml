@@ -16,7 +16,7 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.10"
 
       - name: 📦 Install System Dependencies (OCCT, CGAL, STEPcode)
         run: |
@@ -118,10 +118,8 @@ jobs:
           from OCC.Core.Bnd import Bnd_Box
           from OCC.Core.BRepBndLib import brepbndlib_Add
 
-          # Create a real box shape
           shape = BRepPrimAPI_MakeBox(1, 2, 3).Shape()
 
-          # Domain extents (mock grid extents)
           grid = {
               "x_min": 0.0, "x_max": 1.0,
               "y_min": 0.0, "y_max": 2.0,
@@ -129,12 +127,10 @@ jobs:
           }
 
           def classify_location(face):
-              # Compute bounding box of face
               box = Bnd_Box()
               brepbndlib_Add(face, box)
               xmin, ymin, zmin, xmax, ymax, zmax = box.Get()
 
-              # Compare to grid extents
               if abs(xmin - grid["x_min"]) < 1e-6: return "x_min"
               if abs(xmax - grid["x_max"]) < 1e-6: return "x_max"
               if abs(ymin - grid["y_min"]) < 1e-6: return "y_min"
@@ -144,7 +140,6 @@ jobs:
               return "wall"
 
           def classify_type(location):
-              # Mock solver rules
               if location in ("x_min", "x_max"):
                   return "inflow"
               if location in ("y_min", "y_max"):
@@ -164,7 +159,6 @@ jobs:
                   return {"u": None, "v": None, "w": None, "p": 1.0}
               return {"u": None, "v": None, "w": None, "p": None}
 
-          # Iterate faces
           explorer = TopExp_Explorer(shape, TopAbs_FACE)
           i = 0
           while explorer.More():

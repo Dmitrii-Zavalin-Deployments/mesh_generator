@@ -1,13 +1,3 @@
 numpy>=1.24.0
 scipy>=1.10.0
 pythonocc-core>=7.7.2
-
-jsonschema>=4.0.0
-PyYAML>=6.0.1
-
-pytest>=7.4.0
-pytest-cov>=4.1.0      # Test coverage
-hypothesis>=6.98.0      # Property-based testing
-
-autoflake>=2.2.1        # Remove unused imports/variables
-vulture>=2.9            # Dead code detection
