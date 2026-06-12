@@ -124,7 +124,7 @@ jobs:
           EOF
           
           # Compile using Conda's environment-aware compiler flags
-          g++ test_cgal.cpp -I$CONDA_PREFIX/include -L$CONDA_PREFIX/lib -lCGAL -lgmp -o test_cgal
+          g++ test_cgal.cpp -I$CONDA_PREFIX/include -L$CONDA_PREFIX/lib -lgmp -o test_cgal
           ./test_cgal
 
       - name: 🧪 Test S12 Capabilities (Boundary Condition Topo Traversal)
