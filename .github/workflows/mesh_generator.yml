@@ -19,6 +19,7 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # Define the 'Gold Standard' test command here (e.g. # pytest -s tests/ -vv --cov=src --cov-report=term-missing)
       TEST_COMMAND: "pytest -s tests/ -vv --cov=src --cov-report=term-missing"
     
     steps:
@@ -133,6 +134,7 @@ jobs:
           fi
       
       - name: 🧹 Sync Forensic Reset
+        # This only runs if the '🔍 Forensic Audit' step and tests passed
         if: success()
         run: |
           git add src/debug/forensic_audit.sh
@@ -226,6 +228,7 @@ jobs:
           ./src/upload_to_dropbox.sh
           
           echo "--- Final Audit: testing-input-output folder content ---"
+          # Verified: Relative path without leading slash for GitHub runner compatibility
           ls -R data/testing-input-output/
           
           echo "--- Full Repository State Post-Upload ---"
