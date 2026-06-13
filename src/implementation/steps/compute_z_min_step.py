@@ -32,10 +32,5 @@ class ComputeZMinStep(ComputeZMinInterface):
 
         # 2. Apply config tolerance for deterministic normalization
         normalized_z_min = round(calculated_z_min / config.tolerance) * config.tolerance
-
-        # 3. Update the Sovereign Container
-        # Ensure the results_grid dictionary is initialized per the Constitution
-        if state.results_grid is None:
-            state.results_grid = {}
             
         state.results_grid['z_min'] = float(normalized_z_min)

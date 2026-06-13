@@ -32,10 +32,5 @@ class ComputeZMaxStep(ComputeZMaxInterface):
 
         # 2. Apply config tolerance for deterministic normalization
         normalized_z_max = round(calculated_z_max / config.tolerance) * config.tolerance
-
-        # 3. Update the Sovereign Container
-        # Ensure the results_grid dictionary is initialized per the Constitution
-        if state.results_grid is None:
-            state.results_grid = {}
             
         state.results_grid['z_max'] = float(normalized_z_max)

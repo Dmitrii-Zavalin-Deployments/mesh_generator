@@ -32,10 +32,5 @@ class ComputeYMinStep(ComputeYMinInterface):
 
         # 2. Apply config tolerance to ensure deterministic normalization
         normalized_y_min = round(calculated_y_min / config.tolerance) * config.tolerance
-
-        # 3. Update the Sovereign Container
-        # Ensure the results_grid dictionary is initialized
-        if state.results_grid is None:
-            state.results_grid = {}
             
         state.results_grid['y_min'] = float(normalized_y_min)

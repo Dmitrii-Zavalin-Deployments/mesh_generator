@@ -33,10 +33,5 @@ class ComputeXMinStep(ComputeXMinInterface):
         # 2. Apply config tolerance
         # Example: snapping or rounding based on config.tolerance
         normalized_x_min = round(calculated_x_min / config.tolerance) * config.tolerance
-
-        # 3. Update the Sovereign Container
-        # Per Constitution: Only update the specific property assigned to this step
-        if state.results_grid is None:
-            state.results_grid = {}
             
         state.results_grid['x_min'] = float(normalized_x_min)

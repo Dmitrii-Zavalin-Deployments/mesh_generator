@@ -32,10 +32,5 @@ class ComputeYMaxStep(ComputeYMaxInterface):
 
         # 2. Apply config tolerance for deterministic output
         normalized_y_max = round(calculated_y_max / config.tolerance) * config.tolerance
-
-        # 3. Update the Sovereign Container
-        # Ensure the grid dictionary is initialized
-        if state.results_grid is None:
-            state.results_grid = {}
             
         state.results_grid['y_max'] = float(normalized_y_max)

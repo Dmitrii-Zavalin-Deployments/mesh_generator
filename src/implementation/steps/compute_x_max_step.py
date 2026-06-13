@@ -33,10 +33,5 @@ class ComputeXMaxStep(ComputeXMaxInterface):
         # 2. Apply config tolerance
         # Normalizing based on config.tolerance per the system architecture
         normalized_x_max = round(calculated_x_max / config.tolerance) * config.tolerance
-
-        # 3. Update the Sovereign Container
-        # Ensure the grid dictionary exists
-        if state.results_grid is None:
-            state.results_grid = {}
             
         state.results_grid['x_max'] = float(normalized_x_max)
