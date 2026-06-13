@@ -1,0 +1,696 @@
+📄 List of files to be merged:
+-------------------------------------------
+• compute_x_max_interface.py
+• compute_z_min_interface.py
+• compute_boundary_condition_location_interface.py
+• __init__.py
+• compute_y_max_interface.py
+• compute_x_min_interface.py
+• compute_y_min_interface.py
+• compute_nz_interface.py
+• compute_mask_interface.py
+• compute_ny_interface.py
+• compute_boundary_condition_values_interface.py
+• compute_nx_interface.py
+• compute_boundary_condition_type_interface.py
+• parse_step_geometry_interface.py
+• step_interface_base.py
+• compute_z_max_interface.py
+-------------------------------------------
+
+========== START OF FILE: compute_x_max_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeXMaxInterface(StepInterfaceBase):
+    """
+    S3 — compute_x_max
+
+    Contract‑only interface for the step that computes:
+        results.grid.x_max
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+
+    Produces:
+        - state.results_grid["x_max"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.x_max
+
+        Must:
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_x_max_interface.py ==========
+
+========== START OF FILE: compute_z_min_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeZMinInterface(StepInterfaceBase):
+    """
+    S6 — compute_z_min
+
+    Contract‑only interface for the step that computes:
+        results.grid.z_min
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+
+    Produces:
+        - state.results_grid["z_min"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.z_min
+
+        Must:
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_z_min_interface.py ==========
+
+========== START OF FILE: compute_boundary_condition_location_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeBoundaryConditionLocationInterface(StepInterfaceBase):
+    """
+    S12.i.1 — compute_boundary_condition_i_location
+
+    Contract‑only interface for the step that computes:
+        results.boundary_conditions[i].location
+
+    This step determines which global domain face a given geometric surface
+    corresponds to, based on:
+        - the parsed geometry (B‑Rep)
+        - the global grid extents:
+            * results.grid.x_min
+            * results.grid.x_max
+            * results.grid.y_min
+            * results.grid.y_max
+            * results.grid.z_min
+            * results.grid.z_max
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+        - grid extents from state.results_grid
+        - runtime configuration parameters (MeshGeneratorConfigInterface)
+        - the boundary‑condition index (int)
+
+    Produces:
+        - state.results_boundary_conditions[i]["location"]
+
+    The produced value must be one of:
+        "x_min", "x_max",
+        "y_min", "y_max",
+        "z_min", "z_max",
+        "wall"
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config, index: int) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.boundary_conditions[i].location
+
+        Must:
+            - read only previously‑computed properties:
+                * parsed geometry (internal)
+                * results.grid.x_min
+                * results.grid.x_max
+                * results.grid.y_min
+                * results.grid.y_max
+                * results.grid.z_min
+                * results.grid.z_max
+                * config parameters (e.g., tolerance)
+            - write exactly one property:
+                * results.boundary_conditions[index].location
+            - perform no other mutation
+            - contain no implementation logic here
+            - follow the Constitution and the Minimal Step Path
+            - enforce the Single‑Responsibility Rule
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_boundary_condition_location_interface.py ==========
+
+========== START OF FILE: __init__.py ==========
+========== END OF FILE: __init__.py ==========
+
+========== START OF FILE: compute_y_max_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeYMaxInterface(StepInterfaceBase):
+    """
+    S5 — compute_y_max
+
+    Contract‑only interface for the step that computes:
+        results.grid.y_max
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+
+    Produces:
+        - state.results_grid["y_max"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    Implementations must follow the Constitution:
+        - compute exactly one schema‑level property
+        - read only previously‑computed properties
+        - write exactly one property
+        - perform no additional mutation
+        - contain no algorithmic logic here
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.y_max
+
+        Must:
+            - read only the parsed geometry produced by S1
+            - extract the y_max bounding‑box component
+            - write exactly one field: state.results_grid["y_max"]
+            - perform no other computation or mutation
+            - contain no implementation logic here
+
+        This method is intentionally unimplemented.
+        Concrete implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_y_max_interface.py ==========
+
+========== START OF FILE: compute_x_min_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeXMinInterface(StepInterfaceBase):
+    """
+    S2 — compute_x_min
+
+    Contract‑only interface for the step that computes:
+        results.grid.x_min
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+
+    Produces:
+        - state.results_grid["x_min"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.x_min
+
+        Must:
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_x_min_interface.py ==========
+
+========== START OF FILE: compute_y_min_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeYMinInterface(StepInterfaceBase):
+    """
+    S4 — compute_y_min
+
+    Contract‑only interface for the step that computes:
+        results.grid.y_min
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+
+    Produces:
+        - state.results_grid["y_min"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.y_min
+
+        Must:
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_y_min_interface.py ==========
+
+========== START OF FILE: compute_nz_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeNzInterface(StepInterfaceBase):
+    """
+    S10 — compute_nz
+
+    Contract‑only interface for the step that computes:
+        results.grid.nz
+
+    Consumes:
+        - results.grid.z_min
+        - results.grid.z_max
+        - runtime configuration parameters (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["nz"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.nz
+
+        Must:
+            - read only previously‑computed properties:
+                * results.grid.z_min
+                * results.grid.z_max
+                * config parameters (e.g., tolerance, min/max element size)
+            - write exactly one property:
+                * results.grid.nz
+            - perform no other mutation
+            - contain no implementation logic here
+            - follow the Constitution and the Minimal Step Path
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_nz_interface.py ==========
+
+========== START OF FILE: compute_mask_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeMaskInterface(StepInterfaceBase):
+    """
+    S11 — compute_mask
+
+    Contract‑only interface for the step that computes:
+        results.mask
+
+    Consumes:
+        - parsed geometry (internal B‑Rep shape produced by S1)
+        - results.grid.nx
+        - results.grid.ny
+        - results.grid.nz
+
+    Produces:
+        - state.results_mask  (a flattened 1D array of ints in {-1, 0, 1})
+
+    Description:
+        This step is responsible for generating the solid/fluid mask array for the CFD domain.
+        The mask is a single schema‑level property and must be computed in exactly one step,
+        in accordance with the Single‑Responsibility Rule and the Minimal Step Path.
+
+        The mask classifies each grid cell as:
+            - -1 : solid (point‑in‑solid classification)
+            -  0 : fluid interior
+            -  1 : boundary‑adjacent (distance‑to‑surface < threshold)
+
+        This interface defines *only* the structural contract.
+        No logic, no defaults, and no computation are permitted here.
+
+        Implementations will rely on:
+            - OpenCascade / pythonOCC for geometric queries
+            - NumPy for array construction
+            - (optionally) CGAL or SciPy for advanced spatial queries
+
+        But none of that logic appears in this interface.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.mask
+
+        Must:
+            - read only previously‑computed properties:
+                * parsed geometry (internal, produced by S1)
+                * results.grid.nx
+                * results.grid.ny
+                * results.grid.nz
+            - write exactly one property:
+                * results.mask
+            - perform no other mutation
+            - contain no implementation logic here
+            - follow the Constitution and the Minimal Step Path
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_mask_interface.py ==========
+
+========== START OF FILE: compute_ny_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeNyInterface(StepInterfaceBase):
+    """
+    S9 — compute_ny
+
+    Contract‑only interface for the step that computes:
+        results.grid.ny
+
+    Consumes:
+        - results.grid.y_min
+        - results.grid.y_max
+        - runtime configuration parameters (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["ny"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.ny
+
+        Must:
+            - read only previously‑computed properties:
+                * results.grid.y_min
+                * results.grid.y_max
+                * config parameters (e.g., tolerance, min/max element size)
+            - write exactly one property:
+                * results.grid.ny
+            - perform no other mutation
+            - contain no implementation logic here
+            - follow the Constitution and the Minimal Step Path
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_ny_interface.py ==========
+
+========== START OF FILE: compute_boundary_condition_values_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeBoundaryConditionValuesInterface(StepInterfaceBase):
+    """
+    S12.i.3 — compute_boundary_condition_i_values
+
+    Contract‑only interface for the step that computes exactly one schema‑level property:
+        results.boundary_conditions[i].values
+
+    Consumes:
+        - results.boundary_conditions[i].type
+        - runtime configuration parameters (MeshGeneratorConfigInterface)
+        - solver‑specific conventions (provided via config)
+
+    Produces:
+        - state.results_boundary_conditions[i]["values"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, and no computation are permitted here.
+    All implementations must follow the Constitution and the Minimal Step Path.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config, index: int) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.boundary_conditions[i].values
+
+        Must:
+            - read only previously‑computed properties:
+                * results.boundary_conditions[i].type
+                * configuration parameters (e.g., solver conventions, inflow/outflow rules)
+            - write exactly one property:
+                * results.boundary_conditions[i].values
+            - perform no other mutation
+            - contain no implementation logic here
+            - enforce the Constitution and the Minimal Step Path
+            - use the provided `index` to select the correct boundary‑condition entry
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_boundary_condition_values_interface.py ==========
+
+========== START OF FILE: compute_nx_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeNxInterface(StepInterfaceBase):
+    """
+    S8 — compute_nx
+
+    Contract‑only interface for the step that computes:
+        results.grid.nx
+
+    Consumes:
+        - results.grid.x_min
+        - results.grid.x_max
+        - runtime configuration parameters (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["nx"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.nx
+
+        Must:
+            - read only previously‑computed properties:
+                * results.grid.x_min
+                * results.grid.x_max
+                * config parameters (e.g., tolerance, min/max element size)
+            - write exactly one property:
+                * results.grid.nx
+            - perform no other mutation
+            - contain no implementation logic here
+            - follow the Constitution and the Minimal Step Path
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_nx_interface.py ==========
+
+========== START OF FILE: compute_boundary_condition_type_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeBoundaryConditionTypeInterface(StepInterfaceBase):
+    """
+    S12.i.2 — compute_boundary_condition_i_type
+
+    Contract‑only interface for the step that computes exactly one schema‑level property:
+        results.boundary_conditions[i].type
+
+    Consumes:
+        - parsed geometry classification (internal, not stored in the Sovereign Container)
+        - config parameters (MeshGeneratorConfigInterface)
+        - results.boundary_conditions[i].location  (computed in S12.i.1)
+
+    Produces:
+        - state.results_boundary_conditions[i]["type"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, and no computation are permitted here.
+    Implementations must follow the Constitution and the Minimal Step Path.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config, index: int) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.boundary_conditions[i].type
+
+        Must:
+            - read only previously‑computed properties:
+                * results.boundary_conditions[i].location
+                * config parameters (e.g., solver conventions, tolerance)
+                * internal geometry classification (not stored in state)
+            - write exactly one property:
+                * results.boundary_conditions[i].type
+            - perform no other mutation
+            - contain no implementation logic here
+            - enforce the Constitution and the Minimal Step Path
+            - compute only the 'type' field for boundary condition i
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_boundary_condition_type_interface.py ==========
+
+========== START OF FILE: parse_step_geometry_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+
+class ParseStepGeometryInterface(StepInterfaceBase):
+    """
+    Contract‑only interface for S1 — parse_step_geometry.
+
+    Consumes:
+        - state.inputs_step_file
+
+    Produces:
+        - internal geometry object (B‑Rep shape, surfaces, topology)
+          NOTE: This object is NOT stored in the Sovereign Container.
+                It is kept internally for downstream steps.
+
+    This step must NOT compute any schema‑level property.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state, config) -> None:
+        """
+        Load and interpret the STEP file into an internal geometric representation.
+        Must not compute or mutate any schema‑level property in the Sovereign Container.
+        """
+        raise NotImplementedError========== END OF FILE: parse_step_geometry_interface.py ==========
+
+========== START OF FILE: step_interface_base.py ==========
+class StepInterfaceBase:
+    """
+    Base contract‑only interface for all Mesh Generator steps.
+    Subclasses may only define the allowed method name.
+
+    This interface enforces the Constitution by prohibiting subclasses
+    from defining any methods or attributes not explicitly declared
+    in the interface contract.
+    """
+
+    # Only one allowed member for all step interfaces
+    ALLOWED_MEMBERS = {"run"}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Inspect subclass for Constitution violations
+        for name in cls.__dict__:
+            if name.startswith("__"):
+                continue
+            if name not in cls.ALLOWED_MEMBERS:
+                raise TypeError(
+                    f"CONSTITUTION VIOLATION: Subclass '{cls.__name__}' is strictly "
+                    f"prohibited from defining custom member '{name}'. "
+                    f"Allowed interface members are: {cls.ALLOWED_MEMBERS}"
+                )
+
+    def run(self, state, config):
+        """
+        Transform the Sovereign Container by computing exactly one
+        schema‑level property. Must not perform any other computation
+        or mutation.
+        """
+        raise NotImplementedError========== END OF FILE: step_interface_base.py ==========
+
+========== START OF FILE: compute_z_max_interface.py ==========
+from .step_interface_base import StepInterfaceBase
+from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+
+class ComputeZMaxInterface(StepInterfaceBase):
+    """
+    S7 — compute_z_max
+
+    Contract‑only interface for the step that computes:
+        results.grid.z_max
+
+    Consumes:
+        - parsed geometry (internal, not stored in the Sovereign Container)
+
+    Produces:
+        - state.results_grid["z_max"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.z_max
+
+        Must:
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: compute_z_max_interface.py ==========
+
