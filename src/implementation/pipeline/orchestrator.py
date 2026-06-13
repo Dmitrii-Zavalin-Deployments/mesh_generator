@@ -22,41 +22,44 @@ class Orchestrator:
     
     Responsibilities:
     1. Validate inputs via factories.
-    2. Instantiate steps.
-    3. Execute steps in the strict Minimal Step Path order.
-    4. Maintain zero business logic.
+    2. Centralize schema/key validation (The Validation Gate).
+    3. Execute steps in the strict Minimal Step Path topological order.
     """
 
+    def _ensure_keys(self, state, keys: list):
+        """Centralized validation: Ensure grid keys exist before calculation steps."""
+        for key in keys:
+            if state.results_grid.get(key) is None:
+                raise ValueError(f"Orchestrator validation failed: {key} is missing in results_grid.")
+
     def run(self, raw_state: dict, raw_config: dict) -> None:
-        # 1. Validation Gates
+        # 1. Validation Gates (Initial Schema Check)
         state = StateFactory.create(raw_state)
         config = ConfigLoader.load(raw_config)
 
-        # 2. Geometry Initialization (Non-containerized internal state)
+        # 2. Geometry Initialization
         parser = ParseStepGeometryStep()
         geometry_model = parser.run(state, config)
 
-        # 3. Instantiate and sequence steps that require geometry
-        # Logic for topological sorting: 
-        # Grids/Extents -> Mask -> Boundary Conditions
-        steps = [
-            ComputeXMinStep(geometry_model),
-            ComputeXMaxStep(geometry_model),
-            ComputeYMinStep(geometry_model),
-            ComputeYMaxStep(geometry_model),
-            ComputeZMinStep(geometry_model),
-            ComputeZMaxStep(geometry_model),
-            ComputeNxStep(),
-            ComputeNyStep(),
-            ComputeNzStep(),
-            ComputeMaskStep(),
-        ]
+        # 3. Calculate Bounds (These steps define the grid extents)
+        ComputeXMinStep(geometry_model).run(state, config)
+        ComputeXMaxStep(geometry_model).run(state, config)
+        ComputeYMinStep(geometry_model).run(state, config)
+        ComputeYMaxStep(geometry_model).run(state, config)
+        ComputeZMinStep(geometry_model).run(state, config)
+        ComputeZMaxStep(geometry_model).run(state, config)
 
-        # 4. Execute standard grid steps
-        for step in steps:
-            step.run(state, config)
+        # 4. Calculate Resolution (Requires Bounds)
+        self._ensure_keys(state, ['x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max'])
+        ComputeNxStep().run(state, config)
+        ComputeNyStep().run(state, config)
+        ComputeNzStep().run(state, config)
 
-        # 5. Handle Boundary Conditions (Dependent on index)
+        # 5. Calculate Mask (Requires Resolution)
+        self._ensure_keys(state, ['nx', 'ny', 'nz'])
+        ComputeMaskStep().run(state, config)
+
+        # 6. Handle Boundary Conditions (Requires Grid + Resolution + Mask)
         # Assuming number of BCs is known from geometry_model
         bc_steps = [
             ComputeBoundaryConditionLocationStep(geometry_model),
@@ -69,5 +72,4 @@ class Orchestrator:
             for step in bc_steps:
                 step.run(state, config, index=i)
 
-        # Final pipeline state is now fully populated in 'state'
         return state
