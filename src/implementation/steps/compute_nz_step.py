@@ -22,12 +22,9 @@ class ComputeNzStep(ComputeNzInterface):
                the cell size limit is strictly respected).
             4. Write the integer result to state.results_grid['nz'].
         """
-        # 1. Access required inputs
-        z_min = state.results_grid.get('z_min')
-        z_max = state.results_grid.get('z_max')
-        
-        if z_min is None or z_max is None:
-            raise ValueError("S10 compute_nz requires results.grid.z_min and z_max to be computed first.")
+        # 1. Access required inputs (Orchestrator guarantees valid state)
+        z_min = state.results_grid['z_min']
+        z_max = state.results_grid['z_max']
 
         # 2. Compute span
         span = z_max - z_min

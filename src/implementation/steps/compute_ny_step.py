@@ -22,13 +22,9 @@ class ComputeNyStep(ComputeNyInterface):
                the cell size limit is strictly respected).
             4. Write the integer result to state.results_grid['ny'].
         """
-        # 1. Access required inputs
-        # The contract requires y_min and y_max to be present in the results_grid
-        y_min = state.results_grid.get('y_min')
-        y_max = state.results_grid.get('y_max')
-        
-        if y_min is None or y_max is None:
-            raise ValueError("S9 compute_ny requires results.grid.y_min and y_max to be computed first.")
+        # 1. Access required inputs (Orchestrator guarantees valid state)
+        y_min = state.results_grid['y_min']
+        y_max = state.results_grid['y_max']
 
         # 2. Compute span
         span = y_max - y_min

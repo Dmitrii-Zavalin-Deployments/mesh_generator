@@ -22,12 +22,9 @@ class ComputeNxStep(ComputeNxInterface):
                the cell size limit is strictly respected).
             4. Write the integer result to state.results_grid['nx'].
         """
-        # 1. Access required inputs
-        x_min = state.results_grid.get('x_min')
-        x_max = state.results_grid.get('x_max')
-        
-        if x_min is None or x_max is None:
-            raise ValueError("S8 compute_nx requires results.grid.x_min and x_max to be computed first.")
+        # 1. Access required inputs (Direct access assumes validation by Orchestrator)
+        x_min = state.results_grid['x_min']
+        x_max = state.results_grid['x_max']
 
         # 2. Compute span
         span = x_max - x_min

@@ -20,24 +20,17 @@ class ComputeBoundaryConditionValuesStep(ComputeBoundaryConditionValuesInterface
             3. Populate the 'values' dictionary within the Sovereign Container.
             4. Enforce strict adherence to the provided configuration (No-Defaults Policy).
         """
-        # 1. Validation: Ensure previous steps have run and data is present
-        if not hasattr(state, 'results_boundary_conditions') or index >= len(state.results_boundary_conditions):
-            raise IndexError(f"Boundary condition at index {index} not initialized.")
-
+        # 1. Access required inputs (Orchestrator guarantees valid state and indices)
         bc = state.results_boundary_conditions[index]
-        bc_type = bc.get("type")
-
-        if bc_type is None:
-            raise ValueError(f"S12.i.3 requires 'type' to be computed for index {index} first.")
+        bc_type = bc['type']
 
         # 2. Extract values from config
         # The config object must explicitly define parameters for the specific type.
-        # We perform no internal defaulting; if the config is missing these keys, 
-        # this will naturally raise a KeyError.
+        # This will naturally raise a KeyError if the config is malformed, 
+        # which is the correct behavior for strict configuration adherence.
         config_values = config.get_values_for_type(bc_type)
 
         # 3. Construct and assign the values container
-        # The structure must match BoundaryConditionValuesInterface
         values_container = {
             "u": config_values["u"],
             "v": config_values["v"],
