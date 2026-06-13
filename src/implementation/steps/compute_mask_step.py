@@ -28,25 +28,28 @@ class ComputeMaskStep(ComputeMaskInterface):
             5. Store the final flattened mask in state.results_mask.
         """
         # 1. Retrieve dimensions
-        nx = state.results_grid.get('nx')
-        ny = state.results_grid.get('ny')
-        nz = state.results_grid.get('nz')
+        # The Orchestrator guarantees these keys exist; defensive checks are removed.
+        nx = state.results_grid['nx']
+        ny = state.results_grid['ny']
+        nz = state.results_grid['nz']
         
-        if None in [nx, ny, nz]:
-            raise ValueError("S11 compute_mask requires grid resolution (nx, ny, nz) to be computed first.")
+        # Pre-calculate cell sizes (logic inlined and optimized)
+        dx = (state.results_grid['x_max'] - state.results_grid['x_min']) / nx
+        dy = (state.results_grid['y_max'] - state.results_grid['y_min']) / ny
+        dz = (state.results_grid['z_max'] - state.results_grid['z_min']) / nz
 
         # 2. Initialize mask (flattened size: nx * ny * nz)
         total_cells = nx * ny * nz
         mask = [0] * total_cells
 
         # 3. Iterate and classify
-        # The iteration order corresponds to the flattened index: k*(nx*ny) + j*nx + i
+        # Logic inlined to avoid sideways structures/unauthorized helper methods
         for k in range(nz):
+            z = state.results_grid['z_min'] + (k + 0.5) * dz
             for j in range(ny):
+                y = state.results_grid['y_min'] + (j + 0.5) * dy
                 for i in range(nx):
-                    # Calculate world coordinates for the grid point
-                    # Assumes a mapping function from index to geometric space
-                    x, y, z = self._get_cell_coordinates(i, j, k, state)
+                    x = state.results_grid['x_min'] + (i + 0.5) * dx
                     
                     # 4. Classify point
                     # -1: Solid, 0: Fluid, 1: Boundary
@@ -57,18 +60,3 @@ class ComputeMaskStep(ComputeMaskInterface):
 
         # 5. Write result
         state.results_mask = mask
-
-    def _get_cell_coordinates(self, i, j, k, state):
-        """
-        Maps grid indices to absolute world coordinates based on bounding box limits.
-        """
-        # Linear interpolation within the bounding box
-        dx = (state.results_grid['x_max'] - state.results_grid['x_min']) / state.results_grid['nx']
-        dy = (state.results_grid['y_max'] - state.results_grid['y_min']) / state.results_grid['ny']
-        dz = (state.results_grid['z_max'] - state.results_grid['z_min']) / state.results_grid['nz']
-        
-        x = state.results_grid['x_min'] + (i + 0.5) * dx
-        y = state.results_grid['y_min'] + (j + 0.5) * dy
-        z = state.results_grid['z_min'] + (k + 0.5) * dz
-        
-        return x, y, z
