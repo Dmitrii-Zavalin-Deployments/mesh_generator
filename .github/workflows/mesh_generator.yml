@@ -49,10 +49,15 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: 📦 Install Physics Stack & Dev Tools (No requirements.txt)
+      - name: 📦 Install Physics Stack & Dev Tools
         run: |
-          # Includes the core stack + CI/CD hygiene and testing tools
-          conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp pytest pytest-cov autoflake ruff vulture
+          conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp pytest pytest-cov autoflake ruff vulture pip
+
+      - name: 📥 Install Python Dependencies (pip)
+        # Only runs if requirements.txt exists to prevent pipeline crashes
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install --no-cache-dir -r requirements.txt
 
       - name: 🧹 Auto-Clean (Autoflake)
         run: |
@@ -198,13 +203,14 @@ jobs:
   #         channels: conda-forge
   #         channel-priority: strict
 
-  #     - name: 📦 Install Physics Stack (No requirements.txt)
+  #     - name: 📦 Install Physics Stack
   #       run: |
-  #         # Installing strictly the geometric and numerical dependencies required for the run
-  #         conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp
+  #         conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp pip
 
-  #     - name: 🗂️ Pre-Download Repository State
-  #       run: ls -R
+  #     - name: 📥 Install Python Dependencies (pip)
+  #       if: hashFiles('requirements.txt') != ''
+  #       run: |
+  #         pip install --no-cache-dir -r requirements.txt
 
   #     - name: 📥 Synchronize Input (Dropbox)
   #       run: |
