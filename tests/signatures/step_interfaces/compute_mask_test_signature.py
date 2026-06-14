@@ -1,11 +1,10 @@
 class ComputeMaskTestSignature:
     """
-    Contract‑level signature for validating ComputeMaskInterface (S11).
+    Contract-level signature for validating ComputeMaskInterface (S11).
 
     This signature defines all required Sensitivity, Physics & Math, and
     Consistency validation responsibilities for the step that computes:
-
-        results.mask   (flattened 1D array of ints in {-1, 0, 1})
+        results.mask (a contiguous numpy.ndarray of int8)
 
     No logic, no assertions, and no execution may appear in this file.
     All methods must raise NotImplementedError.
@@ -14,23 +13,13 @@ class ComputeMaskTestSignature:
     ComputeMaskInterface:
 
         Consumes:
-            - parsed geometry (internal B‑Rep shape from S1)
-            - results.grid.nx
-            - results.grid.ny
-            - results.grid.nz
+            - geometry_model: GeometryModel (containing TopoDS_Shape)
+            - results.grid.nx, ny, nz
 
         Produces:
-            - state.results_mask
+            - state.results_mask (numpy.ndarray)
 
-        Requirements:
-            - compute exactly one schema‑level property
-            - read only previously‑computed properties
-            - write exactly one property
-            - perform no other mutation
-            - contain no implementation logic here
-
-    These signatures define WHAT must be validated during Phase 6,
-    not HOW validation is performed.
+    These signatures define WHAT must be validated during Phase 6.
     """
 
     # ----------------------------------------------------------------------
@@ -40,10 +29,8 @@ class ComputeMaskTestSignature:
     def test_sensitivity_missing_required_inputs(self):
         """
         The step must detect when any required input is missing:
-            - parsed geometry (from S1)
-            - results.grid.nx
-            - results.grid.ny
-            - results.grid.nz
+            - geometry_model (instance of GeometryModel)
+            - results.grid.nx, ny, nz
 
         The mask must not be computed if any prerequisite is missing.
         """
@@ -53,19 +40,9 @@ class ComputeMaskTestSignature:
         """
         The step must detect invalid types for:
             - nx, ny, nz (must be positive integers)
-            - geometry object (must be a valid B‑Rep shape)
+            - geometry_model (must be a valid GeometryModel instance)
 
         Invalid types must be rejected.
-        """
-        raise NotImplementedError
-
-    def test_sensitivity_invalid_numeric_ranges(self):
-        """
-        The step must detect invalid numeric ranges such as:
-            - nx, ny, nz <= 0
-            - extremely large grid sizes that exceed memory constraints
-
-        Mask computation must not proceed in these cases.
         """
         raise NotImplementedError
 
@@ -73,12 +50,23 @@ class ComputeMaskTestSignature:
     # 3.2.2 — Physics & Math Gate Signatures
     # ----------------------------------------------------------------------
 
+    def test_physics_mask_type_and_length_correctness(self):
+        """
+        The result must be a numpy.ndarray:
+            - Type: numpy.ndarray
+            - Dtype: numpy.int8
+            - Size: nx * ny * nz
+
+        Any mismatch in type, dtype, or size must be detected.
+        """
+        raise NotImplementedError
+
     def test_physics_mask_value_validity(self):
         """
         The mask must contain only values in {-1, 0, 1}:
             - -1 : solid
             -  0 : fluid interior
-            -  1 : boundary‑adjacent
+            -  1 : boundary-adjacent
 
         Any other value must be rejected.
         """
@@ -86,28 +74,11 @@ class ComputeMaskTestSignature:
 
     def test_physics_geometry_classification_validity(self):
         """
-        The step must classify each grid cell consistently with:
-            - point‑in‑solid tests
-            - distance‑to‑surface thresholds
-            - geometric validity of the B‑Rep shape
+        The step must classify each grid cell consistently with 
+        BRepClass3d_SolidClassifier ray-casting against the 
+        geometry_model.cad_solid.
 
         Physically inconsistent classifications must be detected.
-        """
-        raise NotImplementedError
-
-    def test_physics_mask_length_correctness(self):
-        """
-        The mask length must equal:
-            nx * ny * nz
-
-        Any mismatch must be detected.
-        """
-        raise NotImplementedError
-
-    def test_physics_empty_or_degenerate_geometry(self):
-        """
-        If the geometry is empty, degenerate, or invalid,
-        the step must detect this and fail gracefully.
         """
         raise NotImplementedError
 
@@ -117,32 +88,24 @@ class ComputeMaskTestSignature:
 
     def test_consistency_single_responsibility(self):
         """
-        The step must compute exactly one schema‑level property:
+        The step must compute exactly one schema-level property:
             results.mask
 
-        No other field may be modified.
-        """
-        raise NotImplementedError
-
-    def test_consistency_no_cross_step_corruption(self):
-        """
-        The step must not corrupt or overwrite values computed by:
-            - S1–S10 (geometry, bounding box, nx/ny/nz)
-            - S12 (boundary conditions)
+        No other field may be modified in the state.
         """
         raise NotImplementedError
 
     def test_consistency_deterministic_output(self):
         """
-        Given the same inputs (geometry, nx, ny, nz),
-        the step must always compute the same mask array
+        Given the same inputs (GeometryModel, nx, ny, nz),
+        the step must always compute the same numpy array
         (deterministic behaviour).
         """
         raise NotImplementedError
 
     def test_consistency_pipeline_progression(self):
         """
-        S11 must execute only after S10 has successfully computed nz.
-        No downstream step may execute until the mask is computed.
+        S11 must execute only after resolution (nx, ny, nz) 
+        and geometry parsing (S1) are complete.
         """
         raise NotImplementedError

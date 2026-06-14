@@ -1,47 +1,66 @@
 # src/implementation/steps/parse_step_geometry_step.py
-import json
+
+# PythonOCC Core imports for high-performance geometry processing
+from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.IFSelect import IFSelect_RetDone
+from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.BRepBndLib import brepbndlib_Add
+
+# Domain imports
 from src.interfaces.step_interfaces.parse_step_geometry_interface import ParseStepGeometryInterface
-# Ensure this class exists in your domain models directory
 from src.implementation.models.geometry_model import GeometryModel 
 
 class ParseStepGeometryStep(ParseStepGeometryInterface):
     """
     Concrete implementation of S1 — parse_step_geometry.
 
-    This step is responsible for loading the raw STEP file provided in the
-    Sovereign Container state and parsing it into a navigable geometric 
-    representation.
+    This step is responsible for loading the actual CAD STEP file, parsing
+    the topology into an OpenCASCADE TopoDS_Shape, and computing the exact
+    mathematical bounding box for the mesh generation grid.
     """
 
     def run(self, state, config) -> GeometryModel:
         """
         Loads the STEP file referenced in the state, performs geometric 
-        parsing, and returns the geometric model for downstream processing.
+        parsing using OpenCASCADE, and returns the GeometryModel.
 
         Args:
             state: The MeshGeneratorState Sovereign Container.
             config: The MeshGeneratorConfig object.
             
-        Note:
-            Validation of the file existence is centralized in the Orchestrator 
-            or StateFactory, removing the need for defensive checks here.
+        Returns:
+            GeometryModel: Encapsulated geometry object containing the 
+                           TopoDS_Shape and spatial bounds.
         """
-        try:
-            # Concrete implementation: Open the file path provided in the state
-            with open(state.inputs_step_file, 'r') as f:
-                geometry_data = json.load(f)
-            
-            # Construct and return the GeometryModel.
-            # This removes placeholders and satisfies Condition 5.
-            return GeometryModel(
-                x_min=geometry_data["x_min"],
-                x_max=geometry_data["x_max"],
-                y_min=geometry_data["y_min"],
-                y_max=geometry_data["y_max"],
-                z_min=geometry_data["z_min"],
-                z_max=geometry_data["z_max"],
-                boundaries=geometry_data.get("boundaries", [])
-            )
-            
-        except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
-            raise RuntimeError(f"Step S1 failed: Unable to parse STEP file '{state.inputs_step_file}'. Error: {e}")
+        # 1. Initialize the STEP Reader
+        step_reader = STEPControl_Reader()
+        
+        # 2. Attempt to read the file
+        status = step_reader.ReadFile(state.inputs_step_file)
+
+        if status != IFSelect_RetDone:
+            raise RuntimeError(f"Step S1 failed: Unable to parse real STEP file '{state.inputs_step_file}'.")
+
+        # 3. Transfer roots and extract the solid shape
+        # The reader converts the STEP file into an internal TopoDS_Shape
+        step_reader.TransferRoots()
+        cad_solid = step_reader.Shape(1) 
+
+        # 4. Calculate exact bounding box using OpenCASCADE mathematics
+        bbox = Bnd_Box()
+        brepbndlib_Add(cad_solid, bbox)
+        
+        # Get the bounds as a tuple (xmin, ymin, zmin, xmax, ymax, zmax)
+        x_min, y_min, z_min, x_max, y_max, z_max = bbox.Get()
+
+        # 5. Construct and return the GeometryModel
+        # This replaces the mock dictionary with a physical geometric object
+        return GeometryModel(
+            x_min=x_min,
+            x_max=x_max,
+            y_min=y_min,
+            y_max=y_max,
+            z_min=z_min,
+            z_max=z_max,
+            cad_solid=cad_solid
+        )

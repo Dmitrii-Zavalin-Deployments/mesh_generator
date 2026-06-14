@@ -1,4 +1,9 @@
 # src/implementation/steps/compute_mask_step.py
+import numpy as np
+from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
+from OCC.Core.gp import gp_Pnt
+from OCC.Core.TopAbs import TopAbs_IN, TopAbs_ON
+
 from src.interfaces.step_interfaces.compute_mask_interface import ComputeMaskInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
@@ -6,8 +11,9 @@ class ComputeMaskStep(ComputeMaskInterface):
     """
     Concrete implementation of S11 — compute_mask.
 
-    Constructs the 1D domain mask array by performing spatial point-in-solid
-    queries against the parsed geometric model for every cell in the grid.
+    Constructs the 1D domain mask array using NumPy for memory efficiency
+    and the BRepClass3d_SolidClassifier for mathematically precise ray-casting
+    against the geometric model.
     """
 
     def __init__(self, geometry_model):
@@ -18,32 +24,34 @@ class ComputeMaskStep(ComputeMaskInterface):
 
     def run(self, state: MeshGeneratorStateInterface, config) -> None:
         """
-        Computes results.mask.
+        Computes results.mask via optimized ray-casting.
 
         Logic:
-            1. Retrieve grid dimensions (nx, ny, nz) from state.results_grid.
-            2. Initialize a flattened array (1D list) of zeros.
-            3. Iterate through all grid coordinates (i, j, k).
-            4. Query the geometry_model for point classification (-1, 0, or 1).
-            5. Store the final flattened mask in state.results_mask.
+            1. Retrieve grid dimensions.
+            2. Pre-allocate contiguous memory via numpy.
+            3. Instantiate the OpenCASCADE classifier.
+            4. Perform ray-casting to identify Solid, Boundary, or Fluid cells.
+            5. Finalize the array and store in state.
         """
-        # 1. Retrieve dimensions
-        # The Orchestrator guarantees these keys exist; defensive checks are removed.
-        nx = state.results_grid['nx']
-        ny = state.results_grid['ny']
-        nz = state.results_grid['nz']
+        # 1. Retrieve dimensions from state
+        nx, ny, nz = state.results_grid['nx'], state.results_grid['ny'], state.results_grid['nz']
         
-        # Pre-calculate cell sizes (logic inlined and optimized)
+        # Calculate cell sizes
         dx = (state.results_grid['x_max'] - state.results_grid['x_min']) / nx
         dy = (state.results_grid['y_max'] - state.results_grid['y_min']) / ny
         dz = (state.results_grid['z_max'] - state.results_grid['z_min']) / nz
 
-        # 2. Initialize mask (flattened size: nx * ny * nz)
+        # 2. Pre-allocate contiguous memory (int8 is sufficient for [-1, 0, 1])
         total_cells = nx * ny * nz
-        mask = [0] * total_cells
+        mask = np.zeros(total_cells, dtype=np.int8)
 
-        # 3. Iterate and classify
-        # Logic inlined to avoid sideways structures/unauthorized helper methods
+        # 3. Initialize the BRepClass3d_SolidClassifier
+        # We define a tolerance (e.g., 1e-7) to handle geometric precision
+        classifier = BRepClass3d_SolidClassifier(self.geometry_model.cad_solid)
+        tolerance = 1e-7 
+
+        # 4. Perform ray-casting iteration
+        flat_index = 0
         for k in range(nz):
             z = state.results_grid['z_min'] + (k + 0.5) * dz
             for j in range(ny):
@@ -51,12 +59,20 @@ class ComputeMaskStep(ComputeMaskInterface):
                 for i in range(nx):
                     x = state.results_grid['x_min'] + (i + 0.5) * dx
                     
-                    # 4. Classify point
-                    # -1: Solid, 0: Fluid, 1: Boundary
-                    value = self.geometry_model.classify_point(x, y, z)
+                    # Perform ray-casting for the point
+                    pnt = gp_Pnt(x, y, z)
+                    classifier.Perform(pnt, tolerance)
                     
-                    flat_index = k * (nx * ny) + j * nx + i
-                    mask[flat_index] = int(value)
+                    # Map OpenCASCADE TopAbs to internal schema
+                    status = classifier.State()
+                    if status == TopAbs_IN:
+                        mask[flat_index] = -1  # Solid
+                    elif status == TopAbs_ON:
+                        mask[flat_index] = 1   # Boundary
+                    else:
+                        mask[flat_index] = 0   # Fluid (OUT)
+                        
+                    flat_index += 1
 
-        # 5. Write result
-        state.results_mask = mask
+        # 5. Write result (cast back to list for JSON serialization)
+        state.results_mask = mask.tolist()
