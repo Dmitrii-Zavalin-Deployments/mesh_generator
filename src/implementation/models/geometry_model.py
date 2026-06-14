@@ -1,7 +1,6 @@
 # src/implementation/models/geometry_model.py
 
 from OCC.Core.TopoDS import TopoDS_Shape
-from typing import Optional
 
 class GeometryModel:
     """
