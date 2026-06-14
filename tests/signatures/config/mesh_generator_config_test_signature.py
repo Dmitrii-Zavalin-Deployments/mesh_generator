@@ -125,23 +125,3 @@ class MeshGeneratorConfigTestSignature:
         No field may remain undefined at any stage of the pipeline.
         """
         raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # 3.2 — Global Configuration‑Level Validation Responsibilities
-    # ----------------------------------------------------------------------
-
-    def test_global_no_computation_before_validation(self):
-        """
-        The pipeline must refuse to run if the configuration fails validation.
-        No computation may occur before configuration validation.
-        """
-        raise NotImplementedError
-
-    def test_global_no_extra_fields(self):
-        """
-        MeshGeneratorConfigInterface must not contain any fields beyond:
-            solver_version, tolerance, max_element_size, min_element_size
-
-        Extra fields must cause immediate failure.
-        """
-        raise NotImplementedError

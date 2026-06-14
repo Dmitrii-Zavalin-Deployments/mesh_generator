@@ -144,21 +144,3 @@ class MeshGeneratorStateTestSignature:
         No step may execute out of order or with incomplete prerequisites.
         """
         raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # 3.2 — Global State‑Level Validation Responsibilities
-    # ----------------------------------------------------------------------
-
-    def test_global_no_computation_before_validation(self):
-        """
-        The pipeline must refuse to run if the Sovereign Container fails validation.
-        No computation may occur before the state is validated.
-        """
-        raise NotImplementedError
-
-    def test_global_no_extra_fields(self):
-        """
-        The state must not contain any fields beyond those declared in
-        MeshGeneratorStateInterface. Extra fields must cause immediate failure.
-        """
-        raise NotImplementedError

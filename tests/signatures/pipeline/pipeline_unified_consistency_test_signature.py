@@ -37,6 +37,20 @@ class PipelineUnifiedConsistencyTestSignature:
         """
         raise NotImplementedError
 
+    def test_pipeline_no_schema_mutation(self):
+        """
+        The pipeline must enforce strict mutation boundaries for every step.
+
+        For every step executed, the pipeline must verify that:
+            - only the step's specific, declared field is mutated.
+            - no other schema-level properties are altered.
+            - any unauthorized mutation causes an immediate pipeline failure.
+
+        This centralizes the validation logic previously scattered across
+        individual step interface signatures.
+        """
+        raise NotImplementedError
+
     def test_pipeline_deterministic_end_to_end_behaviour(self):
         """
         Given identical inputs (geometry, configuration, state),

@@ -115,23 +115,3 @@ class BoundaryConditionValuesTestSignature:
         No field may remain undefined at any stage of the pipeline.
         """
         raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # 3.2 — Global Values‑Level Validation Responsibilities
-    # ----------------------------------------------------------------------
-
-    def test_global_no_computation_before_validation(self):
-        """
-        The pipeline must refuse to run if the values object fails validation.
-        No computation may occur before validation.
-        """
-        raise NotImplementedError
-
-    def test_global_no_extra_fields(self):
-        """
-        BoundaryConditionValuesInterface must not contain any fields beyond:
-            u, v, w, p
-
-        Extra fields must cause immediate failure.
-        """
-        raise NotImplementedError

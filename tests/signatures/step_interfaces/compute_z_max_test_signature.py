@@ -128,21 +128,3 @@ class ComputeZMaxTestSignature:
         No downstream step may execute until z_max is computed.
         """
         raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # 3.2 — Global Step‑Level Validation Responsibilities
-    # ----------------------------------------------------------------------
-
-    def test_global_no_computation_before_validation(self):
-        """
-        The pipeline must refuse to run S7 if validation of the geometry
-        or state fails. No computation may occur before validation.
-        """
-        raise NotImplementedError
-
-    def test_global_no_schema_mutation(self):
-        """
-        The step must not mutate any schema‑level property other than
-        results.grid.z_max. Any additional mutation must cause failure.
-        """
-        raise NotImplementedError

@@ -39,6 +39,21 @@ class PipelineUnifiedGlobalValidationTestSignature:
         """
         raise NotImplementedError
 
+    def test_global_step_execution_order(self):
+        """
+        The orchestrator must enforce the strict topological execution order
+        defined in the pipeline architecture.
+
+        The pipeline must ensure:
+            - Step A executes before Step B if Step B depends on Step A's output.
+            - No step may execute if its prerequisites (previous step outputs) are missing.
+            - The execution sequence is non-negotiable and deterministic.
+
+        This centralizes the validation of dependency order, preventing
+        out-of-order execution across the entire pipeline.
+        """
+        raise NotImplementedError
+
     def test_global_contract_alignment_with_interfaces(self):
         """
         The pipeline must remain aligned with all step‑level interfaces:

@@ -155,23 +155,3 @@ class BoundaryConditionTestSignature:
         No step may execute out of order or with incomplete prerequisites.
         """
         raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # 3.2 — Global Boundary‑Condition‑Level Validation Responsibilities
-    # ----------------------------------------------------------------------
-
-    def test_global_no_computation_before_validation(self):
-        """
-        The pipeline must refuse to run if any boundary condition entry
-        fails validation. No computation may occur before validation.
-        """
-        raise NotImplementedError
-
-    def test_global_no_extra_fields(self):
-        """
-        BoundaryConditionInterface must not contain any fields beyond:
-            location, type, values
-
-        Extra fields must cause immediate failure.
-        """
-        raise NotImplementedError

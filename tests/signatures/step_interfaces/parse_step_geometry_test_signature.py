@@ -122,21 +122,3 @@ class ParseStepGeometryTestSignature:
         No downstream step may execute without valid parsed geometry.
         """
         raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # 3.2 — Global Step‑Level Validation Responsibilities
-    # ----------------------------------------------------------------------
-
-    def test_global_no_computation_before_validation(self):
-        """
-        The pipeline must refuse to run S1 if validation of the input file
-        fails. No geometry parsing may occur before validation.
-        """
-        raise NotImplementedError
-
-    def test_global_no_extra_fields(self):
-        """
-        ParseStepGeometryInterface must not define or use any fields beyond
-        those declared in the interface. Extra fields must cause failure.
-        """
-        raise NotImplementedError
