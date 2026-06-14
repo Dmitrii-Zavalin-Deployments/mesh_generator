@@ -1,0 +1,2986 @@
+📄 List of files to be merged:
+-------------------------------------------
+• state/state_factory_test_signature.py
+• state/boundary_condition_test_signature.py
+• state/grid_test_signature.py
+• state/mesh_generator_state_test_signature.py
+• state/boundary_condition_values_test_signature.py
+• config/mesh_generator_config_test_signature.py
+• pipeline/pipeline_unified_global_validation_test_signature.py
+• pipeline/pipeline_unified_consistency_test_signature.py
+• pipeline/pipeline_unified_sensitivity_test_signature.py
+• pipeline/pipeline_unified_physics_math_test_signature.py
+• step_interfaces/compute_nz_test_signature.py
+• step_interfaces/compute_ny_test_signature.py
+• step_interfaces/compute_boundary_condition_type_test_signature.py
+• step_interfaces/compute_x_max_test_signature.py
+• step_interfaces/compute_boundary_condition_values_test_signature.py
+• step_interfaces/parse_step_geometry_test_signature.py
+• step_interfaces/compute_z_max_test_signature.py
+• step_interfaces/compute_mask_test_signature.py
+• step_interfaces/compute_y_max_test_signature.py
+• step_interfaces/compute_boundary_condition_location_test_signature.py
+• step_interfaces/compute_x_min_test_signature.py
+• step_interfaces/compute_nx_test_signature.py
+• step_interfaces/compute_y_min_test_signature.py
+• step_interfaces/compute_z_min_test_signature.py
+-------------------------------------------
+
+========== START OF FILE: state/state_factory_test_signature.py ==========
+# tests/signatures/state/state_factory_test_signature.py
+
+class StateFactoryTestSignature:
+    """
+    Centralized signature for validating State construction and schema integrity.
+    This replaces the redundant test_global_no_extra_fields found in individual files.
+    """
+
+    def test_schema_integrity_no_extra_fields(self):
+        """
+        Validates that the StateFactory only accepts fields explicitly 
+        defined in the schema. Any field not in the whitelist must trigger
+        a schema validation error.
+        """
+        raise NotImplementedError
+
+    def test_schema_integrity_all_required_fields_present(self):
+        """
+        Validates that the StateFactory enforces the No-Defaults Policy 
+        by rejecting partial data inputs.
+        """
+        raise NotImplementedError========== END OF FILE: state/state_factory_test_signature.py ==========
+
+========== START OF FILE: state/boundary_condition_test_signature.py ==========
+class BoundaryConditionTestSignature:
+    """
+    Contract‑level signature for validating BoundaryConditionInterface.
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for a single boundary condition
+    entry inside results.boundary_conditions[i].
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the fields declared in
+    BoundaryConditionInterface:
+
+        location: str
+            One of:
+                "x_min", "x_max",
+                "y_min", "y_max",
+                "z_min", "z_max",
+                "wall"
+
+        type: str
+            One of:
+                "no-slip", "free-slip",
+                "inflow", "outflow", "pressure"
+
+        values: BoundaryConditionValuesInterface
+            (u, v, w, p) — optional numeric fields
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_fields(self):
+        """
+        Each boundary condition entry must contain:
+            - location
+            - type
+            - values
+
+        Missing fields must be detected before any computation begins.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_location_enum(self):
+        """
+        location must be one of:
+            "x_min", "x_max",
+            "y_min", "y_max",
+            "z_min", "z_max",
+            "wall"
+
+        Any invalid or misspelled value must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_type_enum(self):
+        """
+        type must be one of:
+            "no-slip", "free-slip",
+            "inflow", "outflow", "pressure"
+
+        Any invalid or unsupported type must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_values_structure(self):
+        """
+        values must match BoundaryConditionValuesInterface.
+        Missing or malformed values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_schema_alignment(self):
+        """
+        The boundary condition structure must match the schema exactly.
+        No extra fields, no missing fields, no schema drift.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_location_consistency(self):
+        """
+        The location must be physically consistent with the geometry and
+        grid extents computed in S2–S7.
+
+        Physically impossible locations must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_type_consistency(self):
+        """
+        The type must be physically consistent with the location and solver
+        conventions (e.g., inflow/outflow only on domain faces).
+        """
+        raise NotImplementedError
+
+    def test_physics_values_numeric(self):
+        """
+        All provided values (u, v, w, p) must be numeric when present.
+        Non‑numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_values_required_for_type(self):
+        """
+        Certain boundary types require specific numeric fields:
+            - inflow: u, v, w required
+            - outflow: p required
+            - pressure: p required
+            - no-slip: u = v = w = 0
+            - free-slip: p = 0 (or solver default)
+
+        Missing required values must be detected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_predictable_structure(self):
+        """
+        The boundary condition structure must remain stable and predictable
+        across all steps. No step may mutate unrelated fields.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        Values written by S12.i.1 (location), S12.i.2 (type), and S12.i.3 (values)
+        must not be overwritten or corrupted by unrelated steps.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_uninitialized_fields(self):
+        """
+        All boundary condition fields must be explicitly initialized before use.
+        No field may remain undefined at any stage of the pipeline.
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        Boundary condition fields must be computed in the correct order:
+            S12.i.1 → S12.i.2 → S12.i.3
+
+        No step may execute out of order or with incomplete prerequisites.
+        """
+        raise NotImplementedError========== END OF FILE: state/boundary_condition_test_signature.py ==========
+
+========== START OF FILE: state/grid_test_signature.py ==========
+class GridTestSignature:
+    """
+    Contract‑level signature for validating GridInterface.
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the grid structure inside
+    MeshGeneratorStateInterface.
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the fields declared in
+    GridInterface:
+
+        x_min: float
+        x_max: float
+        y_min: float
+        y_max: float
+        z_min: float
+        z_max: float
+        nx: int
+        ny: int
+        nz: int
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_fields(self):
+        """
+        All required grid fields must be present:
+            x_min, x_max,
+            y_min, y_max,
+            z_min, z_max,
+            nx, ny, nz
+
+        Missing fields must be detected before any computation begins.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        All grid fields must match the declared types:
+            - x_min, x_max, y_min, y_max, z_min, z_max: float
+            - nx, ny, nz: int
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_resolution_values(self):
+        """
+        Grid resolution values (nx, ny, nz) must be non‑negative integers.
+        Negative or non‑integer values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_bounding_box_values(self):
+        """
+        Bounding box values must be finite floats.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_schema_alignment(self):
+        """
+        The grid structure must match the schema exactly.
+        No extra fields, no missing fields, no schema drift.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_ordering(self):
+        """
+        Bounding box values must satisfy:
+            x_min <= x_max
+            y_min <= y_max
+            z_min <= z_max
+
+        Inverted or physically impossible bounds must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_resolution_positive(self):
+        """
+        Grid resolution values (nx, ny, nz) must be strictly positive
+        once computed by S8–S10.
+
+        Zero resolution must be rejected as physically invalid.
+        """
+        raise NotImplementedError
+
+    def test_physics_resolution_consistency(self):
+        """
+        Resolution must be consistent with bounding box size and
+        configuration parameters (e.g., element size constraints).
+
+        Physically impossible resolution values must be detected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_predictable_grid_shape(self):
+        """
+        The grid structure must remain stable and predictable across all steps.
+        No step may modify unrelated grid fields.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        Values written by S2–S10 must not be overwritten or corrupted by
+        unrelated steps.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_uninitialized_fields(self):
+        """
+        All grid fields must be explicitly initialized before use.
+        No field may remain undefined at any stage of the pipeline.
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        Grid fields must be computed in the correct order:
+            S2 → S3 → S4 → S5 → S6 → S7 → S8 → S9 → S10
+
+        No step may execute out of order or with incomplete prerequisites.
+        """
+        raise NotImplementedError========== END OF FILE: state/grid_test_signature.py ==========
+
+========== START OF FILE: state/mesh_generator_state_test_signature.py ==========
+class MeshGeneratorStateTestSignature:
+    """
+    Contract‑level signature for validating MeshGeneratorStateInterface.
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the Sovereign Container.
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the fields declared in
+    MeshGeneratorStateInterface:
+
+        inputs_step_file: str
+        results_grid: GridInterface
+        results_mask: List[int]
+        results_boundary_conditions: List[BoundaryConditionInterface]
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_fields(self):
+        """
+        The state must contain all required fields:
+            - inputs_step_file
+            - results_grid
+            - results_mask
+            - results_boundary_conditions
+
+        Missing fields must be detected before any computation begins.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        All fields must match the types declared in MeshGeneratorStateInterface:
+            - inputs_step_file: str
+            - results_grid: GridInterface
+            - results_mask: List[int]
+            - results_boundary_conditions: List[BoundaryConditionInterface]
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_mask_values(self):
+        """
+        results_mask must contain only values in {-1, 0, 1}.
+        Any invalid value must be detected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_boundary_condition_structure(self):
+        """
+        Each entry in results_boundary_conditions must contain:
+            - location
+            - type
+            - values
+
+        Missing or malformed entries must be detected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_schema_alignment(self):
+        """
+        The structure of the state must match the schema exactly.
+        No extra fields, no missing fields, no schema drift.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_grid_bounds_validity(self):
+        """
+        results_grid must contain physically valid bounding box values:
+            x_min <= x_max
+            y_min <= y_max
+            z_min <= z_max
+
+        Invalid or inverted bounds must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_resolution_validity(self):
+        """
+        results_grid.nx, ny, nz must be positive integers.
+        Zero or negative resolution must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_mask_consistency(self):
+        """
+        The length of results_mask must equal:
+            nx * ny * nz
+
+        Any mismatch indicates a physically invalid domain representation.
+        """
+        raise NotImplementedError
+
+    def test_physics_boundary_condition_values_validity(self):
+        """
+        Boundary condition values (u, v, w, p) must be numeric when present.
+        Non‑numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_predictable_state_shape(self):
+        """
+        The state must maintain a predictable, stable structure across all steps.
+        No step may mutate unrelated fields.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        Values written by one step must not be overwritten or corrupted by another
+        unless explicitly permitted by the Minimal Step Path.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_uninitialized_fields(self):
+        """
+        All fields must be explicitly initialized before use.
+        No field may remain undefined at any stage of the pipeline.
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_state_progression(self):
+        """
+        The state must progress deterministically through the Minimal Step Path:
+            S1 → S2 → … → S12
+
+        No step may execute out of order or with incomplete prerequisites.
+        """
+        raise NotImplementedError========== END OF FILE: state/mesh_generator_state_test_signature.py ==========
+
+========== START OF FILE: state/boundary_condition_values_test_signature.py ==========
+class BoundaryConditionValuesTestSignature:
+    """
+    Contract‑level signature for validating BoundaryConditionValuesInterface.
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the numeric boundary‑condition
+    values object inside results.boundary_conditions[i].values.
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the fields declared in
+    BoundaryConditionValuesInterface:
+
+        u: float   (optional velocity component)
+        v: float   (optional velocity component)
+        w: float   (optional velocity component)
+        p: float   (optional pressure value)
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_invalid_types(self):
+        """
+        All provided values (u, v, w, p) must be floats.
+        Non‑numeric or incompatible types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_missing_required_fields_for_type(self):
+        """
+        Depending on the boundary condition type (validated elsewhere),
+        certain fields may be required:
+
+            - inflow: u, v, w required
+            - outflow: p required
+            - pressure: p required
+            - no-slip: u = v = w = 0
+            - free-slip: p = 0 (or solver default)
+
+        Missing required values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_schema_alignment(self):
+        """
+        The values object must match the schema exactly.
+        No extra fields, no missing fields, no schema drift.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        Values must be finite floats.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_velocity_vector_validity(self):
+        """
+        The velocity components (u, v, w), when present, must form a
+        physically meaningful vector. Physically impossible values must
+        be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_pressure_validity(self):
+        """
+        Pressure value p, when present, must be physically meaningful.
+        Negative or non‑physical pressure values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_consistency_with_boundary_type(self):
+        """
+        The values must be physically consistent with the boundary type:
+            - no-slip: u = v = w = 0
+            - free-slip: p = 0 (or solver default)
+            - inflow: velocity components required
+            - outflow: pressure required
+            - pressure: pressure required
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_predictable_structure(self):
+        """
+        The values object must maintain a predictable structure across all steps.
+        No step may mutate unrelated fields.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        Values written by S12.i.3 must not be overwritten or corrupted by
+        unrelated steps.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_uninitialized_fields(self):
+        """
+        All fields must be explicitly initialized before use.
+        No field may remain undefined at any stage of the pipeline.
+        """
+        raise NotImplementedError========== END OF FILE: state/boundary_condition_values_test_signature.py ==========
+
+========== START OF FILE: config/mesh_generator_config_test_signature.py ==========
+class MeshGeneratorConfigTestSignature:
+    """
+    Contract‑level signature for validating MeshGeneratorConfigInterface.
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the runtime configuration
+    injected into steps S8–S12.
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the fields declared in
+    MeshGeneratorConfigInterface:
+
+        solver_version: str
+        tolerance: float
+        max_element_size: float
+        min_element_size: float
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_fields(self):
+        """
+        All required configuration fields must be present:
+            - solver_version
+            - tolerance
+            - max_element_size
+            - min_element_size
+
+        Missing fields must be detected before any step (S8–S12) executes.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        All configuration fields must match the declared types:
+            - solver_version: str
+            - tolerance: float
+            - max_element_size: float
+            - min_element_size: float
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        Numeric fields must be finite floats.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_element_size_relationship(self):
+        """
+        max_element_size must be >= min_element_size.
+        Invalid or inverted ranges must be detected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_schema_alignment(self):
+        """
+        The configuration structure must match the schema exactly.
+        No extra fields, no missing fields, no schema drift.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_tolerance_validity(self):
+        """
+        tolerance must be physically meaningful:
+            - non‑negative
+            - sufficiently small for geometric comparisons
+
+        Physically impossible tolerance values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_element_size_validity(self):
+        """
+        max_element_size and min_element_size must be physically meaningful:
+            - strictly positive
+            - consistent with solver stability limits
+
+        Invalid element sizes must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_resolution_constraints(self):
+        """
+        Element sizes must be consistent with grid resolution constraints
+        used in S8–S10. Physically impossible combinations must be detected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_predictable_structure(self):
+        """
+        The configuration structure must remain stable and predictable across
+        all steps. No step may mutate configuration fields.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        Configuration values must not be overwritten or corrupted by any step.
+        They must remain constant throughout the pipeline.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_uninitialized_fields(self):
+        """
+        All configuration fields must be explicitly initialized before use.
+        No field may remain undefined at any stage of the pipeline.
+        """
+        raise NotImplementedError========== END OF FILE: config/mesh_generator_config_test_signature.py ==========
+
+========== START OF FILE: pipeline/pipeline_unified_global_validation_test_signature.py ==========
+class PipelineUnifiedGlobalValidationTestSignature:
+    """
+    Global Pipeline‑Level Validation Responsibilities (Section 3.2).
+
+    This signature defines all global validation responsibilities that apply
+    to the integrated mesh‑generator pipeline as a whole. These responsibilities
+    ensure that:
+
+        - no computation occurs before global validation succeeds
+        - the pipeline remains aligned with all step‑level interfaces
+        - schema‑level compatibility is enforced before execution
+        - the pipeline cannot proceed under invalid or inconsistent conditions
+
+    This file is a contract‑only artifact:
+        - no logic
+        - no assertions
+        - no execution
+        - all methods must raise NotImplementedError
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is implemented.
+    """
+
+    # ------------------------------------------------------------------
+    # Global Pipeline‑Level Validation Responsibilities
+    # ------------------------------------------------------------------
+
+    def test_global_no_execution_before_global_validation(self):
+        """
+        The pipeline must refuse to execute any step if global validation fails.
+        Global validation includes:
+
+            - top‑level input schema validation
+            - configuration schema validation
+            - compatibility checks between input, configuration, and state
+            - validation of required fields before any step runs
+
+        No computation may occur before global validation succeeds.
+        """
+        raise NotImplementedError
+
+    def test_global_step_execution_order(self):
+        """
+        The orchestrator must enforce the strict topological execution order
+        defined in the pipeline architecture.
+
+        The pipeline must ensure:
+            - Step A executes before Step B if Step B depends on Step A's output.
+            - No step may execute if its prerequisites (previous step outputs) are missing.
+            - The execution sequence is non-negotiable and deterministic.
+
+        This centralizes the validation of dependency order, preventing
+        out-of-order execution across the entire pipeline.
+        """
+        raise NotImplementedError
+
+    def test_global_contract_alignment_with_interfaces(self):
+        """
+        The pipeline must remain aligned with all step‑level interfaces:
+
+            - no step may read fields it does not declare as inputs
+            - no step may write fields it does not declare as outputs
+            - each schema‑level property must be produced by exactly one step
+            - no step may mutate fields outside its declared responsibility
+
+        Any deviation from the declared interfaces must be detectable.
+        """
+        raise NotImplementedError
+
+    def test_global_schema_compatibility(self):
+        """
+        The pipeline must verify that all schema‑level structures are compatible
+        before execution begins:
+
+            - input schema matches Phase 2 definitions
+            - configuration schema matches Phase 2 definitions
+            - state schema matches Phase 2 definitions
+            - no missing or extra fields exist at the top level
+
+        Schema incompatibility must prevent execution.
+        """
+        raise NotImplementedError
+
+    def test_global_pipeline_readiness(self):
+        """
+        The pipeline must validate that all prerequisites for execution are met:
+
+            - geometry is available and valid
+            - configuration is complete and internally consistent
+            - no unresolved dependencies exist
+            - no partial or corrupted state is present
+
+        If readiness checks fail, the pipeline must not begin execution.
+        """
+        raise NotImplementedError
+
+    def test_global_failure_handling_and_abort(self):
+        """
+        The pipeline must abort cleanly if global validation fails:
+
+            - no partial state must be produced
+            - no downstream steps may execute
+            - no corrupted or incomplete output may be emitted
+
+        Failure handling must be predictable and controlled.
+        """
+        raise NotImplementedError========== END OF FILE: pipeline/pipeline_unified_global_validation_test_signature.py ==========
+
+========== START OF FILE: pipeline/pipeline_unified_consistency_test_signature.py ==========
+class PipelineUnifiedConsistencyTestSignature:
+    """
+    Pipeline‑Level Consistency Gate Signatures (Section 3.2.3).
+
+    This signature defines all Consistency‑related validation responsibilities
+    for the integrated mesh‑generator pipeline. These responsibilities cover:
+
+        - predictable, logically valid transformations across steps
+        - analytically verifiable behaviour at the pipeline level
+        - detection of non‑linearities, discontinuities, or precision drift
+        - enforcement of the Single‑Responsibility Rule across all steps
+        - end‑to‑end deterministic behaviour
+        - schema completeness and correctness
+        - controlled error propagation
+
+    This file is a contract‑only artifact:
+        - no logic
+        - no assertions
+        - no execution
+        - all methods must raise NotImplementedError
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is implemented.
+    """
+
+    # ------------------------------------------------------------------
+    # 3.2.3 — Pipeline‑Level Consistency Gate Signatures
+    # ------------------------------------------------------------------
+
+    def test_pipeline_single_responsibility_per_step(self):
+        """
+        Each step must modify exactly one schema‑level property, as defined
+        in its interface. The pipeline must detect any step that:
+            - writes multiple properties
+            - mutates undeclared fields
+            - performs hidden or secondary mutations
+        """
+        raise NotImplementedError
+
+    def test_pipeline_no_schema_mutation(self):
+        """
+        The pipeline must enforce strict mutation boundaries for every step.
+
+        For every step executed, the pipeline must verify that:
+            - only the step's specific, declared field is mutated.
+            - no other schema-level properties are altered.
+            - any unauthorized mutation causes an immediate pipeline failure.
+
+        This centralizes the validation logic previously scattered across
+        individual step interface signatures.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_deterministic_end_to_end_behaviour(self):
+        """
+        Given identical inputs (geometry, configuration, state),
+        the pipeline must produce identical outputs:
+
+            - results.grid.*
+            - results.mask
+            - results.boundary_conditions[*]
+
+        End‑to‑end behaviour must be deterministic and reproducible.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_no_hidden_side_effects(self):
+        """
+        The pipeline must not introduce hidden side effects such as:
+            - modifying configuration objects
+            - mutating internal geometry in a way that affects later runs
+            - altering global or external state
+            - modifying intermediate state fields outside the declared contract
+
+        Any such behaviour must be detectable.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_schema_completeness(self):
+        """
+        At the end of the pipeline, all required schema fields for the
+        mesh generator output must be:
+
+            - present
+            - correctly typed
+            - internally consistent
+            - aligned with the schema defined in Phase 2
+
+        Missing, inconsistent, or mis‑typed fields must be detected.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_error_propagation_and_reporting(self):
+        """
+        The pipeline must propagate step‑level failures in a controlled way:
+            - no silent failures
+            - clear association between failure and the responsible step
+            - no partial or corrupted outputs
+            - no continuation after a failed step
+
+        Error propagation must be predictable and analyzable.
+        """
+        raise NotImplementedError========== END OF FILE: pipeline/pipeline_unified_consistency_test_signature.py ==========
+
+========== START OF FILE: pipeline/pipeline_unified_sensitivity_test_signature.py ==========
+class PipelineUnifiedSensitivityTestSignature:
+    """
+    Pipeline‑Level Sensitivity Gate Signatures (Section 3.2.1).
+
+    This signature defines all Sensitivity‑related validation responsibilities
+    for the integrated mesh‑generator pipeline. These responsibilities cover:
+
+        - end‑to‑end data‑intake correctness
+        - schema alignment across steps
+        - propagation of valid states
+        - detection of malformed or missing inputs
+        - configuration anomalies
+        - invalid cross‑step behaviours
+        - boundary‑condition index handling
+
+    This file is a contract‑only artifact:
+        - no logic
+        - no assertions
+        - no execution
+        - all methods must raise NotImplementedError
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is implemented.
+    """
+
+    # ------------------------------------------------------------------
+    # 3.2.1 — Pipeline‑Level Sensitivity Gate Signatures
+    # ------------------------------------------------------------------
+
+    def test_pipeline_input_schema_validation(self):
+        """
+        The pipeline must validate the top‑level input schema:
+            - mesh_generator_input schema
+            - configuration schema
+
+        Any schema violation must prevent pipeline execution.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_configuration_sensitivity(self):
+        """
+        The pipeline must detect invalid or conflicting configuration values:
+            - grid resolution parameters
+            - tolerance values
+            - solver conventions
+            - incompatible or missing configuration fields
+
+        Invalid configuration must prevent execution.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_step_order_enforcement(self):
+        """
+        The pipeline must enforce the Minimal Step Path ordering:
+
+            S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8 → S9 → S10 → S11 → S12.i.*
+
+        No step may execute before all of its declared prerequisites
+        have successfully completed.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_state_propagation(self):
+        """
+        The pipeline must propagate state between steps without:
+            - dropping required fields
+            - introducing undeclared fields
+            - silently overwriting values
+            - corrupting intermediate results
+
+        Any propagation error must be detectable.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_invalid_cross_step_behaviour(self):
+        """
+        The pipeline must detect invalid cross‑step behaviours such as:
+            - data corruption
+            - schema drift
+            - misaligned configuration values
+            - inconsistent grid or mask dimensions
+            - invalid propagation of intermediate results
+        """
+        raise NotImplementedError
+
+    def test_pipeline_boundary_condition_index_handling(self):
+        """
+        The pipeline must handle boundary‑condition indices consistently:
+            - valid index ranges
+            - no gaps or duplicates unless explicitly allowed
+            - consistent mapping between geometry and BC entries
+            - detection of invalid or missing indices
+
+        Any index inconsistency must be detectable.
+        """
+        raise NotImplementedError========== END OF FILE: pipeline/pipeline_unified_sensitivity_test_signature.py ==========
+
+========== START OF FILE: pipeline/pipeline_unified_physics_math_test_signature.py ==========
+class PipelineUnifiedPhysicsMathTestSignature:
+    """
+    Pipeline‑Level Physics & Math Gate Signatures (Section 3.2.2).
+
+    This signature defines all Physics‑ and Math‑related validation
+    responsibilities for the integrated mesh‑generator pipeline. These
+    responsibilities cover:
+
+        - global conservation and geometric consistency
+        - mathematically valid discretization behaviour
+        - physically consistent grid and mask generation
+        - stability‑related constraints across the entire pipeline
+        - detection of degenerate or impossible physical states
+
+    This file is a contract‑only artifact:
+        - no logic
+        - no assertions
+        - no execution
+        - all methods must raise NotImplementedError
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is implemented.
+    """
+
+    # ------------------------------------------------------------------
+    # 3.2.2 — Pipeline‑Level Physics & Math Gate Signatures
+    # ------------------------------------------------------------------
+
+    def test_pipeline_bounding_box_consistency(self):
+        """
+        The pipeline must produce a geometrically consistent bounding box:
+            - x_min < x_max
+            - y_min < y_max
+            - z_min < z_max
+
+        Degenerate, inverted, or zero‑thickness bounding boxes must be
+        detected and must prevent downstream execution.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_grid_resolution_consistency(self):
+        """
+        The pipeline must produce grid resolutions (nx, ny, nz) that are:
+            - positive integers
+            - consistent with bounding box extents
+            - consistent with configuration constraints
+            - physically meaningful for discretization
+
+        Invalid or unstable resolutions must be detected.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_mask_geometry_consistency(self):
+        """
+        The mask must be physically consistent with:
+            - the parsed geometry
+            - the grid resolution
+            - the bounding box
+
+        Requirements:
+            - mask length == nx * ny * nz
+            - mask values ∈ {-1, 0, 1}
+            - classification must be geometrically valid
+
+        Any inconsistency must be detected.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_boundary_conditions_physical_validity(self):
+        """
+        The pipeline must produce boundary conditions that are physically
+        valid and consistent with:
+
+            - geometry locations
+            - solver conventions
+            - configuration parameters
+            - global domain orientation
+
+        Physically impossible or contradictory BC sets must be detected.
+        """
+        raise NotImplementedError
+
+    def test_pipeline_global_stability_constraints(self):
+        """
+        The pipeline must respect global stability constraints implied by:
+            - grid resolution
+            - domain size
+            - boundary conditions
+            - solver‑specific physical rules
+
+        Configurations that would lead to:
+            - numerical instability
+            - divergence
+            - oscillatory behaviour
+            - physically impossible states
+
+        must be detectable at the pipeline level.
+        """
+        raise NotImplementedError========== END OF FILE: pipeline/pipeline_unified_physics_math_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_nz_test_signature.py ==========
+class ComputeNzTestSignature:
+    """
+    Contract‑level signature for validating ComputeNzInterface (S10).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.nz
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeNzInterface:
+
+        Consumes:
+            - results.grid.z_min
+            - results.grid.z_max
+            - runtime configuration parameters (MeshGeneratorConfigInterface)
+
+        Produces:
+            - state.results_grid["nz"]
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - results.grid.z_min
+            - results.grid.z_max
+            - configuration parameters (tolerance, min/max element size)
+
+        nz must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - z_min, z_max (must be floats)
+            - configuration parameters (must be floats or strings as defined)
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        The step must detect invalid numeric ranges such as:
+            - z_min > z_max
+            - negative or zero element sizes
+            - invalid tolerance values
+
+        nz must not be computed in these cases.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_resolution_computation_validity(self):
+        """
+        The computed nz must be physically meaningful and consistent with:
+            - bounding box size (z_max - z_min)
+            - configuration parameters (min/max element size)
+            - solver stability constraints
+
+        Physically impossible nz values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        nz must be a positive integer.
+        NaN, infinity, zero, negative, or non‑integer values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If z_min == z_max (zero‑thickness geometry), the step must detect
+        this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.nz
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S7 (geometry and bounding box)
+            - S8 (nx)
+            - S9 (ny)
+            - S11–S12 (mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (z_min, z_max, config), the step must always
+        compute the same nz value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S10 must execute only after S9 has successfully computed ny.
+        No downstream step may execute until nz is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_nz_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_ny_test_signature.py ==========
+class ComputeNyTestSignature:
+    """
+    Contract‑level signature for validating ComputeNyInterface (S9).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.ny
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeNyInterface:
+
+        Consumes:
+            - results.grid.y_min
+            - results.grid.y_max
+            - runtime configuration parameters (MeshGeneratorConfigInterface)
+
+        Produces:
+            - state.results_grid["ny"]
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - results.grid.y_min
+            - results.grid.y_max
+            - configuration parameters (tolerance, min/max element size)
+
+        ny must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - y_min, y_max (must be floats)
+            - configuration parameters (must be floats or strings as defined)
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        The step must detect invalid numeric ranges such as:
+            - y_min > y_max
+            - negative or zero element sizes
+            - invalid tolerance values
+
+        ny must not be computed in these cases.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_resolution_computation_validity(self):
+        """
+        The computed ny must be physically meaningful and consistent with:
+            - bounding box size (y_max - y_min)
+            - configuration parameters (min/max element size)
+            - solver stability constraints
+
+        Physically impossible ny values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        ny must be a positive integer.
+        NaN, infinity, zero, negative, or non‑integer values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If y_min == y_max (zero‑thickness geometry), the step must detect
+        this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.ny
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S7 (geometry and bounding box)
+            - S8 (nx)
+            - S10–S12 (nz, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (y_min, y_max, config), the step must always
+        compute the same ny value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S9 must execute only after S8 has successfully computed nx.
+        No downstream step may execute until ny is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_ny_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_boundary_condition_type_test_signature.py ==========
+class ComputeBoundaryConditionTypeTestSignature:
+    """
+    Contract‑level signature for validating ComputeBoundaryConditionTypeInterface (S12.i.2).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.boundary_conditions[i].type
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeBoundaryConditionTypeInterface:
+
+        Consumes:
+            - results.boundary_conditions[i].location  (computed in S12.i.1)
+            - configuration parameters (MeshGeneratorConfigInterface)
+            - internal geometry classification (not stored in state)
+            - boundary‑condition index (int)
+
+        Produces:
+            - results.boundary_conditions[index].type
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+            - enforce the Single‑Responsibility Rule
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - boundary_conditions[index].location
+            - configuration parameters
+            - internal geometry classification
+            - boundary‑condition index
+
+        The type must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_index(self):
+        """
+        The step must detect invalid boundary‑condition indices:
+            - negative indices
+            - indices outside the valid range
+            - non‑integer indices
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - location (must be a valid string)
+            - configuration parameters (must match declared types)
+            - index (must be int)
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_location_values(self):
+        """
+        The step must detect invalid location values.
+        Allowed values are:
+            "x_min", "x_max",
+            "y_min", "y_max",
+            "z_min", "z_max",
+            "wall"
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_type_classification_validity(self):
+        """
+        The computed type must be physically and mathematically consistent
+        with:
+            - the boundary location
+            - the geometry classification
+            - solver conventions defined in config
+
+        Physically inconsistent classifications must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_allowed_type_values(self):
+        """
+        The output must be one of the solver‑defined boundary condition types.
+        Any other value must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty_or_degenerate(self):
+        """
+        If the geometry classification is empty, degenerate, or invalid,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    def test_physics_tolerance_usage(self):
+        """
+        The step must use configuration tolerance consistently when
+        interpreting geometric classification for type assignment.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.boundary_conditions[index].type
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S11 (geometry, grid, mask)
+            - S12.i.1 (location)
+            - S12.i.3 (values)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (location, config, geometry classification, index),
+        the step must always compute the same type value
+        (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S12.i.2 must execute only after:
+            - S12.i.1 (location)
+
+        No downstream boundary‑condition step may execute until the
+        type is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_boundary_condition_type_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_x_max_test_signature.py ==========
+class ComputeXMaxTestSignature:
+    """
+    Contract‑level signature for validating ComputeXMaxInterface (S3).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.x_max
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeXMaxInterface:
+
+        - Consumes: parsed geometry (internal, not stored in the Sovereign Container)
+        - Produces: state.results_grid["x_max"]
+        - Must compute exactly one schema‑level property
+        - Must not mutate any other part of the Sovereign Container
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_geometry(self):
+        """
+        The step must detect when the internal parsed geometry (from S1)
+        is missing, invalid, or unavailable. It must not compute x_max
+        without valid geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_geometry_structure(self):
+        """
+        The step must detect malformed or incomplete geometry structures
+        (e.g., missing surfaces, invalid topology).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_extraction(self):
+        """
+        The computed x_max must correspond to the maximum x‑coordinate
+        of the parsed geometry's bounding box.
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        x_max must be a finite float.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If the geometry contains no valid points or surfaces,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.x_max
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1 (geometry)
+            - S2 (x_min)
+            - S4–S12 (other grid fields, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same geometry input, the step must always compute the
+        same x_max value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S3 must execute only after S2 has successfully computed x_min.
+        No downstream step may execute until x_max is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_x_max_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_boundary_condition_values_test_signature.py ==========
+class ComputeBoundaryConditionValuesTestSignature:
+    """
+    Contract‑level signature for validating ComputeBoundaryConditionValuesInterface (S12.i.3).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.boundary_conditions[i].values
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeBoundaryConditionValuesInterface:
+
+        Consumes:
+            - results.boundary_conditions[i].type
+            - configuration parameters (MeshGeneratorConfigInterface)
+            - solver‑specific conventions (via config)
+            - boundary‑condition index (int)
+
+        Produces:
+            - results.boundary_conditions[index].values
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+            - enforce the Single‑Responsibility Rule
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - boundary_conditions[index].type
+            - configuration parameters
+            - solver‑specific conventions
+            - boundary‑condition index
+
+        The values must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_index(self):
+        """
+        The step must detect invalid boundary‑condition indices:
+            - negative indices
+            - indices outside the valid range
+            - non‑integer indices
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - type (must be a valid solver‑defined BC type)
+            - configuration parameters (must match declared types)
+            - index (must be int)
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_type_values(self):
+        """
+        The step must detect invalid boundary‑condition types.
+        Allowed types are defined by the solver conventions in config.
+        Any other value must be rejected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_value_assignment_validity(self):
+        """
+        The computed values must be physically and mathematically consistent
+        with:
+            - the boundary condition type
+            - solver conventions (e.g., inflow/outflow rules)
+            - configuration parameters
+
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_allowed_value_formats(self):
+        """
+        The output values must match the solver‑defined format:
+            - scalar
+            - vector
+            - tuple
+            - list
+            - or other solver‑specific structure
+
+        Any deviation must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_values(self):
+        """
+        Values must not contain:
+            - NaN
+            - infinity
+            - physically impossible magnitudes
+
+        Such values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_solver_convention_enforcement(self):
+        """
+        The step must enforce solver‑specific conventions such as:
+            - inflow velocity direction
+            - pressure boundary rules
+            - no‑slip wall conditions
+            - symmetry plane constraints
+
+        Violations must be detected.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.boundary_conditions[index].values
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S11 (geometry, grid, mask)
+            - S12.i.1 (location)
+            - S12.i.2 (type)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (type, config, index),
+        the step must always compute the same values
+        (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S12.i.3 must execute only after:
+            - S12.i.2 (type)
+
+        No downstream pipeline step may execute until the
+        values are computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_boundary_condition_values_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/parse_step_geometry_test_signature.py ==========
+class ParseStepGeometryTestSignature:
+    """
+    Contract‑level signature for validating ParseStepGeometryInterface (S1).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the geometry‑parsing step.
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ParseStepGeometryInterface:
+
+        - Consumes: state.inputs_step_file
+        - Produces: internal geometry object (NOT stored in the Sovereign Container)
+        - Must NOT compute or mutate any schema‑level property
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_input_file(self):
+        """
+        The step must detect when state.inputs_step_file is missing,
+        empty, or undefined. Parsing must not proceed in this case.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_file_type(self):
+        """
+        The step must detect invalid file types.
+        Only valid STEP files (.stp, .step) may be accepted.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_file_not_found(self):
+        """
+        The step must detect when the referenced STEP file does not exist
+        or cannot be accessed.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_malformed_step_file(self):
+        """
+        The step must detect malformed or unreadable STEP files and fail
+        gracefully without producing geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_schema_alignment(self):
+        """
+        The step must not read or write any schema‑level fields.
+        It must only consume state.inputs_step_file.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_geometry_validity(self):
+        """
+        The parsed geometry must be physically meaningful:
+            - valid B‑Rep topology
+            - valid surfaces and solids
+            - no self‑intersections or invalid shapes
+
+        Invalid geometry must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_empty_geometry(self):
+        """
+        The step must detect when the STEP file contains no usable geometry
+        (empty shape, empty topology, etc.).
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_normalization(self):
+        """
+        The step must ensure that the parsed geometry is normalized and
+        suitable for downstream steps (S2–S12).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_no_schema_mutation(self):
+        """
+        The step must NOT write or modify any schema‑level fields:
+            - results_grid
+            - results_mask
+            - results_boundary_conditions
+
+        Any mutation must be detected.
+        """
+        raise NotImplementedError
+
+    def test_consistency_internal_geometry_storage(self):
+        """
+        The parsed geometry must be stored internally only.
+        It must NOT be added to the Sovereign Container.
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_parsing(self):
+        """
+        Parsing the same STEP file must always produce the same internal
+        geometry representation (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S1 must complete successfully before S2 begins.
+        No downstream step may execute without valid parsed geometry.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/parse_step_geometry_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_z_max_test_signature.py ==========
+class ComputeZMaxTestSignature:
+    """
+    Contract‑level signature for validating ComputeZMaxInterface (S7).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.z_max
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeZMaxInterface:
+
+        - Consumes: parsed geometry (internal, not stored in the Sovereign Container)
+        - Produces: state.results_grid["z_max"]
+        - Must compute exactly one schema‑level property
+        - Must not mutate any other part of the Sovereign Container
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_geometry(self):
+        """
+        The step must detect when the internal parsed geometry (from S1)
+        is missing, invalid, or unavailable. It must not compute z_max
+        without valid geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_geometry_structure(self):
+        """
+        The step must detect malformed or incomplete geometry structures
+        (e.g., missing surfaces, invalid topology).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_extraction(self):
+        """
+        The computed z_max must correspond to the maximum z‑coordinate
+        of the parsed geometry's bounding box.
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        z_max must be a finite float.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If the geometry contains no valid points or surfaces,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.z_max
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1 (geometry)
+            - S2 (x_min)
+            - S3 (x_max)
+            - S4 (y_min)
+            - S5 (y_max)
+            - S6 (z_min)
+            - S8–S12 (other grid fields, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same geometry input, the step must always compute the
+        same z_max value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S7 must execute only after S6 has successfully computed z_min.
+        No downstream step may execute until z_max is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_z_max_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_mask_test_signature.py ==========
+class ComputeMaskTestSignature:
+    """
+    Contract‑level signature for validating ComputeMaskInterface (S11).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.mask   (flattened 1D array of ints in {-1, 0, 1})
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeMaskInterface:
+
+        Consumes:
+            - parsed geometry (internal B‑Rep shape from S1)
+            - results.grid.nx
+            - results.grid.ny
+            - results.grid.nz
+
+        Produces:
+            - state.results_mask
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - parsed geometry (from S1)
+            - results.grid.nx
+            - results.grid.ny
+            - results.grid.nz
+
+        The mask must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - nx, ny, nz (must be positive integers)
+            - geometry object (must be a valid B‑Rep shape)
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        The step must detect invalid numeric ranges such as:
+            - nx, ny, nz <= 0
+            - extremely large grid sizes that exceed memory constraints
+
+        Mask computation must not proceed in these cases.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_mask_value_validity(self):
+        """
+        The mask must contain only values in {-1, 0, 1}:
+            - -1 : solid
+            -  0 : fluid interior
+            -  1 : boundary‑adjacent
+
+        Any other value must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_classification_validity(self):
+        """
+        The step must classify each grid cell consistently with:
+            - point‑in‑solid tests
+            - distance‑to‑surface thresholds
+            - geometric validity of the B‑Rep shape
+
+        Physically inconsistent classifications must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_mask_length_correctness(self):
+        """
+        The mask length must equal:
+            nx * ny * nz
+
+        Any mismatch must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_empty_or_degenerate_geometry(self):
+        """
+        If the geometry is empty, degenerate, or invalid,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.mask
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S10 (geometry, bounding box, nx/ny/nz)
+            - S12 (boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (geometry, nx, ny, nz),
+        the step must always compute the same mask array
+        (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S11 must execute only after S10 has successfully computed nz.
+        No downstream step may execute until the mask is computed.
+        """
+        raise NotImplementedError
+========== END OF FILE: step_interfaces/compute_mask_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_y_max_test_signature.py ==========
+class ComputeYMaxTestSignature:
+    """
+    Contract‑level signature for validating ComputeYMaxInterface (S5).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.y_max
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeYMaxInterface:
+
+        - Consumes: parsed geometry (internal, not stored in the Sovereign Container)
+        - Produces: state.results_grid["y_max"]
+        - Must compute exactly one schema‑level property
+        - Must not mutate any other part of the Sovereign Container
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_geometry(self):
+        """
+        The step must detect when the internal parsed geometry (from S1)
+        is missing, invalid, or unavailable. It must not compute y_max
+        without valid geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_geometry_structure(self):
+        """
+        The step must detect malformed or incomplete geometry structures
+        (e.g., missing surfaces, invalid topology).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_extraction(self):
+        """
+        The computed y_max must correspond to the maximum y‑coordinate
+        of the parsed geometry's bounding box.
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        y_max must be a finite float.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If the geometry contains no valid points or surfaces,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.y_max
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1 (geometry)
+            - S2 (x_min)
+            - S3 (x_max)
+            - S4 (y_min)
+            - S6–S12 (other grid fields, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same geometry input, the step must always compute the
+        same y_max value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S5 must execute only after S4 has successfully computed y_min.
+        No downstream step may execute until y_max is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_y_max_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_boundary_condition_location_test_signature.py ==========
+class ComputeBoundaryConditionLocationTestSignature:
+    """
+    Contract‑level signature for validating ComputeBoundaryConditionLocationInterface (S12.i.1).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.boundary_conditions[i].location
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeBoundaryConditionLocationInterface:
+
+        Consumes:
+            - parsed geometry (internal B‑Rep shape)
+            - results.grid.x_min / x_max
+            - results.grid.y_min / y_max
+            - results.grid.z_min / z_max
+            - runtime configuration parameters
+            - boundary‑condition index (int)
+
+        Produces:
+            - results.boundary_conditions[index].location
+
+        Allowed output values:
+            "x_min", "x_max",
+            "y_min", "y_max",
+            "z_min", "z_max",
+            "wall"
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+            - enforce the Single‑Responsibility Rule
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - parsed geometry
+            - grid extents (x_min, x_max, y_min, y_max, z_min, z_max)
+            - configuration parameters
+            - boundary‑condition index
+
+        The location must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_index(self):
+        """
+        The step must detect invalid boundary‑condition indices:
+            - negative indices
+            - indices outside the valid range
+            - non‑integer indices
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - grid extents (must be floats)
+            - geometry object (must be a valid B‑Rep shape)
+            - configuration parameters (must match declared types)
+            - index (must be int)
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        The step must detect invalid numeric ranges such as:
+            - x_min > x_max
+            - y_min > y_max
+            - z_min > z_max
+            - degenerate bounding boxes
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_location_classification_validity(self):
+        """
+        The computed location must correspond to the geometric surface’s
+        actual position relative to the global bounding box.
+
+        Physically inconsistent classifications must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_allowed_location_values(self):
+        """
+        The output must be one of:
+            "x_min", "x_max",
+            "y_min", "y_max",
+            "z_min", "z_max",
+            "wall"
+
+        Any other value must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty_or_degenerate(self):
+        """
+        If the geometry is empty, degenerate, or invalid,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    def test_physics_tolerance_usage(self):
+        """
+        The step must use configuration tolerance consistently when
+        determining whether a surface lies on a domain face.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.boundary_conditions[index].location
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S11 (geometry, grid, mask)
+            - S12.i.2 (type)
+            - S12.i.3 (values)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (geometry, grid extents, config, index),
+        the step must always compute the same location value
+        (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S12.i.1 must execute only after:
+            - S1 (geometry)
+            - S2–S7 (grid extents)
+            - S8–S10 (nx, ny, nz)
+            - S11 (mask)
+
+        No downstream boundary‑condition step may execute until the
+        location is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_boundary_condition_location_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_x_min_test_signature.py ==========
+class ComputeXMinTestSignature:
+    """
+    Contract‑level signature for validating ComputeXMinInterface (S2).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.x_min
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeXMinInterface:
+
+        - Consumes: parsed geometry (internal, not stored in the Sovereign Container)
+        - Produces: state.results_grid["x_min"]
+        - Must compute exactly one schema‑level property
+        - Must not mutate any other part of the Sovereign Container
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_geometry(self):
+        """
+        The step must detect when the internal parsed geometry (from S1)
+        is missing, invalid, or unavailable. It must not compute x_min
+        without valid geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_geometry_structure(self):
+        """
+        The step must detect malformed or incomplete geometry structures
+        (e.g., missing surfaces, invalid topology).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_extraction(self):
+        """
+        The computed x_min must correspond to the minimum x‑coordinate
+        of the parsed geometry's bounding box.
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        x_min must be a finite float.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If the geometry contains no valid points or surfaces,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.x_min
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1 (geometry)
+            - S3–S12 (other grid fields, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same geometry input, the step must always compute the
+        same x_min value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S2 must execute only after S1 has successfully parsed geometry.
+        No downstream step may execute until x_min is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_x_min_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_nx_test_signature.py ==========
+class ComputeNxTestSignature:
+    """
+    Contract‑level signature for validating ComputeNxInterface (S8).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.nx
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeNxInterface:
+
+        Consumes:
+            - results.grid.x_min
+            - results.grid.x_max
+            - runtime configuration parameters (MeshGeneratorConfigInterface)
+
+        Produces:
+            - state.results_grid["nx"]
+
+        Requirements:
+            - compute exactly one schema‑level property
+            - read only previously‑computed properties
+            - write exactly one property
+            - perform no other mutation
+            - contain no implementation logic here
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_required_inputs(self):
+        """
+        The step must detect when any required input is missing:
+            - results.grid.x_min
+            - results.grid.x_max
+            - configuration parameters (tolerance, min/max element size)
+
+        nx must not be computed if any prerequisite is missing.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_types(self):
+        """
+        The step must detect invalid types for:
+            - x_min, x_max (must be floats)
+            - configuration parameters (must be floats or strings as defined)
+
+        Invalid types must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_numeric_ranges(self):
+        """
+        The step must detect invalid numeric ranges such as:
+            - x_min > x_max
+            - negative or zero element sizes
+            - invalid tolerance values
+
+        nx must not be computed in these cases.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_resolution_computation_validity(self):
+        """
+        The computed nx must be physically meaningful and consistent with:
+            - bounding box size (x_max - x_min)
+            - configuration parameters (min/max element size)
+            - solver stability constraints
+
+        Physically impossible nx values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        nx must be a positive integer.
+        NaN, infinity, zero, negative, or non‑integer values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If x_min == x_max (zero‑thickness geometry), the step must detect
+        this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.nx
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1–S7 (geometry and bounding box)
+            - S9–S12 (ny, nz, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same inputs (x_min, x_max, config), the step must always
+        compute the same nx value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S8 must execute only after S7 has successfully computed z_max.
+        No downstream step may execute until nx is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_nx_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_y_min_test_signature.py ==========
+class ComputeYMinTestSignature:
+    """
+    Contract‑level signature for validating ComputeYMinInterface (S4).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.y_min
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeYMinInterface:
+
+        - Consumes: parsed geometry (internal, not stored in the Sovereign Container)
+        - Produces: state.results_grid["y_min"]
+        - Must compute exactly one schema‑level property
+        - Must not mutate any other part of the Sovereign Container
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_geometry(self):
+        """
+        The step must detect when the internal parsed geometry (from S1)
+        is missing, invalid, or unavailable. It must not compute y_min
+        without valid geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_geometry_structure(self):
+        """
+        The step must detect malformed or incomplete geometry structures
+        (e.g., missing surfaces, invalid topology).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_extraction(self):
+        """
+        The computed y_min must correspond to the minimum y‑coordinate
+        of the parsed geometry's bounding box.
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        y_min must be a finite float.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If the geometry contains no valid points or surfaces,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.y_min
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1 (geometry)
+            - S2 (x_min)
+            - S3 (x_max)
+            - S5–S12 (other grid fields, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same geometry input, the step must always compute the
+        same y_min value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S4 must execute only after S3 has successfully computed x_max.
+        No downstream step may execute until y_min is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_y_min_test_signature.py ==========
+
+========== START OF FILE: step_interfaces/compute_z_min_test_signature.py ==========
+class ComputeZMinTestSignature:
+    """
+    Contract‑level signature for validating ComputeZMinInterface (S6).
+
+    This signature defines all required Sensitivity, Physics & Math, and
+    Consistency validation responsibilities for the step that computes:
+
+        results.grid.z_min
+
+    No logic, no assertions, and no execution may appear in this file.
+    All methods must raise NotImplementedError.
+
+    This signature maps directly and exclusively to the behaviour defined in
+    ComputeZMinInterface:
+
+        - Consumes: parsed geometry (internal, not stored in the Sovereign Container)
+        - Produces: state.results_grid["z_min"]
+        - Must compute exactly one schema‑level property
+        - Must not mutate any other part of the Sovereign Container
+
+    These signatures define WHAT must be validated during Phase 6,
+    not HOW validation is performed.
+    """
+
+    # ----------------------------------------------------------------------
+    # 3.2.1 — Sensitivity Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_sensitivity_missing_geometry(self):
+        """
+        The step must detect when the internal parsed geometry (from S1)
+        is missing, invalid, or unavailable. It must not compute z_min
+        without valid geometry.
+        """
+        raise NotImplementedError
+
+    def test_sensitivity_invalid_geometry_structure(self):
+        """
+        The step must detect malformed or incomplete geometry structures
+        (e.g., missing surfaces, invalid topology).
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.2 — Physics & Math Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_physics_bounding_box_extraction(self):
+        """
+        The computed z_min must correspond to the minimum z‑coordinate
+        of the parsed geometry's bounding box.
+        Physically inconsistent values must be detected.
+        """
+        raise NotImplementedError
+
+    def test_physics_invalid_numeric_value(self):
+        """
+        z_min must be a finite float.
+        NaN, infinity, or malformed numeric values must be rejected.
+        """
+        raise NotImplementedError
+
+    def test_physics_geometry_empty(self):
+        """
+        If the geometry contains no valid points or surfaces,
+        the step must detect this and fail gracefully.
+        """
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # 3.2.3 — Consistency Gate Signatures
+    # ----------------------------------------------------------------------
+
+    def test_consistency_single_responsibility(self):
+        """
+        The step must compute exactly one schema‑level property:
+            results.grid.z_min
+
+        No other field may be modified.
+        """
+        raise NotImplementedError
+
+    def test_consistency_no_cross_step_corruption(self):
+        """
+        The step must not corrupt or overwrite values computed by:
+            - S1 (geometry)
+            - S2 (x_min)
+            - S3 (x_max)
+            - S4 (y_min)
+            - S5 (y_max)
+            - S7–S12 (other grid fields, mask, boundary conditions)
+        """
+        raise NotImplementedError
+
+    def test_consistency_deterministic_output(self):
+        """
+        Given the same geometry input, the step must always compute the
+        same z_min value (deterministic behaviour).
+        """
+        raise NotImplementedError
+
+    def test_consistency_pipeline_progression(self):
+        """
+        S6 must execute only after S5 has successfully computed y_max.
+        No downstream step may execute until z_min is computed.
+        """
+        raise NotImplementedError========== END OF FILE: step_interfaces/compute_z_min_test_signature.py ==========
+

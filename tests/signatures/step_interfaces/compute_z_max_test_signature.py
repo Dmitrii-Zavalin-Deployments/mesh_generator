@@ -41,28 +41,6 @@ class ComputeZMaxTestSignature:
         """
         raise NotImplementedError
 
-    def test_sensitivity_schema_alignment(self):
-        """
-        The step must write exactly one field:
-            results.grid.z_max
-
-        It must not write:
-            - z_min
-            - x_min, x_max
-            - y_min, y_max
-            - nx, ny, nz
-            - mask
-            - boundary conditions
-        """
-        raise NotImplementedError
-
-    def test_sensitivity_no_extra_fields(self):
-        """
-        The step must not introduce any fields beyond those declared in
-        MeshGeneratorStateInterface. Extra fields must cause failure.
-        """
-        raise NotImplementedError
-
     # ----------------------------------------------------------------------
     # 3.2.2 — Physics & Math Gate Signatures
     # ----------------------------------------------------------------------

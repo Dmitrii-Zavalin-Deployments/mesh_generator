@@ -73,27 +73,6 @@ class ComputeBoundaryConditionValuesTestSignature:
         """
         raise NotImplementedError
 
-    def test_sensitivity_schema_alignment(self):
-        """
-        The step must write exactly one field:
-            results.boundary_conditions[index].values
-
-        It must not write:
-            - location
-            - type
-            - any grid field
-            - mask
-            - any other schema‑level property
-        """
-        raise NotImplementedError
-
-    def test_sensitivity_no_extra_fields(self):
-        """
-        The step must not introduce any fields beyond those declared in
-        MeshGeneratorStateInterface. Extra fields must cause failure.
-        """
-        raise NotImplementedError
-
     # ----------------------------------------------------------------------
     # 3.2.2 — Physics & Math Gate Signatures
     # ----------------------------------------------------------------------
