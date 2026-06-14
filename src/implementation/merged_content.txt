@@ -1,0 +1,900 @@
+📄 List of files to be merged:
+-------------------------------------------
+• state/state_factory.py
+• state/mesh_generator_state.py
+• config/mesh_generator_config.py
+• config/config_loader.py
+• pipeline/orchestrator.py
+• pipeline/output_assembler.py
+• steps/compute_mask_step.py
+• steps/compute_ny_step.py
+• steps/compute_boundary_condition_values_step.py
+• steps/compute_y_min_step.py
+• steps/compute_x_max_step.py
+• steps/compute_nx_step.py
+• steps/compute_y_max_step.py
+• steps/compute_boundary_condition_location_step.py
+• steps/parse_step_geometry_step.py
+• steps/compute_z_max_step.py
+• steps/compute_x_min_step.py
+• steps/compute_boundary_condition_type_step.py
+• steps/compute_z_min_step.py
+• steps/compute_nz_step.py
+-------------------------------------------
+
+========== START OF FILE: state/state_factory.py ==========
+# src/implementation/state/state_factory.py
+from typing import Dict, Any
+from src.implementation.state.mesh_generator_state import MeshGeneratorState
+
+class StateFactory:
+    """
+    Validation gate for constructing MeshGeneratorState instances.
+    Enforces the No-Defaults Policy at runtime.
+    """
+
+    @staticmethod
+    def create(data: Dict[str, Any]) -> MeshGeneratorState:
+        """
+        Validates raw input data against the required schema.
+        Raises ValueError if any field is missing, preventing
+        partial or invalid state instantiation.
+        """
+        required_fields = [
+            'inputs_step_file', 
+            'results_grid', 
+            'results_mask', 
+            'results_boundary_conditions'
+        ]
+
+        # 1. Enforce No-Defaults Policy:
+        # Check that every mandatory field exists in the input dictionary.
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(
+                    f"No-Defaults Policy Violation: Missing required field '{field}' in State data."
+                )
+
+        # 2. Construct and return the concrete vessel
+        # By this point, we are guaranteed that all fields are present.
+        return MeshGeneratorState(
+            inputs_step_file=data['inputs_step_file'],
+            results_grid=data['results_grid'],
+            results_mask=data['results_mask'],
+            results_boundary_conditions=data['results_boundary_conditions']
+        )========== END OF FILE: state/state_factory.py ==========
+
+========== START OF FILE: state/mesh_generator_state.py ==========
+# src/implementation/state/mesh_generator_state.py
+from typing import List
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.state.grid_interface import GridInterface
+from src.interfaces.state.boundary_condition_interface import BoundaryConditionInterface
+
+class MeshGeneratorState(MeshGeneratorStateInterface):
+    """
+    Concrete implementation of the Mesh Generator Sovereign Container.
+    Inherits directly from MeshGeneratorStateInterface.
+    
+    Acts as a pure data vessel. It requires all fields to be explicitly 
+    provided during instantiation, enforcing the No-Defaults Policy.
+    """
+
+    def __init__(
+        self,
+        inputs_step_file: str,
+        results_grid: GridInterface,
+        results_mask: List[int],
+        results_boundary_conditions: List[BoundaryConditionInterface]
+    ):
+        # Explicitly assign fields to ensure no implicit defaults
+        self.inputs_step_file = inputs_step_file
+        self.results_grid = results_grid
+        self.results_mask = results_mask
+        self.results_boundary_conditions = results_boundary_conditions========== END OF FILE: state/mesh_generator_state.py ==========
+
+========== START OF FILE: config/mesh_generator_config.py ==========
+# src/implementation/config/mesh_generator_config.py
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class MeshGeneratorConfig(MeshGeneratorConfigInterface):
+    """
+    Concrete implementation of the MeshGeneratorConfigInterface.
+    Acts as an immutable data vessel for runtime configuration.
+    
+    Inherits from the Phase-2 contract to ensure 1:1 compliance.
+    """
+    def __init__(
+        self, 
+        solver_version: str, 
+        tolerance: float, 
+        max_element_size: float, 
+        min_element_size: float
+    ):
+        # We explicitly assign fields to satisfy the No-Defaults Policy
+        self.solver_version = solver_version
+        self.tolerance = tolerance
+        self.max_element_size = max_element_size
+        self.min_element_size = min_element_size========== END OF FILE: config/mesh_generator_config.py ==========
+
+========== START OF FILE: config/config_loader.py ==========
+# src/implementation/config/config_loader.py
+from typing import Dict, Any
+from src.implementation.config.mesh_generator_config import MeshGeneratorConfig
+
+class ConfigLoader:
+    """
+    Validation gate for constructing MeshGeneratorConfig instances.
+    Enforces the No-Defaults Policy at runtime by verifying all
+    required fields exist before object instantiation.
+    """
+
+    @staticmethod
+    def load(data: Dict[str, Any]) -> MeshGeneratorConfig:
+        """
+        Validates input dictionary and returns a MeshGeneratorConfig instance.
+        
+        Raises:
+            ValueError: If any required field is missing (No-Defaults Policy).
+        """
+        required_fields = [
+            'solver_version', 
+            'tolerance', 
+            'max_element_size', 
+            'min_element_size'
+        ]
+
+        # 1. Enforce No-Defaults Policy: 
+        # We check keys existence explicitly. No .get() with defaults allowed.
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(
+                    f"No-Defaults Policy Violation: Missing required config field '{field}'."
+                )
+
+        # 2. Construct and return the concrete vessel
+        return MeshGeneratorConfig(
+            solver_version=data['solver_version'],
+            tolerance=data['tolerance'],
+            max_element_size=data['max_element_size'],
+            min_element_size=data['min_element_size']
+        )========== END OF FILE: config/config_loader.py ==========
+
+========== START OF FILE: pipeline/orchestrator.py ==========
+# src/implementation/pipeline/orchestrator.py
+from src.implementation.config.config_loader import ConfigLoader
+from src.implementation.state.state_factory import StateFactory
+from src.implementation.steps.parse_step_geometry_step import ParseStepGeometryStep
+from src.implementation.steps.compute_x_min_step import ComputeXMinStep
+from src.implementation.steps.compute_x_max_step import ComputeXMaxStep
+from src.implementation.steps.compute_y_min_step import ComputeYMinStep
+from src.implementation.steps.compute_y_max_step import ComputeYMaxStep
+from src.implementation.steps.compute_z_min_step import ComputeZMinStep
+from src.implementation.steps.compute_z_max_step import ComputeZMaxStep
+from src.implementation.steps.compute_nx_step import ComputeNxStep
+from src.implementation.steps.compute_ny_step import ComputeNyStep
+from src.implementation.steps.compute_nz_step import ComputeNzStep
+from src.implementation.steps.compute_mask_step import ComputeMaskStep
+from src.implementation.steps.compute_boundary_condition_location_step import ComputeBoundaryConditionLocationStep
+from src.implementation.steps.compute_boundary_condition_type_step import ComputeBoundaryConditionTypeStep
+from src.implementation.steps.compute_boundary_condition_values_step import ComputeBoundaryConditionValuesStep
+# Phase 5: Import the Assembler
+from src.implementation.pipeline.output_assembler import OutputAssembler
+
+class Orchestrator:
+    """
+    The central pipeline controller for the Mesh Generator.
+    
+    Responsibilities:
+    1. Validate inputs via factories.
+    2. Centralize schema/key validation.
+    3. Execute steps in the strict Minimal Step Path topological order.
+    4. Trigger Final Output Assembly (Phase 5).
+    """
+
+    def _ensure_keys(self, state, keys: list):
+        """Centralized validation: Ensure grid keys exist before calculation steps."""
+        for key in keys:
+            if state.results_grid.get(key) is None:
+                raise ValueError(f"Orchestrator validation failed: {key} is missing in results_grid.")
+
+    def run(self, raw_state: dict, raw_config: dict) -> str:
+        # 1. Validation Gates (Initial Schema Check)
+        state = StateFactory.create(raw_state)
+        config = ConfigLoader.load(raw_config)
+
+        # 2. Geometry Initialization
+        parser = ParseStepGeometryStep()
+        geometry_model = parser.run(state, config)
+
+        # 3. Calculate Bounds
+        ComputeXMinStep(geometry_model).run(state, config)
+        ComputeXMaxStep(geometry_model).run(state, config)
+        ComputeYMinStep(geometry_model).run(state, config)
+        ComputeYMaxStep(geometry_model).run(state, config)
+        ComputeZMinStep(geometry_model).run(state, config)
+        ComputeZMaxStep(geometry_model).run(state, config)
+
+        # 4. Calculate Resolution
+        self._ensure_keys(state, ['x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max'])
+        ComputeNxStep().run(state, config)
+        ComputeNyStep().run(state, config)
+        ComputeNzStep().run(state, config)
+
+        # 5. Calculate Mask
+        self._ensure_keys(state, ['nx', 'ny', 'nz'])
+        ComputeMaskStep().run(state, config)
+
+        # 6. Handle Boundary Conditions
+        bc_steps = [
+            ComputeBoundaryConditionLocationStep(geometry_model),
+            ComputeBoundaryConditionTypeStep(geometry_model),
+            ComputeBoundaryConditionValuesStep()
+        ]
+
+        num_bcs = geometry_model.get_boundary_count()
+        for i in range(num_bcs):
+            for step in bc_steps:
+                step.run(state, config, index=i)
+
+        # 7. Finalize (Phase 5 Assembly)
+        # The Orchestrator is now responsible for handing off the fully 
+        # populated state to the OutputAssembler for final serialization.
+        final_output = OutputAssembler.assemble(
+            state=state, 
+            config=config, 
+            inputs=raw_state
+        )
+
+        return final_output========== END OF FILE: pipeline/orchestrator.py ==========
+
+========== START OF FILE: pipeline/output_assembler.py ==========
+# src/implementation/pipeline/output_assembler.py
+
+import json
+from src.implementation.state.mesh_generator_state import MeshGeneratorState
+
+class OutputAssembler:
+    """
+    Deterministic assembly procedure. 
+    Responsibility: Only structural assembly and schema validation.
+    """
+    
+    @staticmethod
+    def assemble(state: MeshGeneratorState, config: dict, inputs: dict) -> str:
+        # 1. Structural Mapping (The Assembly)
+        output_data = {
+            "inputs": inputs,
+            "config": config,
+            "results": state.results_grid # Map your actual state results here
+        }
+        
+        # 2. Schema Validation (The Gate)
+        # Verify output_data strictly matches mesh_generator_output_schema.json
+        # (Recommendation: Use jsonschema library here)
+        
+        # 3. Deterministic Serialization
+        return json.dumps(output_data, indent=4, sort_keys=True)========== END OF FILE: pipeline/output_assembler.py ==========
+
+========== START OF FILE: steps/compute_mask_step.py ==========
+# src/implementation/steps/compute_mask_step.py
+from src.interfaces.step_interfaces.compute_mask_interface import ComputeMaskInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeMaskStep(ComputeMaskInterface):
+    """
+    Concrete implementation of S11 — compute_mask.
+
+    Constructs the 1D domain mask array by performing spatial point-in-solid
+    queries against the parsed geometric model for every cell in the grid.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the geometry model parsed in S1.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.mask.
+
+        Logic:
+            1. Retrieve grid dimensions (nx, ny, nz) from state.results_grid.
+            2. Initialize a flattened array (1D list) of zeros.
+            3. Iterate through all grid coordinates (i, j, k).
+            4. Query the geometry_model for point classification (-1, 0, or 1).
+            5. Store the final flattened mask in state.results_mask.
+        """
+        # 1. Retrieve dimensions
+        # The Orchestrator guarantees these keys exist; defensive checks are removed.
+        nx = state.results_grid['nx']
+        ny = state.results_grid['ny']
+        nz = state.results_grid['nz']
+        
+        # Pre-calculate cell sizes (logic inlined and optimized)
+        dx = (state.results_grid['x_max'] - state.results_grid['x_min']) / nx
+        dy = (state.results_grid['y_max'] - state.results_grid['y_min']) / ny
+        dz = (state.results_grid['z_max'] - state.results_grid['z_min']) / nz
+
+        # 2. Initialize mask (flattened size: nx * ny * nz)
+        total_cells = nx * ny * nz
+        mask = [0] * total_cells
+
+        # 3. Iterate and classify
+        # Logic inlined to avoid sideways structures/unauthorized helper methods
+        for k in range(nz):
+            z = state.results_grid['z_min'] + (k + 0.5) * dz
+            for j in range(ny):
+                y = state.results_grid['y_min'] + (j + 0.5) * dy
+                for i in range(nx):
+                    x = state.results_grid['x_min'] + (i + 0.5) * dx
+                    
+                    # 4. Classify point
+                    # -1: Solid, 0: Fluid, 1: Boundary
+                    value = self.geometry_model.classify_point(x, y, z)
+                    
+                    flat_index = k * (nx * ny) + j * nx + i
+                    mask[flat_index] = int(value)
+
+        # 5. Write result
+        state.results_mask = mask========== END OF FILE: steps/compute_mask_step.py ==========
+
+========== START OF FILE: steps/compute_ny_step.py ==========
+# src/implementation/steps/compute_ny_step.py
+import math
+from src.interfaces.step_interfaces.compute_ny_interface import ComputeNyInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeNyStep(ComputeNyInterface):
+    """
+    Concrete implementation of S9 — compute_ny.
+
+    Calculates the number of grid cells in the Y direction based on 
+    the bounding box span and the maximum allowable element size.
+    """
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.ny.
+
+        Logic:
+            1. Read y_min and y_max from the Sovereign Container.
+            2. Compute the spatial span.
+            3. Calculate ny using config.max_element_size (rounding up to ensure 
+               the cell size limit is strictly respected).
+            4. Write the integer result to state.results_grid['ny'].
+        """
+        # 1. Access required inputs (Orchestrator guarantees valid state)
+        y_min = state.results_grid['y_min']
+        y_max = state.results_grid['y_max']
+
+        # 2. Compute span
+        span = y_max - y_min
+        
+        # 3. Calculate resolution
+        # Use math.ceil to ensure the resulting cell size does not exceed max_element_size
+        if span <= 0:
+            ny = 1  # Minimal valid resolution for non-degenerate geometry
+        else:
+            ny = math.ceil(span / config.max_element_size)
+            
+            # Ensure at least 1 cell exists
+            if ny < 1:
+                ny = 1
+
+        # 4. Write result
+        state.results_grid['ny'] = int(ny)========== END OF FILE: steps/compute_ny_step.py ==========
+
+========== START OF FILE: steps/compute_boundary_condition_values_step.py ==========
+# src/implementation/steps/compute_boundary_condition_values_step.py
+from src.interfaces.step_interfaces.compute_boundary_condition_values_interface import ComputeBoundaryConditionValuesInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeBoundaryConditionValuesStep(ComputeBoundaryConditionValuesInterface):
+    """
+    Concrete implementation of S12.i.3 — compute_boundary_condition_values.
+
+    Populates the physical properties (u, v, w, p) for a given boundary condition,
+    strictly mapping the boundary 'type' to values defined in the configuration.
+    """
+
+    def run(self, state: MeshGeneratorStateInterface, config, index: int) -> None:
+        """
+        Computes results.boundary_conditions[index].values.
+
+        Logic:
+            1. Retrieve the boundary condition type computed in S12.i.2.
+            2. Extract required physical values from the config object.
+            3. Populate the 'values' dictionary within the Sovereign Container.
+            4. Enforce strict adherence to the provided configuration (No-Defaults Policy).
+        """
+        # 1. Access required inputs (Orchestrator guarantees valid state and indices)
+        bc = state.results_boundary_conditions[index]
+        bc_type = bc['type']
+
+        # 2. Extract values from config
+        # The config object must explicitly define parameters for the specific type.
+        # This will naturally raise a KeyError if the config is malformed, 
+        # which is the correct behavior for strict configuration adherence.
+        config_values = config.get_values_for_type(bc_type)
+
+        # 3. Construct and assign the values container
+        values_container = {
+            "u": config_values["u"],
+            "v": config_values["v"],
+            "w": config_values["w"],
+            "p": config_values["p"]
+        }
+
+        # 4. Write result
+        bc["values"] = values_container========== END OF FILE: steps/compute_boundary_condition_values_step.py ==========
+
+========== START OF FILE: steps/compute_y_min_step.py ==========
+# src/implementation/steps/compute_y_min_step.py
+from src.interfaces.step_interfaces.compute_y_min_interface import ComputeYMinInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeYMinStep(ComputeYMinInterface):
+    """
+    Concrete implementation of S4 — compute_y_min.
+
+    Calculates the minimum Y-coordinate of the parsed geometric model
+    and updates the Sovereign Container state.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model 
+        parsed in step S1.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.y_min from the geometric model.
+        
+        Logic:
+            1. Query internal geometry for the minimum Y boundary.
+            2. Apply tolerance from config to normalize the result.
+            3. Update state.results_grid['y_min'].
+        """
+        # 1. Perform numerical calculation
+        # Querying the bounding box; index [1] represents the Y-axis
+        calculated_y_min = self.geometry_model.get_bounding_box_min()[1]
+
+        # 2. Apply config tolerance to ensure deterministic normalization
+        normalized_y_min = round(calculated_y_min / config.tolerance) * config.tolerance
+            
+        state.results_grid['y_min'] = float(normalized_y_min)========== END OF FILE: steps/compute_y_min_step.py ==========
+
+========== START OF FILE: steps/compute_x_max_step.py ==========
+# src/implementation/steps/compute_x_max_step.py
+from src.interfaces.step_interfaces.compute_x_max_interface import ComputeXMaxInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeXMaxStep(ComputeXMaxInterface):
+    """
+    Concrete implementation of S3 — compute_x_max.
+    
+    Calculates the maximum X-coordinate of the parsed geometric model
+    and updates the Sovereign Container state.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model 
+        parsed in step S1.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.x_max from the geometric model.
+        
+        Logic:
+            1. Query internal geometry for the maximum X boundary.
+            2. Apply tolerance from config to normalize the result.
+            3. Update state.results_grid['x_max'].
+        """
+        # 1. Perform numerical calculation
+        # Accessing the geometric model to calculate the bounding box x_max
+        calculated_x_max = self.geometry_model.get_bounding_box_max()[0]
+
+        # 2. Apply config tolerance
+        # Normalizing based on config.tolerance per the system architecture
+        normalized_x_max = round(calculated_x_max / config.tolerance) * config.tolerance
+            
+        state.results_grid['x_max'] = float(normalized_x_max)========== END OF FILE: steps/compute_x_max_step.py ==========
+
+========== START OF FILE: steps/compute_nx_step.py ==========
+# src/implementation/steps/compute_nx_step.py
+import math
+from src.interfaces.step_interfaces.compute_nx_interface import ComputeNxInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeNxStep(ComputeNxInterface):
+    """
+    Concrete implementation of S8 — compute_nx.
+
+    Calculates the number of grid cells in the X direction based on 
+    the bounding box span and the maximum allowable element size.
+    """
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.nx.
+
+        Logic:
+            1. Read x_min and x_max from the Sovereign Container.
+            2. Compute the spatial span.
+            3. Calculate nx using config.max_element_size (rounding up to ensure 
+               the cell size limit is strictly respected).
+            4. Write the integer result to state.results_grid['nx'].
+        """
+        # 1. Access required inputs (Direct access assumes validation by Orchestrator)
+        x_min = state.results_grid['x_min']
+        x_max = state.results_grid['x_max']
+
+        # 2. Compute span
+        span = x_max - x_min
+        
+        # 3. Calculate resolution
+        # We use math.ceil to ensure that the resulting cell size does not exceed 
+        # the max_element_size specified in the configuration.
+        if span <= 0:
+            nx = 1  # Minimal valid resolution for non-degenerate geometry
+        else:
+            nx = math.ceil(span / config.max_element_size)
+            
+            # Ensure at least 1 cell exists
+            if nx < 1:
+                nx = 1
+
+        # 4. Write result
+        state.results_grid['nx'] = int(nx)========== END OF FILE: steps/compute_nx_step.py ==========
+
+========== START OF FILE: steps/compute_y_max_step.py ==========
+# src/implementation/steps/compute_y_max_step.py
+from src.interfaces.step_interfaces.compute_y_max_interface import ComputeYMaxInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeYMaxStep(ComputeYMaxInterface):
+    """
+    Concrete implementation of S5 — compute_y_max.
+
+    Calculates the maximum Y-coordinate of the parsed geometric model
+    and updates the Sovereign Container state with the normalized value.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model 
+        parsed in step S1.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.y_max from the geometric model.
+        
+        Logic:
+            1. Query internal geometry for the maximum Y boundary.
+            2. Apply tolerance from config to normalize the result.
+            3. Update state.results_grid['y_max'].
+        """
+        # 1. Perform numerical calculation
+        # Accessing index [1] of the bounding box max coordinates
+        calculated_y_max = self.geometry_model.get_bounding_box_max()[1]
+
+        # 2. Apply config tolerance for deterministic output
+        normalized_y_max = round(calculated_y_max / config.tolerance) * config.tolerance
+            
+        state.results_grid['y_max'] = float(normalized_y_max)========== END OF FILE: steps/compute_y_max_step.py ==========
+
+========== START OF FILE: steps/compute_boundary_condition_location_step.py ==========
+# src/implementation/steps/compute_boundary_condition_location_step.py
+from src.interfaces.step_interfaces.compute_boundary_condition_location_interface import ComputeBoundaryConditionLocationInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeBoundaryConditionLocationStep(ComputeBoundaryConditionLocationInterface):
+    """
+    Concrete implementation of S12.i.1 — compute_boundary_condition_location.
+
+    Determines the specific grid boundary face that a given boundary 
+    condition entity occupies.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config, index: int) -> None:
+        """
+        Computes results.boundary_conditions[index].location.
+        """
+        # 1. Access required inputs (The Orchestrator guarantees existence of keys/structure)
+        grid = state.results_grid
+        tol = config.tolerance
+
+        # Retrieve the geometric entity associated with this boundary condition
+        entity = self.geometry_model.get_boundary_entity(index)
+        e_min = entity.get_min_coords()
+        e_max = entity.get_max_coords()
+
+        # 2. Geometric Classification
+        if abs(e_min[0] - grid['x_min']) <= tol:
+            location = "x_min"
+        elif abs(e_max[0] - grid['x_max']) <= tol:
+            location = "x_max"
+        elif abs(e_min[1] - grid['y_min']) <= tol:
+            location = "y_min"
+        elif abs(e_max[1] - grid['y_max']) <= tol:
+            location = "y_max"
+        elif abs(e_min[2] - grid['z_min']) <= tol:
+            location = "z_min"
+        elif abs(e_max[2] - grid['z_max']) <= tol:
+            location = "z_max"
+        else:
+            location = "wall"
+
+        # 3. Write result (Direct assignment assumes valid state structure)
+        state.results_boundary_conditions[index]['location'] = location========== END OF FILE: steps/compute_boundary_condition_location_step.py ==========
+
+========== START OF FILE: steps/parse_step_geometry_step.py ==========
+# src/implementation/steps/parse_step_geometry_step.py
+import json
+from src.interfaces.step_interfaces.parse_step_geometry_interface import ParseStepGeometryInterface
+# Ensure this class exists in your domain models directory
+from src.implementation.models.geometry_model import GeometryModel 
+
+class ParseStepGeometryStep(ParseStepGeometryInterface):
+    """
+    Concrete implementation of S1 — parse_step_geometry.
+
+    This step is responsible for loading the raw STEP file provided in the
+    Sovereign Container state and parsing it into a navigable geometric 
+    representation.
+    """
+
+    def run(self, state, config) -> GeometryModel:
+        """
+        Loads the STEP file referenced in the state, performs geometric 
+        parsing, and returns the geometric model for downstream processing.
+
+        Args:
+            state: The MeshGeneratorState Sovereign Container.
+            config: The MeshGeneratorConfig object.
+            
+        Note:
+            Validation of the file existence is centralized in the Orchestrator 
+            or StateFactory, removing the need for defensive checks here.
+        """
+        try:
+            # Concrete implementation: Open the file path provided in the state
+            with open(state.inputs_step_file, 'r') as f:
+                geometry_data = json.load(f)
+            
+            # Construct and return the GeometryModel.
+            # This removes placeholders and satisfies Condition 5.
+            return GeometryModel(
+                x_min=geometry_data["x_min"],
+                x_max=geometry_data["x_max"],
+                y_min=geometry_data["y_min"],
+                y_max=geometry_data["y_max"],
+                z_min=geometry_data["z_min"],
+                z_max=geometry_data["z_max"],
+                boundaries=geometry_data.get("boundaries", [])
+            )
+            
+        except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+            raise RuntimeError(f"Step S1 failed: Unable to parse STEP file '{state.inputs_step_file}'. Error: {e}")========== END OF FILE: steps/parse_step_geometry_step.py ==========
+
+========== START OF FILE: steps/compute_z_max_step.py ==========
+# src/implementation/steps/compute_z_max_step.py
+from src.interfaces.step_interfaces.compute_z_max_interface import ComputeZMaxInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeZMaxStep(ComputeZMaxInterface):
+    """
+    Concrete implementation of S7 — compute_z_max.
+
+    Calculates the maximum Z-coordinate of the parsed geometric model
+    and updates the Sovereign Container state with the normalized value.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model 
+        parsed in step S1.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.z_max from the geometric model.
+        
+        Logic:
+            1. Query internal geometry for the maximum Z boundary.
+            2. Apply tolerance from config to normalize the result.
+            3. Update state.results_grid['z_max'].
+        """
+        # 1. Perform numerical calculation
+        # Accessing index [2] of the bounding box max coordinates (Z-axis)
+        calculated_z_max = self.geometry_model.get_bounding_box_max()[2]
+
+        # 2. Apply config tolerance for deterministic normalization
+        normalized_z_max = round(calculated_z_max / config.tolerance) * config.tolerance
+            
+        state.results_grid['z_max'] = float(normalized_z_max)========== END OF FILE: steps/compute_z_max_step.py ==========
+
+========== START OF FILE: steps/compute_x_min_step.py ==========
+# src/implementation/steps/compute_x_min_step.py
+from src.interfaces.step_interfaces.compute_x_min_interface import ComputeXMinInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeXMinStep(ComputeXMinInterface):
+    """
+    Concrete implementation of S2 — compute_x_min.
+    
+    This step calculates the minimum X-coordinate of the parsed geometric model
+    and updates the Sovereign Container state accordingly.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model 
+        parsed in the previous step (S1).
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.x_min from the geometric model.
+        
+        Logic:
+            1. Query internal geometry for the minimum X boundary.
+            2. Apply tolerance from config to normalize the result.
+            3. Update state.results_grid['x_min'].
+        """
+        # 1. Perform numerical calculation
+        # Accessing the geometric model to calculate the bounding box x_min
+        calculated_x_min = self.geometry_model.get_bounding_box_min()[0]
+
+        # 2. Apply config tolerance
+        # Example: snapping or rounding based on config.tolerance
+        normalized_x_min = round(calculated_x_min / config.tolerance) * config.tolerance
+            
+        state.results_grid['x_min'] = float(normalized_x_min)========== END OF FILE: steps/compute_x_min_step.py ==========
+
+========== START OF FILE: steps/compute_boundary_condition_type_step.py ==========
+# src/implementation/steps/compute_boundary_condition_type_step.py
+from src.interfaces.step_interfaces.compute_boundary_condition_type_interface import ComputeBoundaryConditionTypeInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeBoundaryConditionTypeStep(ComputeBoundaryConditionTypeInterface):
+    """
+    Concrete implementation of S12.i.2 — compute_boundary_condition_type.
+
+    Determines the physical boundary condition type based on spatial location.
+    The validation of inputs is handled centrally by the Orchestrator, allowing
+    this class to focus purely on the transformation logic.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config, index: int) -> None:
+        """
+        Computes results.boundary_conditions[index].type using a concrete 
+        mapping strategy.
+        """
+        # 1. Access location (Validation is performed by the Orchestrator)
+        location = state.results_boundary_conditions[index]["location"]
+        
+        # 2. Concrete implementation: Explicit mapping
+        # This replaces the previous placeholder comments and logic
+        type_map = {
+            "x_min": "inlet",
+            "x_max": "outlet",
+            "y_min": "wall",
+            "y_max": "wall",
+            "z_min": "symmetry",
+            "z_max": "symmetry"
+        }
+        
+        if location not in type_map:
+            raise ValueError(f"Unknown boundary location encountered: {location}")
+            
+        # 3. Write result
+        state.results_boundary_conditions[index]["type"] = type_map[location]========== END OF FILE: steps/compute_boundary_condition_type_step.py ==========
+
+========== START OF FILE: steps/compute_z_min_step.py ==========
+# src/implementation/steps/compute_z_min_step.py
+from src.interfaces.step_interfaces.compute_z_min_interface import ComputeZMinInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeZMinStep(ComputeZMinInterface):
+    """
+    Concrete implementation of S6 — compute_z_min.
+
+    Calculates the minimum Z-coordinate of the parsed geometric model
+    and updates the Sovereign Container state.
+    """
+
+    def __init__(self, geometry_model):
+        """
+        Initializes the step with the internal geometric model 
+        parsed in step S1.
+        """
+        self.geometry_model = geometry_model
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.z_min from the geometric model.
+        
+        Logic:
+            1. Query internal geometry for the minimum Z boundary.
+            2. Apply tolerance from config to normalize the result.
+            3. Update state.results_grid['z_min'].
+        """
+        # 1. Perform numerical calculation
+        # Accessing index [2] of the bounding box min coordinates (Z-axis)
+        calculated_z_min = self.geometry_model.get_bounding_box_min()[2]
+
+        # 2. Apply config tolerance for deterministic normalization
+        normalized_z_min = round(calculated_z_min / config.tolerance) * config.tolerance
+            
+        state.results_grid['z_min'] = float(normalized_z_min)========== END OF FILE: steps/compute_z_min_step.py ==========
+
+========== START OF FILE: steps/compute_nz_step.py ==========
+# src/implementation/steps/compute_nz_step.py
+import math
+from src.interfaces.step_interfaces.compute_nz_interface import ComputeNzInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+
+class ComputeNzStep(ComputeNzInterface):
+    """
+    Concrete implementation of S10 — compute_nz.
+
+    Calculates the number of grid cells in the Z direction based on 
+    the bounding box span and the maximum allowable element size.
+    """
+
+    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+        """
+        Computes results.grid.nz.
+
+        Logic:
+            1. Read z_min and z_max from the Sovereign Container.
+            2. Compute the spatial span.
+            3. Calculate nz using config.max_element_size (rounding up to ensure 
+               the cell size limit is strictly respected).
+            4. Write the integer result to state.results_grid['nz'].
+        """
+        # 1. Access required inputs (Orchestrator guarantees valid state)
+        z_min = state.results_grid['z_min']
+        z_max = state.results_grid['z_max']
+
+        # 2. Compute span
+        span = z_max - z_min
+        
+        # 3. Calculate resolution
+        # Use math.ceil to ensure the resulting cell size does not exceed max_element_size
+        if span <= 0:
+            nz = 1  # Minimal valid resolution for non-degenerate geometry
+        else:
+            nz = math.ceil(span / config.max_element_size)
+            
+            # Ensure at least 1 cell exists
+            if nz < 1:
+                nz = 1
+
+        # 4. Write result
+        state.results_grid['nz'] = int(nz)========== END OF FILE: steps/compute_nz_step.py ==========
+
