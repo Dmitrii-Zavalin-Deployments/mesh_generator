@@ -1,5 +1,4 @@
 import pytest
-import math
 from tests.signatures.config.mesh_generator_config_test_signature import MeshGeneratorConfigTestSignature
 # Assuming the implementation resides here based on your structure:
 from src.implementation.config.mesh_generator_config import MeshGeneratorConfig
