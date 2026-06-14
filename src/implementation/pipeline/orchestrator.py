@@ -15,6 +15,8 @@ from src.implementation.steps.compute_mask_step import ComputeMaskStep
 from src.implementation.steps.compute_boundary_condition_location_step import ComputeBoundaryConditionLocationStep
 from src.implementation.steps.compute_boundary_condition_type_step import ComputeBoundaryConditionTypeStep
 from src.implementation.steps.compute_boundary_condition_values_step import ComputeBoundaryConditionValuesStep
+# Phase 5: Import the Assembler
+from src.implementation.pipeline.output_assembler import OutputAssembler
 
 class Orchestrator:
     """
@@ -22,8 +24,9 @@ class Orchestrator:
     
     Responsibilities:
     1. Validate inputs via factories.
-    2. Centralize schema/key validation (The Validation Gate).
+    2. Centralize schema/key validation.
     3. Execute steps in the strict Minimal Step Path topological order.
+    4. Trigger Final Output Assembly (Phase 5).
     """
 
     def _ensure_keys(self, state, keys: list):
@@ -32,7 +35,7 @@ class Orchestrator:
             if state.results_grid.get(key) is None:
                 raise ValueError(f"Orchestrator validation failed: {key} is missing in results_grid.")
 
-    def run(self, raw_state: dict, raw_config: dict) -> None:
+    def run(self, raw_state: dict, raw_config: dict) -> str:
         # 1. Validation Gates (Initial Schema Check)
         state = StateFactory.create(raw_state)
         config = ConfigLoader.load(raw_config)
@@ -41,7 +44,7 @@ class Orchestrator:
         parser = ParseStepGeometryStep()
         geometry_model = parser.run(state, config)
 
-        # 3. Calculate Bounds (These steps define the grid extents)
+        # 3. Calculate Bounds
         ComputeXMinStep(geometry_model).run(state, config)
         ComputeXMaxStep(geometry_model).run(state, config)
         ComputeYMinStep(geometry_model).run(state, config)
@@ -49,18 +52,17 @@ class Orchestrator:
         ComputeZMinStep(geometry_model).run(state, config)
         ComputeZMaxStep(geometry_model).run(state, config)
 
-        # 4. Calculate Resolution (Requires Bounds)
+        # 4. Calculate Resolution
         self._ensure_keys(state, ['x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max'])
         ComputeNxStep().run(state, config)
         ComputeNyStep().run(state, config)
         ComputeNzStep().run(state, config)
 
-        # 5. Calculate Mask (Requires Resolution)
+        # 5. Calculate Mask
         self._ensure_keys(state, ['nx', 'ny', 'nz'])
         ComputeMaskStep().run(state, config)
 
-        # 6. Handle Boundary Conditions (Requires Grid + Resolution + Mask)
-        # Assuming number of BCs is known from geometry_model
+        # 6. Handle Boundary Conditions
         bc_steps = [
             ComputeBoundaryConditionLocationStep(geometry_model),
             ComputeBoundaryConditionTypeStep(geometry_model),
@@ -72,4 +74,13 @@ class Orchestrator:
             for step in bc_steps:
                 step.run(state, config, index=i)
 
-        return state
+        # 7. Finalize (Phase 5 Assembly)
+        # The Orchestrator is now responsible for handing off the fully 
+        # populated state to the OutputAssembler for final serialization.
+        final_output = OutputAssembler.assemble(
+            state=state, 
+            config=config, 
+            inputs=raw_state
+        )
+
+        return final_output
