@@ -21,7 +21,8 @@ class ConfigLoader:
             'solver_version', 
             'tolerance', 
             'max_element_size', 
-            'min_element_size'
+            'min_element_size',
+            'boundary_conditions' # Now a strictly required field
         ]
 
         # 1. Enforce No-Defaults Policy: 
@@ -37,5 +38,6 @@ class ConfigLoader:
             solver_version=data['solver_version'],
             tolerance=data['tolerance'],
             max_element_size=data['max_element_size'],
-            min_element_size=data['min_element_size']
+            min_element_size=data['min_element_size'],
+            boundary_conditions=data['boundary_conditions'] # Injecting the mapping
         )
