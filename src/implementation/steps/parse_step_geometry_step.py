@@ -47,6 +47,12 @@ class ParseStepGeometryStep(ParseStepGeometryInterface):
         # 3. Transfer roots and extract the solid shape
         # The reader converts the STEP file into an internal TopoDS_Shape
         step_reader.TransferRoots()
+        
+        # Defensive Guard: Ensure we actually extracted a shape before accessing index 1
+        if step_reader.NbShapes() == 0:
+            raise RuntimeError(f"Step S1 failed: No shapes found in STEP file '{state.inputs_step_file}'. "
+                               "Ensure the file contains valid geometric data (e.g., CLOSED_SHELL or BREP).")
+        
         cad_solid = step_reader.Shape(1) 
 
         # 4. Calculate exact bounding box using OpenCASCADE mathematics
