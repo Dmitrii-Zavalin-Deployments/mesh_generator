@@ -48,8 +48,17 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
                 f"max_element_size ({max_element_size})"
             )
 
-        # Assignments (Only occur if validation passes)
-        self.solver_version = solver_version
-        self.tolerance = tolerance
-        self.max_element_size = max_element_size
-        self.min_element_size = min_element_size
+        # Assignments (Use super() to bypass the immutability guard during initialization)
+        super().__setattr__('solver_version', solver_version)
+        super().__setattr__('tolerance', tolerance)
+        super().__setattr__('max_element_size', max_element_size)
+        super().__setattr__('min_element_size', min_element_size)
+
+    def __setattr__(self, name, value):
+        """
+        Enforce immutability: Prevent modifications after object creation.
+        This forces the test to raise an AttributeError if it tries to corrupt state.
+        """
+        if hasattr(self, name):
+            raise AttributeError(f"Cannot modify immutable config attribute: '{name}'")
+        super().__setattr__(name, value)

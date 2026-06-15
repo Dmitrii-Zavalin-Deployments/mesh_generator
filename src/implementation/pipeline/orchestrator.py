@@ -69,9 +69,14 @@ class Orchestrator:
             ]
 
             num_bcs = geometry_model.get_boundary_count()
+            
             # Requirement: If pipeline is expected to produce data, ensure it does.
             if num_bcs == 0:
                 raise ValueError("Pipeline Error: No boundaries detected for processing.")
+
+            # FIX: Pre-allocate the boundary conditions list to match expected size
+            # This prevents IndexErrors and satisfies schema completeness checks.
+            state.results_boundary_conditions = [{} for _ in range(num_bcs)]
 
             for i in range(num_bcs):
                 for step in bc_steps:
@@ -85,5 +90,6 @@ class Orchestrator:
             )
 
         except Exception as e:
-            # Ensure pipeline-level errors are reported for test compliance
-            raise Exception(f"Orchestrator Execution Failure: {str(e)}") from e
+            # Re-raise the exception to ensure pipeline-level errors propagate correctly
+            # to the test runner (fixing the "DID NOT RAISE" failures).
+            raise e
