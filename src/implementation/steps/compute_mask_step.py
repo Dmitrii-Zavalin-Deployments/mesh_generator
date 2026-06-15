@@ -6,6 +6,7 @@ from OCC.Core.TopAbs import TopAbs_IN, TopAbs_ON
 
 from src.interfaces.step_interfaces.compute_mask_interface import ComputeMaskInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.implementation.models.geometry_model import GeometryModel
 
 class ComputeMaskStep(ComputeMaskInterface):
     """
@@ -16,10 +17,14 @@ class ComputeMaskStep(ComputeMaskInterface):
     against the geometric model.
     """
 
-    def __init__(self, geometry_model):
+    def __init__(self, geometry_model: GeometryModel):
         """
         Initializes the step with the geometry model parsed in S1.
+        Strict dependency injection policy enforced; no default values allowed.
         """
+        if not isinstance(geometry_model, GeometryModel):
+            raise TypeError(f"ComputeMaskStep expects GeometryModel, got {type(geometry_model)}")
+        
         self.geometry_model = geometry_model
 
     def run(self, state: MeshGeneratorStateInterface, config) -> None:

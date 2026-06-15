@@ -1,3 +1,5 @@
+# src/implementation/pipeline/orchestrator.py
+
 from src.implementation.config.config_loader import ConfigLoader
 from src.implementation.state.state_factory import StateFactory
 from src.implementation.steps.parse_step_geometry_step import ParseStepGeometryStep
@@ -57,9 +59,9 @@ class Orchestrator:
             ComputeNyStep().run(state, config)
             ComputeNzStep().run(state, config)
 
-            # 5. Calculate Mask
+            # 5. Calculate Mask (Fixed: Injecting geometry_model dependency)
             self._ensure_keys(state, ['nx', 'ny', 'nz'])
-            ComputeMaskStep().run(state, config)
+            ComputeMaskStep(geometry_model).run(state, config)
 
             # 6. Handle Boundary Conditions
             bc_steps = [
@@ -74,8 +76,7 @@ class Orchestrator:
             if num_bcs == 0:
                 raise ValueError("Pipeline Error: No boundaries detected for processing.")
 
-            # FIX: Pre-allocate the boundary conditions list to match expected size
-            # This prevents IndexErrors and satisfies schema completeness checks.
+            # Pre-allocate the boundary conditions list to match expected size
             state.results_boundary_conditions = [{} for _ in range(num_bcs)]
 
             for i in range(num_bcs):
@@ -90,6 +91,5 @@ class Orchestrator:
             )
 
         except Exception as e:
-            # Re-raise the exception to ensure pipeline-level errors propagate correctly
-            # to the test runner (fixing the "DID NOT RAISE" failures).
+            # Re-raise to ensure pipeline-level errors propagate correctly
             raise e

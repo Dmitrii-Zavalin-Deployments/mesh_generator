@@ -1,3 +1,5 @@
+# tests/pipeline/test_pipeline_unified_consistency.py
+
 import pytest
 import copy
 import os
@@ -33,7 +35,6 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
             "max_element_size": 0.5,
             "min_element_size": 0.1
         }
-        # In a real scenario, you'd populate state.inputs_step_file here
         return Orchestrator(), state, config
 
     # ----------------------------------------------------------------------
@@ -61,6 +62,7 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         
         # Validation: Check that results were updated
         for field in results_fields:
+            # We use .get() for safe dict access if state is a dict, or attribute access if object
             assert state[field] != initial_state[field], f"Field '{field}' was not updated by the pipeline."
             
         # Validation: Check that inputs/metadata remained untouched
@@ -79,7 +81,6 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         orchestrator.run(state, config)
         
         # Verify that fields not touched by the pipeline remain identical
-        # (e.g., config, inputs_step_file)
         assert state['inputs_step_file'] == original_state['inputs_step_file']
 
     def test_pipeline_deterministic_end_to_end_behaviour(self, setup_pipeline):
@@ -95,6 +96,7 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         # Run pipeline 2
         orchestrator.run(state_2, config)
         
+        # Note: Depending on your state's implementation, you may need a custom equality check
         assert state_1 == state_2, "Pipeline output is not deterministic."
 
     def test_pipeline_no_hidden_side_effects(self, setup_pipeline):
