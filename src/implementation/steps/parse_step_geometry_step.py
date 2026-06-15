@@ -1,5 +1,4 @@
-# src/implementation/steps/parse_step_geometry_step.py
-
+import os
 # PythonOCC Core imports for high-performance geometry processing
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone
@@ -32,6 +31,10 @@ class ParseStepGeometryStep(ParseStepGeometryInterface):
             GeometryModel: Encapsulated geometry object containing the 
                            TopoDS_Shape and spatial bounds.
         """
+        # 0. Pre-flight check: Verify file exists to satisfy error propagation tests
+        if not os.path.exists(state.inputs_step_file):
+            raise FileNotFoundError(f"Input STEP file not found at: {state.inputs_step_file}")
+
         # 1. Initialize the STEP Reader
         step_reader = STEPControl_Reader()
         

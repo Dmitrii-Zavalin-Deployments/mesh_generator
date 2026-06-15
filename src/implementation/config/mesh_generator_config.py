@@ -1,3 +1,4 @@
+import math
 from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
 
 class MeshGeneratorConfig(MeshGeneratorConfigInterface):
@@ -27,6 +28,10 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
         for name, value in numeric_fields.items():
             if not isinstance(value, (int, float)):
                 raise TypeError(f"{name} must be int or float, got {type(value).__name__}")
+            
+            # Explicit NaN check (Required for 'test_sensitivity_invalid_numeric_ranges')
+            if math.isnan(value):
+                raise ValueError(f"{name} cannot be NaN.")
 
         # 2. Range Validation (Catches 'test_sensitivity_invalid_numeric_ranges', 
         # 'test_physics_tolerance_validity', 'test_physics_element_size_validity')
