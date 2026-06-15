@@ -15,7 +15,8 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
         solver_version: str, 
         tolerance: float, 
         max_element_size: float, 
-        min_element_size: float
+        min_element_size: float,
+        boundary_conditions: dict
     ):
         # 1. Type Validation (Catches 'test_sensitivity_invalid_types')
         if not isinstance(solver_version, str):
@@ -31,19 +32,18 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
             if not isinstance(value, (int, float)):
                 raise TypeError(f"{name} must be int or float, got {type(value).__name__}")
             
-            # Explicit NaN check (Required for 'test_sensitivity_invalid_numeric_ranges')
+            # Explicit NaN check
             if math.isnan(value):
                 raise ValueError(f"{name} cannot be NaN.")
 
-        # 2. Range Validation (Catches 'test_sensitivity_invalid_numeric_ranges', 
-        # 'test_physics_tolerance_validity', 'test_physics_element_size_validity')
+        # 2. Range Validation
         if tolerance <= 0:
             raise ValueError(f"Tolerance must be positive. Got: {tolerance}")
         
         if min_element_size <= 0 or max_element_size <= 0:
             raise ValueError("Element sizes must be > 0.")
             
-        # 3. Relationship Validation (Catches 'test_sensitivity_element_size_relationship')
+        # 3. Relationship Validation
         if min_element_size >= max_element_size:
             raise ValueError(
                 f"min_element_size ({min_element_size}) must be less than "
