@@ -85,5 +85,5 @@ class Orchestrator:
             )
 
         except Exception as e:
-            # Ensure pipeline-level errors are raised as requested by tests
+            # Ensure pipeline-level errors are reported for test compliance
             raise Exception(f"Orchestrator Execution Failure: {str(e)}") from e
