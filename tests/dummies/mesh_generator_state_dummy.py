@@ -1,6 +1,6 @@
 # tests/dummies/mesh_generator_state_dummy.py
 
-from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 
 class MeshGeneratorStateDummy(dict, MeshGeneratorStateInterface):
