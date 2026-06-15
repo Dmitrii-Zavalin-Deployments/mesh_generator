@@ -14,22 +14,20 @@ class StepInterfaceBase:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        # Inspect subclass for Constitution violations
-        for name in cls.__dict__:
-            # Skip magic methods (e.g., __init__, __doc__)
+        # 1. Read the configuration
+        allowed = getattr(cls, 'ALLOWED_MEMBERS', {"run"})
+
+        # 2. Validate all members
+        for name, value in cls.__dict__.items():
             if name.startswith("__"):
                 continue
             
-            # Skip the meta-definition itself
-            if name == "ALLOWED_MEMBERS":
-                continue
-
-            # Verify that the attribute is part of the allowed contract
-            if name not in cls.ALLOWED_MEMBERS:
+            # Now we don't have to skip "ALLOWED_MEMBERS" because 
+            # we aren't checking the dict keys directly for configuration
+            if name not in allowed and name != "ALLOWED_MEMBERS":
                 raise TypeError(
                     f"CONSTITUTION VIOLATION: Subclass '{cls.__name__}' is strictly "
-                    f"prohibited from defining custom member '{name}'. "
-                    f"Allowed interface members are: {cls.ALLOWED_MEMBERS}"
+                    f"prohibited from defining custom member '{name}'."
                 )
 
     def run(self, state, config):
