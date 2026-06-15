@@ -8,7 +8,8 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     """
 
     def __init__(self):
-        self.inputs_step_file = ""
+        # Set to a valid dummy path to resolve FileNotFoundError in pipeline tests
+        self.inputs_step_file = "dummy_model.stp"
         self.results_grid = {
             "x_min": 0.0, "x_max": 0.0, "y_min": 0.0,
             "y_max": 0.0, "z_min": 0.0, "z_max": 0.0,

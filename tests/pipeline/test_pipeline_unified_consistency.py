@@ -1,5 +1,6 @@
 import pytest
 import copy
+import os
 from tests.signatures.pipeline.pipeline_unified_consistency_test_signature import PipelineUnifiedConsistencyTestSignature
 from tests.dummies.mesh_generator_state_dummy import MeshGeneratorStateDummy
 from src.implementation.pipeline.orchestrator import Orchestrator
@@ -10,6 +11,19 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
     Validates that the Orchestrator maintains state consistency, deterministic 
     outputs, and strict mutation boundaries.
     """
+
+    @pytest.fixture(autouse=True)
+    def create_dummy_step_file(self):
+        """Ensures the dummy file exists for the duration of the test session."""
+        filename = "dummy_model.stp"
+        with open(filename, 'w') as f:
+            f.write("dummy content")
+        
+        yield  # Run tests
+        
+        # Cleanup after tests
+        if os.path.exists(filename):
+            os.remove(filename)
 
     @pytest.fixture
     def setup_pipeline(self):
@@ -32,13 +46,29 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
     def test_pipeline_single_responsibility_per_step(self, setup_pipeline):
         """
         Validates that the orchestrator executes steps that only modify 
-        expected fields.
+        expected fields, ensuring strict mutation boundaries.
         """
         orchestrator, state, config = setup_pipeline
-        # We verify this by running the pipeline and checking state integrity.
-        # This test ensures no step writes to fields it doesn't own.
-        # Logic: Inspecting state after key milestones.
-        pass # Implementation requires granular state snapshots if granular validation is needed
+        
+        # 1. Capture state before execution
+        initial_state = copy.deepcopy(state)
+        
+        # 2. Run the pipeline
+        orchestrator.run(state, config)
+        
+        # 3. Define fields that SHOULD change (Results)
+        results_fields = ['results_grid', 'results_mask', 'results_boundary_conditions']
+        
+        # 4. Define fields that should NOT change (Inputs/Metadata)
+        immutable_fields = ['inputs_step_file']
+        
+        # Validation: Check that results were updated
+        for field in results_fields:
+            assert state[field] != initial_state[field], f"Field '{field}' was not updated by the pipeline."
+            
+        # Validation: Check that inputs/metadata remained untouched
+        for field in immutable_fields:
+            assert state[field] == initial_state[field], f"Field '{field}' was unexpectedly mutated by the pipeline."
 
     def test_pipeline_no_schema_mutation(self, setup_pipeline):
         """
@@ -49,7 +79,7 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         original_state = copy.deepcopy(state)
         
         # Run execution
-        # orchestrator.run(state, config)
+        orchestrator.run(state, config)
         
         # Verify that fields not touched by the pipeline remain identical
         # (e.g., config, inputs_step_file)
@@ -63,10 +93,10 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         state_2 = copy.deepcopy(state_1)
         
         # Run pipeline 1
-        # orchestrator.run(state_1, config)
+        orchestrator.run(state_1, config)
         
         # Run pipeline 2
-        # orchestrator.run(state_2, config)
+        orchestrator.run(state_2, config)
         
         assert state_1 == state_2, "Pipeline output is not deterministic."
 
@@ -77,17 +107,17 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         orchestrator, state, config = setup_pipeline
         original_config = copy.deepcopy(config)
         
-        # orchestrator.run(state, config)
+        orchestrator.run(state, config)
         
         assert config == original_config, "Pipeline mutated the configuration object."
 
     def test_pipeline_schema_completeness(self, setup_pipeline):
         orchestrator, state, config = setup_pipeline
         
-        # UNCOMMENTED: Pipeline must run to populate the state
+        # Pipeline must run to populate the state
         orchestrator.run(state, config)
         
-        # Check required fields (using dictionary access as per your test design)
+        # Check required fields
         assert state['results_grid']['nx'] > 0
         assert len(state['results_mask']) > 0
 
@@ -97,6 +127,6 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         # Inject invalid state
         state['inputs_step_file'] = "non_existent_file.stp"
         
-        # UNCOMMENTED: Pipeline must run to trigger the exception
+        # Pipeline must run to trigger the exception
         with pytest.raises(Exception): 
             orchestrator.run(state, config)
