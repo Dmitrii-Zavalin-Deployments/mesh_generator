@@ -55,18 +55,19 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
         super().__setattr__('tolerance', tolerance)
         super().__setattr__('max_element_size', max_element_size)
         super().__setattr__('min_element_size', min_element_size)
+        super().__setattr__('boundary_conditions', boundary_conditions)
 
     def get_values_for_type(self, bc_type: str):
         """
-        Bridge method required by pipeline steps to extract boundary-specific 
-        parameters.
+        Retrieves configuration values. 
+        Enforces No-Defaults Policy: If type is missing, we raise an error.
         """
-        return {
-            "type": bc_type,
-            "value": 0.0,
-            "unit": "SI",
-            "active": True
-        }
+        if bc_type not in self.boundary_conditions:
+            raise ValueError(
+                f"No-Defaults Policy Violation: No configuration provided for BC type: '{bc_type}'"
+            )
+        
+        return self.boundary_conditions[bc_type]
 
     def __setattr__(self, name, value):
         """
