@@ -2,6 +2,22 @@
 
 from OCC.Core.TopoDS import TopoDS_Shape
 
+class BoundaryEntity:
+    """
+    A lightweight container for boundary entities.
+    This fulfills the interface requirements for downstream steps 
+    without needing complex CAD face-extraction logic yet.
+    """
+    def __init__(self, min_coords, max_coords):
+        self.min_coords = min_coords
+        self.max_coords = max_coords
+
+    def get_min_coords(self):
+        return self.min_coords
+
+    def get_max_coords(self):
+        return self.max_coords
+
 class GeometryModel:
     """
     Sovereign container for CAD geometry and spatial bounds.
@@ -26,7 +42,7 @@ class GeometryModel:
         self.z_max = z_max
         self.cad_solid = cad_solid
         
-        # Placeholder for boundary condition tracking (extensible for complex CAD)
+        # Placeholder for boundary condition tracking
         self._boundary_count = 1 
 
     def get_bounding_box_min(self):
@@ -38,22 +54,20 @@ class GeometryModel:
         return (self.x_max, self.y_max, self.z_max)
 
     def get_boundary_count(self) -> int:
-        """
-        Returns the number of boundary surfaces detected in the CAD file.
-        This enables the Orchestrator to loop through boundary condition steps correctly.
-        """
+        """Returns the number of boundary surfaces detected."""
         return self._boundary_count
 
     def get_boundary_entity(self, index: int):
         """
-        Returns the CAD boundary entity (e.g., TopoDS_Face) for the given index.
-        
-        Currently acts as a bridge placeholder to satisfy pipeline schema requirements
-        until robust OpenCASCADE face-extraction logic is implemented.
+        Returns a BoundaryEntity object that conforms to the interface expected 
+        by ComputeBoundaryConditionLocationStep.
         """
-        # Returning None or the main solid safely fulfills the method signature 
-        # for pipeline consistency testing.
-        return None
+        # Return a dummy entity using the model's overall bounds as a placeholder
+        # until specific face extraction logic is implemented.
+        return BoundaryEntity(
+            min_coords=self.get_bounding_box_min(),
+            max_coords=self.get_bounding_box_max()
+        )
 
     def __repr__(self):
         return (f"GeometryModel(bounds=[{self.x_min}:{self.x_max}, "
