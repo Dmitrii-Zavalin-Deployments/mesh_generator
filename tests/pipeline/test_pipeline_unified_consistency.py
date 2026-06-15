@@ -82,27 +82,21 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         assert config == original_config, "Pipeline mutated the configuration object."
 
     def test_pipeline_schema_completeness(self, setup_pipeline):
-        """
-        Verifies that after the pipeline runs, all required schema fields
-        contain valid, initialized data.
-        """
         orchestrator, state, config = setup_pipeline
         
-        # orchestrator.run(state, config)
+        # UNCOMMENTED: Pipeline must run to populate the state
+        orchestrator.run(state, config)
         
-        # Check required fields
+        # Check required fields (using dictionary access as per your test design)
         assert state['results_grid']['nx'] > 0
         assert len(state['results_mask']) > 0
 
     def test_pipeline_error_propagation_and_reporting(self, setup_pipeline):
-        """
-        Injects invalid data and ensures the pipeline raises a controlled exception.
-        """
         orchestrator, state, config = setup_pipeline
         
         # Inject invalid state
         state['inputs_step_file'] = "non_existent_file.stp"
         
-        with pytest.raises(Exception): # Replace with specific pipeline error
-            # orchestrator.run(state, config)
-            pass
+        # UNCOMMENTED: Pipeline must run to trigger the exception
+        with pytest.raises(Exception): 
+            orchestrator.run(state, config)

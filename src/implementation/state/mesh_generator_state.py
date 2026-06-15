@@ -30,3 +30,17 @@ class MeshGeneratorState(MeshGeneratorStateInterface):
         
         # The GeometryModel is injected post-parsing via the Orchestrator
         self.geometry_model = geometry_model
+
+    def __getitem__(self, key):
+        """
+        Allows test suite to access object attributes like dictionary keys.
+        Example: state['results_mask'] -> state.results_mask
+        """
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        """
+        Allows test suite to set attributes like dictionary keys.
+        Example: state['results_mask'] = [1, 2] -> state.results_mask = [1, 2]
+        """
+        setattr(self, key, value)
