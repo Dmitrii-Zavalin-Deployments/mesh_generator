@@ -1,3 +1,4 @@
+import os
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
