@@ -30,8 +30,14 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
         return self.__dict__ == other.__dict__
 
     def __getitem__(self, key):
-        """Allows test suite to access object attributes via dictionary keys."""
-        return getattr(self, str(key))
+        """
+        Allows test suite to access object attributes via dictionary keys.
+        Raises KeyError if the attribute does not exist, preventing crashes during iteration.
+        """
+        key_str = str(key)
+        if hasattr(self, key_str):
+            return getattr(self, key_str)
+        raise KeyError(f"State does not contain attribute: {key_str}")
 
     def __setitem__(self, key, value):
         """Allows test suite to set attributes via dictionary keys."""
