@@ -16,8 +16,15 @@ class StepInterfaceBase:
 
         # Inspect subclass for Constitution violations
         for name in cls.__dict__:
+            # Skip magic methods (e.g., __init__, __doc__)
             if name.startswith("__"):
                 continue
+            
+            # Skip the meta-definition itself
+            if name == "ALLOWED_MEMBERS":
+                continue
+
+            # Verify that the attribute is part of the allowed contract
             if name not in cls.ALLOWED_MEMBERS:
                 raise TypeError(
                     f"CONSTITUTION VIOLATION: Subclass '{cls.__name__}' is strictly "

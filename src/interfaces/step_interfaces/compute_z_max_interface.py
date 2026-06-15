@@ -1,5 +1,5 @@
-from .step_interface_base import StepInterfaceBase
-from interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.step_interfaces.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 
 class ComputeZMaxInterface(StepInterfaceBase):
