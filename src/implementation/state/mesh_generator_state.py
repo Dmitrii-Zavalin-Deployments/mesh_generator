@@ -31,12 +31,18 @@ class MeshGeneratorState(MeshGeneratorStateInterface):
         # The GeometryModel is injected post-parsing via the Orchestrator
         self.geometry_model = geometry_model
 
+    def __iter__(self):
+        """Allows direct iteration over state fields (e.g., for test inspection)."""
+        return iter(self.__dict__.keys())
+
     def __getitem__(self, key):
         """
         Allows test suite to access object attributes like dictionary keys.
-        Raises KeyError if the attribute does not exist, enabling safe 
-        interaction and preventing AttributeError during iteration.
+        Raises IndexError for integer keys to support sequence-style iteration.
         """
+        if isinstance(key, int):
+            raise IndexError("MeshGeneratorState is not a sequence; integer indices are not supported.")
+            
         key_str = str(key)
         if hasattr(self, key_str):
             return getattr(self, key_str)
