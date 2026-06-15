@@ -13,17 +13,14 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
     """
 
     @pytest.fixture(autouse=True)
-    def create_dummy_step_file(self):
-        """Ensures the dummy file exists for the duration of the test session."""
-        filename = "dummy_model.stp"
-        with open(filename, 'w') as f:
-            f.write("dummy content")
-        
-        yield  # Run tests
-        
-        # Cleanup after tests
-        if os.path.exists(filename):
-            os.remove(filename)
+    def verify_dummy_assets(self):
+        """Ensures the static dummy STEP file exists before running tests."""
+        # Instantiate a dummy to get the path it expects
+        state = MeshGeneratorStateDummy()
+        if not os.path.exists(state.inputs_step_file):
+            pytest.fail(f"Required dummy asset not found at {state.inputs_step_file}. "
+                        "Please ensure 'dummy_model.stp' is placed in 'tests/dummies/'.")
+        yield
 
     @pytest.fixture
     def setup_pipeline(self):
