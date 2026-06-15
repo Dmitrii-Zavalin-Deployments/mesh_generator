@@ -29,6 +29,14 @@ class GeometryModel:
         # Placeholder for boundary condition tracking (extensible for complex CAD)
         self._boundary_count = 1 
 
+    def get_bounding_box_min(self):
+        """Returns the minimum spatial coordinates as a tuple (x, y, z)."""
+        return (self.x_min, self.y_min, self.z_min)
+
+    def get_bounding_box_max(self):
+        """Returns the maximum spatial coordinates as a tuple (x, y, z)."""
+        return (self.x_max, self.y_max, self.z_max)
+
     def get_boundary_count(self) -> int:
         """
         Returns the number of boundary surfaces detected in the CAD file.
