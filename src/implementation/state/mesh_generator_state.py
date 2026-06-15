@@ -34,13 +34,13 @@ class MeshGeneratorState(MeshGeneratorStateInterface):
     def __getitem__(self, key):
         """
         Allows test suite to access object attributes like dictionary keys.
-        Example: state['results_mask'] -> state.results_mask
+        Casts key to str() to prevent TypeError.
         """
-        return getattr(self, key)
+        return getattr(self, str(key))
 
     def __setitem__(self, key, value):
         """
         Allows test suite to set attributes like dictionary keys.
-        Example: state['results_mask'] = [1, 2] -> state.results_mask = [1, 2]
+        Casts key to str() to prevent TypeError.
         """
-        setattr(self, key, value)
+        setattr(self, str(key), value)

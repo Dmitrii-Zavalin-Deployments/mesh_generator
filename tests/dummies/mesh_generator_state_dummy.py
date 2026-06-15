@@ -4,6 +4,7 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     """
     Test‑only dummy implementation of the Mesh Generator Sovereign Container.
     Acts as an object, but supports dictionary-style access for test compatibility.
+    Includes equality checks for deterministic testing.
     """
 
     def __init__(self):
@@ -22,13 +23,19 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
         self.results_mask = []
         self.results_boundary_conditions = []
 
+    def __eq__(self, other):
+        """Ensures deterministic comparison by checking internal state."""
+        if not isinstance(other, MeshGeneratorStateDummy):
+            return False
+        return self.__dict__ == other.__dict__
+
     def __getitem__(self, key):
         """Allows test suite to access object attributes via dictionary keys."""
-        return getattr(self, key)
+        return getattr(self, str(key))
 
     def __setitem__(self, key, value):
         """Allows test suite to set attributes via dictionary keys."""
-        setattr(self, key, value)
+        setattr(self, str(key), value)
 
     def override(self, **kwargs):
         """Overrides primary fields."""
