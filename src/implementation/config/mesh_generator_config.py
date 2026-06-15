@@ -1,3 +1,5 @@
+# src/implementation/config/mesh_generator_config.py
+
 import math
 from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
 
@@ -53,6 +55,18 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
         super().__setattr__('tolerance', tolerance)
         super().__setattr__('max_element_size', max_element_size)
         super().__setattr__('min_element_size', min_element_size)
+
+    def get_values_for_type(self, bc_type: str):
+        """
+        Bridge method required by pipeline steps to extract boundary-specific 
+        parameters.
+        """
+        return {
+            "type": bc_type,
+            "value": 0.0,
+            "unit": "SI",
+            "active": True
+        }
 
     def __setattr__(self, name, value):
         """
