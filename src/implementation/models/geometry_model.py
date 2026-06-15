@@ -44,6 +44,17 @@ class GeometryModel:
         """
         return self._boundary_count
 
+    def get_boundary_entity(self, index: int):
+        """
+        Returns the CAD boundary entity (e.g., TopoDS_Face) for the given index.
+        
+        Currently acts as a bridge placeholder to satisfy pipeline schema requirements
+        until robust OpenCASCADE face-extraction logic is implemented.
+        """
+        # Returning None or the main solid safely fulfills the method signature 
+        # for pipeline consistency testing.
+        return None
+
     def __repr__(self):
         return (f"GeometryModel(bounds=[{self.x_min}:{self.x_max}, "
                 f"{self.y_min}:{self.y_max}, {self.z_min}:{self.z_max}])")
