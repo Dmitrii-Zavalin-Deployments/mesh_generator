@@ -43,7 +43,9 @@ class ComputeMaskStep(ComputeMaskInterface):
         """
         # 1. Retrieve dimensions from state
         nx, ny, nz = state.results_grid['nx'], state.results_grid['ny'], state.results_grid['nz']
-        
+        if nx <= 0 or ny <= 0 or nz <= 0:
+            raise ValueError(f"Invalid mesh dimensions (nx={nx}, ny={ny}, nz={nz}). Dimensions must be positive.")
+                
         # Calculate cell sizes
         dx = (state.results_grid['x_max'] - state.results_grid['x_min']) / nx
         dy = (state.results_grid['y_max'] - state.results_grid['y_min']) / ny
