@@ -6,25 +6,25 @@ from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorSta
 class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     """
     Test‑only dummy implementation of the Mesh Generator Sovereign Container.
-    Acts as an object, but supports dictionary-style access for test compatibility.
-    Includes equality checks for deterministic testing.
-    Updated with non-zero dimensions to satisfy pipeline consistency assertions.
+    Fully updated to satisfy schema constraints (non-empty arrays) and 
+    volumetric consistency (non-zero grid dimensions).
     """
 
     def __init__(self):
         # Set to a valid dummy path to resolve FileNotFoundError in pipeline tests
         self.inputs_step_file = os.path.join(os.path.dirname(__file__), "dummy_model.stp")
         
-        # Initialized with non-zero volume so volumetric steps perform actual work
+        # Non-zero volume to ensure ComputeMaskStep performs work
         self.results_grid = {
             "x_min": 0.0, "x_max": 1.0, "y_min": 0.0,
             "y_max": 1.0, "z_min": 0.0, "z_max": 1.0,
             "nx": 5, "ny": 5, "nz": 5,
         }
         
-        self.results_mask = []
+        # Initialize mask with a placeholder to pass empty-state checks
+        self.results_mask = [0]
         
-        # Initialized with placeholder to satisfy len() > 0 schema assertions
+        # Populate with dummy entry so len(results_boundary_conditions) > 0 passes
         self.results_boundary_conditions = [{"id": "dummy_bc_placeholder"}]
 
     def to_dict(self):
@@ -50,10 +50,7 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
         return iter(self.__dict__.keys())
 
     def __getitem__(self, key):
-        """
-        Allows test suite to access object attributes via dictionary keys.
-        Raises IndexError for integer keys to support sequence-style iteration.
-        """
+        """Allows test suite to access object attributes via dictionary keys."""
         if isinstance(key, int):
             raise IndexError("MeshGeneratorStateDummy is not a sequence; integer indices are not supported.")
             
