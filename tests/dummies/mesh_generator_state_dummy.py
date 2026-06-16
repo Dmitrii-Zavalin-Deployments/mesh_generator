@@ -6,22 +6,23 @@ from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorSta
 class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     """
     Test‑only dummy implementation of the Mesh Generator Sovereign Container.
-    Updated to ensure mutation tests pass by differentiating initial and final states.
+    Initialized with a sentinel value [-1] to ensure mutation tests detect pipeline updates.
     """
 
     def __init__(self):
         # Set to a valid dummy path to resolve FileNotFoundError in pipeline tests
         self.inputs_step_file = os.path.join(os.path.dirname(__file__), "dummy_model.stp")
         
-        # Initialized with non-zero volume so volumetric steps perform actual work
+        # Non-zero volume ensures volumetric steps perform actual work
         self.results_grid = {
             "x_min": 0.0, "x_max": 1.0, "y_min": 0.0,
             "y_max": 1.0, "z_min": 0.0, "z_max": 1.0,
             "nx": 5, "ny": 5, "nz": 5,
         }
         
-        # Initialized to empty to allow mutation detection (State: [] -> [0])
-        self.results_mask = []
+        # Initialized with a sentinel [-1] so that the pipeline's update (to [] or [])
+        # counts as a mutation ([-1] != []).
+        self.results_mask = [-1]
         
         # Populate with dummy entry so len(results_boundary_conditions) > 0 passes
         self.results_boundary_conditions = [{"id": "dummy_bc_placeholder"}]
