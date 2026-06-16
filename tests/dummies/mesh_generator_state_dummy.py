@@ -8,18 +8,24 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     Test‑only dummy implementation of the Mesh Generator Sovereign Container.
     Acts as an object, but supports dictionary-style access for test compatibility.
     Includes equality checks for deterministic testing.
+    Updated with non-zero dimensions to satisfy pipeline consistency assertions.
     """
 
     def __init__(self):
         # Set to a valid dummy path to resolve FileNotFoundError in pipeline tests
         self.inputs_step_file = os.path.join(os.path.dirname(__file__), "dummy_model.stp")
+        
+        # Initialized with non-zero volume so volumetric steps perform actual work
         self.results_grid = {
-            "x_min": 0.0, "x_max": 0.0, "y_min": 0.0,
-            "y_max": 0.0, "z_min": 0.0, "z_max": 0.0,
-            "nx": 0, "ny": 0, "nz": 0,
+            "x_min": 0.0, "x_max": 1.0, "y_min": 0.0,
+            "y_max": 1.0, "z_min": 0.0, "z_max": 1.0,
+            "nx": 5, "ny": 5, "nz": 5,
         }
+        
         self.results_mask = []
-        self.results_boundary_conditions = []
+        
+        # Initialized with placeholder to satisfy len() > 0 schema assertions
+        self.results_boundary_conditions = [{"id": "dummy_bc_placeholder"}]
 
     def to_dict(self):
         """
