@@ -1,3 +1,6 @@
+# tests/pipeline/test_pipeline_unified_consistency.py
+
+import os
 import pytest
 import copy
 from src.implementation.pipeline.orchestrator import Orchestrator
@@ -14,7 +17,6 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
     @pytest.fixture(autouse=True)
     def verify_dummy_assets(self):
         """Ensures the static dummy STEP file exists before running tests."""
-        # Instantiate a dummy to get the path it expects
         state = MeshGeneratorStateDummy()
         if not os.path.exists(state.inputs_step_file):
             pytest.fail(f"Required dummy asset not found at {state.inputs_step_file}. "
@@ -27,21 +29,27 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         state = MeshGeneratorStateDummy()
         
         # Ensure the dummy has valid dimensions for the 'Happy Path'
-        state.results_grid = {'nx': 10, 'ny': 10, 'nz': 10, 
-                              'x_min': 0, 'x_max': 1, 
-                              'y_min': 0, 'y_max': 1, 
-                              'z_min': 0, 'z_max': 1}
+        state.results_grid = {
+            'nx': 10, 'ny': 10, 'nz': 10, 
+            'x_min': 0.0, 'x_max': 1.0, 
+            'y_min': 0.0, 'y_max': 1.0, 
+            'z_min': 0.0, 'z_max': 1.0
+        }
         
         config = {
             "solver_version": "1.0.0",
             "tolerance": 1e-6,
             "max_element_size": 0.5,
-            "min_element_size": 0.1
+            "min_element_size": 0.1,
+            "boundary_conditions": {
+                "wall": {"u": 0.0, "v": 0.0, "w": 0.0, "p": 101325.0},
+                "inlet": {"u": 1.0, "v": 0.0, "w": 0.0, "p": 101325.0}
+            }
         }
         return Orchestrator(), state, config
 
     # ----------------------------------------------------------------------
-    # Success Path Testing
+    # 3.2.3 — Pipeline‑Level Consistency Gate Implementations
     # ----------------------------------------------------------------------
 
     def test_pipeline_single_responsibility_per_step(self, setup_pipeline):
@@ -50,41 +58,23 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         
         orchestrator.run(state, config)
         
-        # Validate results were updated
-        assert state.results_mask != initial_state.results_grid, "Field 'results_mask' was not updated."
+        # Validate that the expected physical mask was generated
+        assert state.results_mask != initial_state.results_mask, "Field 'results_mask' was not updated."
         
-        # Validate Navier-Stokes Semantic Contract
+        # Validate Navier-Stokes Semantic Contract for the Mask
         valid_mask_values = {-1, 0, 1}
-        assert all(val in valid_mask_values for val in state.results_mask), "Invalid mask values."
+        assert all(val in valid_mask_values for val in state.results_mask), \
+            f"Invalid mask values found in pipeline output. Allowed: {valid_mask_values}"
 
-    # ----------------------------------------------------------------------
-    # Error Handling & Fail-Fast Testing
-    # ----------------------------------------------------------------------
-
-    def test_pipeline_handles_negative_dimensions(self, setup_pipeline):
-        """
-        Validates that the pipeline correctly raises a ValueError when 
-        invalid (non-positive) dimensions are provided.
-        """
+    def test_pipeline_no_schema_mutation(self, setup_pipeline):
         orchestrator, state, config = setup_pipeline
-        
-        # Force invalid dimensions
-        state.results_grid['nx'] = -999
-        
-        # Assert that the Orchestrator propagates the ValueError from the step
-        with pytest.raises(ValueError, match="Invalid mesh dimensions"):
-            orchestrator.run(state, config)
-
-    # ----------------------------------------------------------------------
-    # Integrity Testing
-    # ----------------------------------------------------------------------
-
-    def test_pipeline_no_hidden_side_effects(self, setup_pipeline):
-        orchestrator, state, config = setup_pipeline
-        original_config = copy.deepcopy(config)
+        original_state = copy.deepcopy(state)
         
         orchestrator.run(state, config)
-        assert config == original_config, "Pipeline mutated the configuration object."
+        
+        # Verify that inputs/metadata (fields outside the results scope) remain identical
+        assert state.inputs_step_file == original_state.inputs_step_file, \
+            "Pipeline improperly mutated the input file path."
 
     def test_pipeline_deterministic_end_to_end_behaviour(self, setup_pipeline):
         orchestrator, state_1, config = setup_pipeline
@@ -93,4 +83,36 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         orchestrator.run(state_1, config)
         orchestrator.run(state_2, config)
         
+        # End-to-end deterministic check
         assert state_1.results_mask == state_2.results_mask, "Pipeline output is not deterministic."
+        assert state_1.results_grid == state_2.results_grid, "Pipeline grid output drift detected."
+
+    def test_pipeline_no_hidden_side_effects(self, setup_pipeline):
+        orchestrator, state, config = setup_pipeline
+        original_config = copy.deepcopy(config)
+        
+        orchestrator.run(state, config)
+        
+        # Ensure the orchestrator strictly reads the config and does not modify it
+        assert config == original_config, "Pipeline mutated the configuration object."
+
+    def test_pipeline_schema_completeness(self, setup_pipeline):
+        orchestrator, state, config = setup_pipeline
+        
+        orchestrator.run(state, config)
+        
+        # Check required fields are populated and structurally sound
+        assert getattr(state, 'results_grid', None) is not None, "results_grid is missing."
+        assert state.results_grid.get('nx', 0) > 0, "results_grid 'nx' must be positive."
+        assert getattr(state, 'results_mask', None) is not None, "results_mask is missing."
+        assert len(state.results_mask) > 0, "results_mask is empty."
+
+    def test_pipeline_error_propagation_and_reporting(self, setup_pipeline):
+        orchestrator, state, config = setup_pipeline
+        
+        # Inject invalid state to trigger fail-fast logic in ComputeMaskStep
+        state.results_grid['nx'] = -999
+        
+        # The pipeline MUST propagate the specific step-level failure up to the caller
+        with pytest.raises(ValueError, match="Invalid mesh dimensions"): 
+            orchestrator.run(state, config)
