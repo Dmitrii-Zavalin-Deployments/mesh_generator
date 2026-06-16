@@ -1,3 +1,5 @@
+# tests/dummies/mesh_generator_state_dummy.py
+
 import os
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
@@ -18,6 +20,18 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
         }
         self.results_mask = []
         self.results_boundary_conditions = []
+
+    def to_dict(self):
+        """
+        Satisfies the Pipeline Serialization Contract.
+        Allows OutputAssembler to serialize this state object without errors.
+        """
+        return {
+            "inputs_step_file": self.inputs_step_file,
+            "results_grid": self.results_grid,
+            "results_mask": self.results_mask,
+            "results_boundary_conditions": self.results_boundary_conditions
+        }
 
     def __eq__(self, other):
         """Ensures deterministic comparison by checking internal state."""
