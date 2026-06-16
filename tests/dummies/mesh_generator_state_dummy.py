@@ -6,23 +6,22 @@ from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorSta
 class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     """
     Test‑only dummy implementation of the Mesh Generator Sovereign Container.
-    Fully updated to satisfy schema constraints (non-empty arrays) and 
-    volumetric consistency (non-zero grid dimensions).
+    Updated to ensure mutation tests pass by differentiating initial and final states.
     """
 
     def __init__(self):
         # Set to a valid dummy path to resolve FileNotFoundError in pipeline tests
         self.inputs_step_file = os.path.join(os.path.dirname(__file__), "dummy_model.stp")
         
-        # Non-zero volume to ensure ComputeMaskStep performs work
+        # Initialized with non-zero volume so volumetric steps perform actual work
         self.results_grid = {
             "x_min": 0.0, "x_max": 1.0, "y_min": 0.0,
             "y_max": 1.0, "z_min": 0.0, "z_max": 1.0,
             "nx": 5, "ny": 5, "nz": 5,
         }
         
-        # Initialize mask with a placeholder to pass empty-state checks
-        self.results_mask = [0]
+        # Initialized to empty to allow mutation detection (State: [] -> [0])
+        self.results_mask = []
         
         # Populate with dummy entry so len(results_boundary_conditions) > 0 passes
         self.results_boundary_conditions = [{"id": "dummy_bc_placeholder"}]
@@ -50,7 +49,10 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
         return iter(self.__dict__.keys())
 
     def __getitem__(self, key):
-        """Allows test suite to access object attributes via dictionary keys."""
+        """
+        Allows test suite to access object attributes via dictionary keys.
+        Raises IndexError for integer keys to support sequence-style iteration.
+        """
         if isinstance(key, int):
             raise IndexError("MeshGeneratorStateDummy is not a sequence; integer indices are not supported.")
             
