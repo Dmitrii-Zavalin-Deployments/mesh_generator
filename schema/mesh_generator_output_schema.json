@@ -76,10 +76,14 @@
 
         "mask": {
           "type": "array",
-          "description": "Solid/fluid mask for Navier–Stokes solver. Canonical flattening: i + nx*(j + ny*k).",
+          "description": "Solid/fluid mask for Navier–Stokes solver. Canonical flattening: i + nx*(j + ny*k). Mapping: -1 = Wall (Boundary Condition), 0 = Solid, 1 = Fluid (Interior).",
           "items": {
             "type": "integer",
-            "enum": [-1, 0, 1]
+            "enum": [
+              -1,
+              0,
+              1
+            ]
           }
         },
 

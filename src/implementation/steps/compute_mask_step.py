@@ -30,13 +30,16 @@ class ComputeMaskStep(ComputeMaskInterface):
     def run(self, state: MeshGeneratorStateInterface, config) -> None:
         """
         Computes results.mask via optimized ray-casting.
-
         Logic:
             1. Retrieve grid dimensions.
             2. Pre-allocate contiguous memory via numpy.
             3. Instantiate the OpenCASCADE classifier.
             4. Perform ray-casting to identify Solid, Boundary, or Fluid cells.
             5. Finalize the array and store in state.
+        Maps OpenCASCADE geometric classifications to Navier-Stokes solver schema:
+            -1 : Wall (Boundary Condition)
+             0 : Solid
+             1 : Fluid (Interior)
         """
         # 1. Retrieve dimensions from state
         nx, ny, nz = state.results_grid['nx'], state.results_grid['ny'], state.results_grid['nz']
@@ -51,9 +54,11 @@ class ComputeMaskStep(ComputeMaskInterface):
         mask = np.zeros(total_cells, dtype=np.int8)
 
         # 3. Initialize the BRepClass3d_SolidClassifier
-        # We define a tolerance (e.g., 1e-7) to handle geometric precision
         classifier = BRepClass3d_SolidClassifier(self.geometry_model.cad_solid)
-        tolerance = 1e-7 
+        
+        # ENFORCE NO-DEFAULTS POLICY: 
+        # Retrieve tolerance dynamically. Supports both dict (from tests) and Object.
+        tolerance = config['tolerance'] if isinstance(config, dict) else config.tolerance
 
         # 4. Perform ray-casting iteration
         flat_index = 0
@@ -68,14 +73,14 @@ class ComputeMaskStep(ComputeMaskInterface):
                     pnt = gp_Pnt(x, y, z)
                     classifier.Perform(pnt, tolerance)
                     
-                    # Map OpenCASCADE TopAbs to internal schema
+                    # Map OpenCASCADE TopAbs to internal Navier-Stokes schema
                     status = classifier.State()
                     if status == TopAbs_IN:
-                        mask[flat_index] = -1  # Solid
+                        mask[flat_index] = 0   # Solid
                     elif status == TopAbs_ON:
-                        mask[flat_index] = 1   # Boundary
+                        mask[flat_index] = -1  # Wall (Boundary)
                     else:
-                        mask[flat_index] = 0   # Fluid (OUT)
+                        mask[flat_index] = 1   # Fluid (OUT)
                         
                     flat_index += 1
 

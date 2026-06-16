@@ -1,12 +1,13 @@
-# tests/dummies/mesh_generator_state_dummy.py
-
 import os
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
     """
     Test‑only dummy implementation of the Mesh Generator Sovereign Container.
-    Initialized with a sentinel value [-1] to ensure mutation tests detect pipeline updates.
+    
+    Initialized with a sentinel value [-999] to ensure mutation tests detect 
+    pipeline updates without colliding with the Navier-Stokes semantic 
+    mapping (where -1, 0, 1 are reserved for physical domain classification).
     """
 
     def __init__(self):
@@ -20,9 +21,10 @@ class MeshGeneratorStateDummy(MeshGeneratorStateInterface):
             "nx": 5, "ny": 5, "nz": 5,
         }
         
-        # Initialized with a sentinel [-1] so that the pipeline's update (to [] or [])
-        # counts as a mutation ([-1] != []).
-        self.results_mask = [-1]
+        # Initialized with sentinel [-999].
+        # The pipeline output will map to {-1, 0, 1}, so -999 acts as a clear 
+        # "uninitialized" flag for test assertions (e.g., [-999] != [-1]).
+        self.results_mask = [-999]
         
         # Populate with dummy entry so len(results_boundary_conditions) > 0 passes
         self.results_boundary_conditions = [{"id": "dummy_bc_placeholder"}]
