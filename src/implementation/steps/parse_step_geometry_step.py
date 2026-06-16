@@ -1,3 +1,5 @@
+# src/implementation/pipeline/parse_step_geometry_step.py
+
 import os
 # PythonOCC Core imports for high-performance geometry processing
 from OCC.Core.STEPControl import STEPControl_Reader
@@ -29,7 +31,7 @@ class ParseStepGeometryStep(ParseStepGeometryInterface):
             
         Returns:
             GeometryModel: Encapsulated geometry object containing the 
-                           TopoDS_Shape and spatial bounds.
+                           TopoDS_Shape, spatial bounds, and boundary conditions.
         """
         # 0. Pre-flight check: Verify file exists to satisfy error propagation tests
         if not os.path.exists(state.inputs_step_file):
@@ -45,7 +47,6 @@ class ParseStepGeometryStep(ParseStepGeometryInterface):
             raise RuntimeError(f"Step S1 failed: Unable to parse real STEP file '{state.inputs_step_file}'.")
 
         # 3. Transfer roots and extract the solid shape
-        # The reader converts the STEP file into an internal TopoDS_Shape
         step_reader.TransferRoots()
         
         # Defensive Guard: Ensure we actually extracted a shape before accessing index 1
@@ -63,7 +64,7 @@ class ParseStepGeometryStep(ParseStepGeometryInterface):
         x_min, y_min, z_min, x_max, y_max, z_max = bbox.Get()
 
         # 5. Construct and return the GeometryModel
-        # This replaces the mock dictionary with a physical geometric object
+        # Added 'boundary_conditions' to maintain unified schema consistency
         return GeometryModel(
             x_min=x_min,
             x_max=x_max,
@@ -71,5 +72,6 @@ class ParseStepGeometryStep(ParseStepGeometryInterface):
             y_max=y_max,
             z_min=z_min,
             z_max=z_max,
-            cad_solid=cad_solid
+            cad_solid=cad_solid,
+            boundary_conditions=config.boundary_conditions
         )

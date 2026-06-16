@@ -1,6 +1,7 @@
 # src/implementation/models/geometry_model.py
 
 from OCC.Core.TopoDS import TopoDS_Shape
+from typing import Dict, Any
 
 class BoundaryEntity:
     """
@@ -23,8 +24,8 @@ class GeometryModel:
     Sovereign container for CAD geometry and spatial bounds.
     
     This class is passed between steps to prevent redundant parsing of the
-    raw STEP file. It holds the heavy CAD solid (TopoDS_Shape) and the 
-    pre-computed bounding box metrics.
+    raw STEP file. It holds the heavy CAD solid (TopoDS_Shape), the 
+    pre-computed bounding box metrics, and the associated boundary conditions.
     """
 
     def __init__(
@@ -32,7 +33,8 @@ class GeometryModel:
         x_min: float, x_max: float, 
         y_min: float, y_max: float, 
         z_min: float, z_max: float, 
-        cad_solid: TopoDS_Shape
+        cad_solid: TopoDS_Shape,
+        boundary_conditions: Dict[str, Any]
     ):
         self.x_min = x_min
         self.x_max = x_max
@@ -42,8 +44,11 @@ class GeometryModel:
         self.z_max = z_max
         self.cad_solid = cad_solid
         
-        # Placeholder for boundary condition tracking
-        self._boundary_count = 1 
+        # Store boundary conditions passed from the config
+        self.boundary_conditions = boundary_conditions
+        
+        # Placeholder for boundary count based on input conditions
+        self._boundary_count = len(boundary_conditions) if boundary_conditions else 1
 
     def get_bounding_box_min(self):
         """Returns the minimum spatial coordinates as a tuple (x, y, z)."""
@@ -71,4 +76,5 @@ class GeometryModel:
 
     def __repr__(self):
         return (f"GeometryModel(bounds=[{self.x_min}:{self.x_max}, "
-                f"{self.y_min}:{self.y_max}, {self.z_min}:{self.z_max}])")
+                f"{self.y_min}:{self.y_max}, {self.z_min}:{self.z_max}], "
+                f"bc_count={self._boundary_count})")

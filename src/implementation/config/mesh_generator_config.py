@@ -16,7 +16,7 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
         tolerance: float, 
         max_element_size: float, 
         min_element_size: float,
-        boundary_conditions: dict
+        boundary_conditions: dict = None  # Default added to fix 'missing argument' test errors
     ):
         # 1. Type Validation (Catches 'test_sensitivity_invalid_types')
         if not isinstance(solver_version, str):
@@ -55,7 +55,20 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
         super().__setattr__('tolerance', tolerance)
         super().__setattr__('max_element_size', max_element_size)
         super().__setattr__('min_element_size', min_element_size)
-        super().__setattr__('boundary_conditions', boundary_conditions)
+        super().__setattr__('boundary_conditions', boundary_conditions if boundary_conditions is not None else {})
+
+    def to_dict(self):
+        """
+        Official serialization method. Use this when converting the config 
+        to JSON in pipeline output steps.
+        """
+        return {
+            "solver_version": self.solver_version,
+            "tolerance": self.tolerance,
+            "max_element_size": self.max_element_size,
+            "min_element_size": self.min_element_size,
+            "boundary_conditions": self.boundary_conditions
+        }
 
     def get_values_for_type(self, bc_type: str):
         """
@@ -72,7 +85,6 @@ class MeshGeneratorConfig(MeshGeneratorConfigInterface):
     def __setattr__(self, name, value):
         """
         Enforce immutability: Prevent modifications after object creation.
-        This forces the test to raise an AttributeError if it tries to corrupt state.
         """
         if hasattr(self, name):
             raise AttributeError(f"Cannot modify immutable config attribute: '{name}'")
