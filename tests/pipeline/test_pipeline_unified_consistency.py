@@ -28,14 +28,15 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
     def setup_pipeline(self):
         """Initializes the orchestrator and state."""
         state = MeshGeneratorStateDummy()
-        # Mock config for the pipeline - compliant with No-Defaults Policy
+        # Mock config for the pipeline - fully compliant with No-Defaults Policy
         config = {
             "solver_version": "1.0.0",
             "tolerance": 1e-6,
             "max_element_size": 0.5,
             "min_element_size": 0.1,
             "boundary_conditions": {
-                "wall": {"u": 0.0, "v": 0.0, "w": 0.0, "p": 101325.0}
+                "wall": {"u": 0.0, "v": 0.0, "w": 0.0, "p": 101325.0},
+                "inlet": {"u": 1.0, "v": 0.0, "w": 0.0, "p": 101325.0}
             }
         }
         return Orchestrator(), state, config
