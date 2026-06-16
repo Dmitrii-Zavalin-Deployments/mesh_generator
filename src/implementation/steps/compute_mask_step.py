@@ -54,6 +54,7 @@ class ComputeMaskStep(ComputeMaskInterface):
         # 2. Pre-allocate contiguous memory (int8 is sufficient for [-1, 0, 1])
         total_cells = nx * ny * nz
         mask = np.zeros(total_cells, dtype=np.int8)
+        state.results_mask = mask.tolist()
 
         # 3. Initialize the BRepClass3d_SolidClassifier
         classifier = BRepClass3d_SolidClassifier(self.geometry_model.cad_solid)

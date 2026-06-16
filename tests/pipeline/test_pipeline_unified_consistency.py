@@ -111,7 +111,7 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         orchestrator, state, config = setup_pipeline
         
         # Inject invalid state to trigger fail-fast logic in ComputeMaskStep
-        state.results_grid['nx'] = -999
+        state.results_grid = {'nx': -999, 'ny': 10, 'nz': 10, 'x_min': 0.0, 'x_max': 1.0, 'y_min': 0.0, 'y_max': 1.0, 'z_min': 0.0, 'z_max': 1.0}
         
         # The pipeline MUST propagate the specific step-level failure up to the caller
         with pytest.raises(ValueError, match="Invalid mesh dimensions"): 
