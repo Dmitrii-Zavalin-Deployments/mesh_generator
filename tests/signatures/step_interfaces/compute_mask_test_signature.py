@@ -63,10 +63,11 @@ class ComputeMaskTestSignature:
 
     def test_physics_mask_value_validity(self):
         """
-        The mask must contain only values in {-1, 0, 1}:
-            - -1 : solid
-            -  0 : fluid interior
-            -  1 : boundary-adjacent
+        The mask must contain only values in {-1, 0, 1}, representing 
+        canonical physical regions for Navier-Stokes:
+            - -1 : Wall (Boundary Condition)
+             0 : Solid
+             1 : Fluid (Interior)
 
         Any other value must be rejected.
         """
