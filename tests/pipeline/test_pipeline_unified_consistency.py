@@ -11,6 +11,16 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
     outputs, and strict mutation boundaries.
     """
 
+    @pytest.fixture(autouse=True)
+    def verify_dummy_assets(self):
+        """Ensures the static dummy STEP file exists before running tests."""
+        # Instantiate a dummy to get the path it expects
+        state = MeshGeneratorStateDummy()
+        if not os.path.exists(state.inputs_step_file):
+            pytest.fail(f"Required dummy asset not found at {state.inputs_step_file}. "
+                        "Please ensure 'dummy_model.stp' is placed in 'tests/dummies/'.")
+        yield
+
     @pytest.fixture
     def setup_pipeline(self):
         """Initializes the orchestrator and state with valid dimensions."""
@@ -25,7 +35,8 @@ class TestPipelineUnifiedConsistency(PipelineUnifiedConsistencyTestSignature):
         config = {
             "solver_version": "1.0.0",
             "tolerance": 1e-6,
-            "boundary_conditions": {"wall": {"u": 0.0, "v": 0.0, "w": 0.0, "p": 101325.0}}
+            "max_element_size": 0.5,
+            "min_element_size": 0.1
         }
         return Orchestrator(), state, config
 
