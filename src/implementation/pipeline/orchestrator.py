@@ -15,7 +15,6 @@ from src.implementation.steps.compute_nz_step import ComputeNzStep
 from src.implementation.steps.compute_mask_step import ComputeMaskStep
 from src.implementation.steps.compute_boundary_condition_location_step import ComputeBoundaryConditionLocationStep
 from src.implementation.steps.compute_boundary_condition_type_step import ComputeBoundaryConditionTypeStep
-from src.implementation.steps.compute_boundary_condition_values_step import ComputeBoundaryConditionValuesStep
 from src.implementation.pipeline.output_assembler import OutputAssembler
 
 class Orchestrator:
@@ -59,24 +58,23 @@ class Orchestrator:
             ComputeNyStep().run(state, config)
             ComputeNzStep().run(state, config)
 
-            # 5. Calculate Mask (Fixed: Injecting geometry_model dependency)
+            # 5. Calculate Mask
             self._ensure_keys(state, ['nx', 'ny', 'nz'])
             ComputeMaskStep(geometry_model).run(state, config)
 
             # 6. Handle Boundary Conditions
+            # We now only execute the steps required by the schema: Location and Type.
             bc_steps = [
                 ComputeBoundaryConditionLocationStep(geometry_model),
-                ComputeBoundaryConditionTypeStep(geometry_model),
-                ComputeBoundaryConditionValuesStep()
+                ComputeBoundaryConditionTypeStep(geometry_model)
             ]
 
             num_bcs = geometry_model.get_boundary_count()
             
-            # Requirement: If pipeline is expected to produce data, ensure it does.
             if num_bcs == 0:
                 raise ValueError("Pipeline Error: No boundaries detected for processing.")
 
-            # Pre-allocate the boundary conditions list to match expected size
+            # Pre-allocate the boundary conditions list
             state.results_boundary_conditions = [{} for _ in range(num_bcs)]
 
             for i in range(num_bcs):
@@ -91,5 +89,4 @@ class Orchestrator:
             )
 
         except Exception as e:
-            # Re-raise to ensure pipeline-level errors propagate correctly
             raise e
