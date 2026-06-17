@@ -1,10 +1,19 @@
+"""
+src/state/grid_interface.py
+
+Contract‑only interface for results.grid.
+This file is part of the core architecture and is version‑controlled.
+"""
+
 from typing import TypedDict
 
 class GridInterface(TypedDict, total=False):
     """
     Contract‑only interface for results.grid.
-    No logic, no defaults, no computations.
-    Matches the Sovereign Container definition in Section 2.3.
+
+    Matches the schema defined in mesh_generator_results_schema.json.
+    This interface ensures that the geometric extents (S2–S7) and the
+    resolution parameters (S8–S10) are handled with strict type safety.
     """
 
     # Bounding box components (S2–S7)
@@ -16,6 +25,7 @@ class GridInterface(TypedDict, total=False):
     z_max: float
 
     # Grid resolution (S8–S10)
+    # nx, ny, nz represent the discrete cell counts in each dimension
     nx: int
     ny: int
     nz: int
