@@ -3,7 +3,6 @@
 import pytest
 from tests.signatures.state.boundary_condition_test_signature import BoundaryConditionTestSignature
 from tests.dummies.mesh_generator_state_dummy import MeshGeneratorStateDummy
-from src.implementation.steps.compute_boundary_condition_location_step import ComputeBoundaryConditionLocationStep
 from src.implementation.steps.compute_boundary_condition_type_step import ComputeBoundaryConditionTypeStep
 from src.implementation.steps.compute_boundary_condition_values_step import ComputeBoundaryConditionValuesStep
 
