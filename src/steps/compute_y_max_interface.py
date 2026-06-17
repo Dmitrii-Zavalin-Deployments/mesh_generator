@@ -1,6 +1,13 @@
+"""
+src/steps/compute_y_max_interface.py
+
+Contract‑only interface for step S5.
+This file is part of the core architecture and is version‑controlled.
+"""
+
 from src.interfaces.steps.step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
-
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
 
 class ComputeYMaxInterface(StepInterfaceBase):
     """
@@ -9,37 +16,34 @@ class ComputeYMaxInterface(StepInterfaceBase):
     Contract‑only interface for the step that computes:
         results.grid.y_max
 
+    This step is a geometric query. It traverses the parsed CAD B-Rep 
+    structure to determine the absolute maximum spatial extent along 
+    the Y-axis of the domain.
+
     Consumes:
-        - parsed geometry (internal, not stored in the Sovereign Container)
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface)
 
     Produces:
         - state.results_grid["y_max"]
 
     This interface defines *only* the structural contract.
     No logic, no defaults, no computation is permitted.
-    Implementations must follow the Constitution:
-        - compute exactly one schema‑level property
-        - read only previously‑computed properties
-        - write exactly one property
-        - perform no additional mutation
-        - contain no algorithmic logic here
     """
 
     ALLOWED_MEMBERS = {"run"}
 
-    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
         """
         Compute exactly one schema‑level property:
             results.grid.y_max
 
         Must:
-            - read only the parsed geometry produced by S1
-            - extract the y_max bounding‑box component
-            - write exactly one field: state.results_grid["y_max"]
-            - perform no other computation or mutation
-            - contain no implementation logic here
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["y_max"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
 
-        This method is intentionally unimplemented.
-        Concrete implementations must override this method.
+        Implementations must override this method.
         """
         raise NotImplementedError

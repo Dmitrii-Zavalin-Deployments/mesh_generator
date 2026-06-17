@@ -1,6 +1,13 @@
+"""
+src/steps/compute_x_min_interface.py
+
+Contract‑only interface for step S2.
+This file is part of the core architecture and is version‑controlled.
+"""
+
 from src.interfaces.steps.step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
-
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
 
 class ComputeXMinInterface(StepInterfaceBase):
     """
@@ -9,8 +16,13 @@ class ComputeXMinInterface(StepInterfaceBase):
     Contract‑only interface for the step that computes:
         results.grid.x_min
 
+    This step is the geometric anchor for the X-axis. It traverses the 
+    parsed CAD B-Rep structure to determine the absolute minimum spatial 
+    extent along the X-axis of the domain.
+
     Consumes:
-        - parsed geometry (internal, not stored in the Sovereign Container)
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface - used for precision/tolerance)
 
     Produces:
         - state.results_grid["x_min"]
@@ -21,16 +33,16 @@ class ComputeXMinInterface(StepInterfaceBase):
 
     ALLOWED_MEMBERS = {"run"}
 
-    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
         """
         Compute exactly one schema‑level property:
             results.grid.x_min
 
         Must:
-            - read only previously‑computed properties
-            - write exactly one property
-            - perform no other mutation
-            - contain no implementation logic here
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["x_min"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
 
         Implementations must override this method.
         """

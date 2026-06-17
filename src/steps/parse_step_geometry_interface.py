@@ -1,27 +1,49 @@
-# src/interfaces/steps/parse_step_geometry_interface.py
-from .step_interface_base import StepInterfaceBase
+"""
+src/steps/parse_step_geometry_interface.py
+
+Contract‑only interface for step S1.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
 from src.implementation.models.geometry_model import GeometryModel
 
 class ParseStepGeometryInterface(StepInterfaceBase):
     """
-    Contract-only interface for S1 — parse_step_geometry.
+    S1 — parse_step_geometry
+
+    Contract‑only interface for the step that initializes the geometry:
+        output: GeometryModel
+
+    This is the "Bootstrap" step. It transforms the raw input file (provided
+    via state/config) into the internal geometric representation required 
+    by all downstream operations.
 
     Consumes:
-        - state.inputs_step_file
+        - state.inputs_step_file (path to file)
+        - runtime configuration (MeshGeneratorConfigInterface)
 
     Produces:
-        - GeometryModel: A sovereign container for the TopoDS_Shape and spatial extents.
-          NOTE: This object is returned by the step and utilized by the Orchestrator
-                to inject dependency data into subsequent geometric operations.
+        - GeometryModel (The sovereign container for B-Rep data)
 
-    This step must NOT compute any schema-level property.
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
     """
 
     ALLOWED_MEMBERS = {"run"}
 
-    def run(self, state, config) -> GeometryModel:
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> GeometryModel:
         """
-        Load and interpret the STEP file into a GeometryModel representation.
-        Must not compute or mutate any schema-level property in the Sovereign Container.
+        Bootstrap the pipeline by converting raw input into a usable GeometryModel.
+
+        Must:
+            - load the geometry from the file path provided in state/config.
+            - perform no schema-level mutations in this method (the returned
+              model is injected by the orchestrator).
+            - contain no implementation logic.
+
+        Implementations must override this method and return a valid GeometryModel.
         """
         raise NotImplementedError

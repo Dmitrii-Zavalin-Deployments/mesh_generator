@@ -1,6 +1,13 @@
-# src/interfaces/steps/compute_mask_interface.py
-from .step_interface_base import StepInterfaceBase
+"""
+src/steps/compute_mask_interface.py
+
+Contract‑only interface for step S11.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
 
 class ComputeMaskInterface(StepInterfaceBase):
     """
@@ -9,38 +16,41 @@ class ComputeMaskInterface(StepInterfaceBase):
     Contract‑only interface for the step that computes:
         results.mask
 
+    This step is the "Voxelizer". It maps the continuous B-Rep geometry 
+    into a discrete, flattened 1D array of integers representing the 
+    domain state.
+
     Consumes:
-        - GeometryModel: Provided via constructor injection (S1).
-        - results.grid.nx, ny, nz: Provided via state.
-        - tolerance: Provided via config (MeshGeneratorConfig).
+        - parsed geometry (state.cad_solid)
+        - grid resolution (state.results_grid.nx, ny, nz)
+        - tolerance (config.tolerance)
 
     Produces:
-        - state.results_mask (a flattened 1D array of ints in {-1, 0, 1})
+        - state.results_mask (flattened 1D array of ints in {-1, 0, 1})
 
-    Description:
-        This interface defines the structural contract for generating the solid/fluid 
-        mask array. By utilizing constructor injection for the GeometryModel, we 
-        ensure the 'run' signature remains uniform across all pipeline steps.
+    Physical Mapping:
+        -1 : Wall (Boundary Condition)
+         0 : Solid
+         1 : Fluid (Interior)
 
-        Physical Mapping:
-            -1 : Wall (Boundary Condition)
-             0 : Solid
-             1 : Fluid (Interior)
-
-        No logic, no defaults, and no computation are permitted here.
+    This interface defines *only* the structural contract.
+    No logic, no defaults, and no computation are permitted.
     """
 
     ALLOWED_MEMBERS = {"run"}
 
-    def run(self, state: MeshGeneratorStateInterface, config) -> None:
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
         """
         Compute exactly one schema‑level property:
             results.mask
 
         Must:
-            - utilize the injected GeometryModel for spatial classification
-            - read only previously‑computed properties (nx, ny, nz)
-            - write exactly one property: results.mask
-            - follow the Constitution and the Minimal Step Path
+            - utilize state.cad_solid for spatial classification.
+            - read only previously‑computed grid properties (nx, ny, nz).
+            - write exactly one property: state.results_mask.
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
         """
         raise NotImplementedError
