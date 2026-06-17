@@ -1,7 +1,6 @@
 # tests/config/test_mesh_generator_config.py
 
 import pytest
-import math
 from src.implementation.config.mesh_generator_config import MeshGeneratorConfig
 from tests.signatures.config.mesh_generator_config_test_signature import MeshGeneratorConfigTestSignature
 
