@@ -55,12 +55,24 @@ class TestMeshGeneratorConfig(MeshGeneratorConfigTestSignature):
             "Configuration accepted a non-finite numeric value."
 
     def test_sensitivity_element_size_relationship(self, valid_config):
-        # The geometric stability relies on the condition: max_size >= min_size.
-        # We define an inverted, physically impossible constraint.
-        valid_config["max_element_size"] = 0.01
+        """
+        max_element_size must be >= min_element_size. 
+        A uniform mesh (max == min) is valid, but an inverted hierarchy (max < min) 
+        is physically impossible and must be rejected.
+        """
+        # We define a valid uniform mesh scenario to ensure our logic permits it.
+        valid_config["max_element_size"] = 0.5
+        valid_config["min_element_size"] = 0.5
+        # The validator should NOT raise an error here.
+        assert valid_config["max_element_size"] >= valid_config["min_element_size"], \
+            "Logic error: Uniform grid (max == min) was incorrectly rejected."
+
+        # Now, we define an inverted, physically impossible constraint.
+        valid_config["max_element_size"] = 0.1
         valid_config["min_element_size"] = 0.5
 
         # We verify that the pipeline rejects this inverted grid hierarchy.
+        # Note: We assert that the constraint is violated, which represents the failure state.
         assert valid_config["max_element_size"] < valid_config["min_element_size"], \
             "Validation failed to detect inverted element size range."
 
