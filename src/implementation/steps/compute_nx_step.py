@@ -1,6 +1,6 @@
 # src/implementation/steps/compute_nx_step.py
 import math
-from src.interfaces.step_interfaces.compute_nx_interface import ComputeNxInterface
+from src.interfaces.steps.compute_nx_interface import ComputeNxInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeNxStep(ComputeNxInterface):

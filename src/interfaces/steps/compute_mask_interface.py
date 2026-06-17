@@ -1,4 +1,4 @@
-# src/interfaces/step_interfaces/compute_mask_interface.py
+# src/interfaces/steps/compute_mask_interface.py
 from .step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 

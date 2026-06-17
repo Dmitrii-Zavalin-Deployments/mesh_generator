@@ -1,5 +1,5 @@
 # src/implementation/steps/compute_z_min_step.py
-from src.interfaces.step_interfaces.compute_z_min_interface import ComputeZMinInterface
+from src.interfaces.steps.compute_z_min_interface import ComputeZMinInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeZMinStep(ComputeZMinInterface):

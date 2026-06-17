@@ -1,6 +1,6 @@
 # src/implementation/steps/compute_ny_step.py
 import math
-from src.interfaces.step_interfaces.compute_ny_interface import ComputeNyInterface
+from src.interfaces.steps.compute_ny_interface import ComputeNyInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeNyStep(ComputeNyInterface):

@@ -1,4 +1,4 @@
-# src/interfaces/step_interfaces/parse_step_geometry_interface.py
+# src/interfaces/steps/parse_step_geometry_interface.py
 from .step_interface_base import StepInterfaceBase
 from src.implementation.models.geometry_model import GeometryModel
 

@@ -1,21 +1,21 @@
-from src.interfaces.step_interfaces.step_interface_base import StepInterfaceBase
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 
-class ComputeNyInterface(StepInterfaceBase):
+class ComputeNxInterface(StepInterfaceBase):
     """
-    S9 — compute_ny
+    S8 — compute_nx
 
     Contract‑only interface for the step that computes:
-        results.grid.ny
+        results.grid.nx
 
     Consumes:
-        - results.grid.y_min
-        - results.grid.y_max
+        - results.grid.x_min
+        - results.grid.x_max
         - runtime configuration parameters (MeshGeneratorConfigInterface)
 
     Produces:
-        - state.results_grid["ny"]
+        - state.results_grid["nx"]
 
     This interface defines *only* the structural contract.
     No logic, no defaults, no computation is permitted.
@@ -26,15 +26,15 @@ class ComputeNyInterface(StepInterfaceBase):
     def run(self, state: MeshGeneratorStateInterface, config) -> None:
         """
         Compute exactly one schema‑level property:
-            results.grid.ny
+            results.grid.nx
 
         Must:
             - read only previously‑computed properties:
-                * results.grid.y_min
-                * results.grid.y_max
+                * results.grid.x_min
+                * results.grid.x_max
                 * config parameters (e.g., tolerance, min/max element size)
             - write exactly one property:
-                * results.grid.ny
+                * results.grid.nx
             - perform no other mutation
             - contain no implementation logic here
             - follow the Constitution and the Minimal Step Path

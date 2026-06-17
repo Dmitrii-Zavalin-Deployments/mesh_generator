@@ -8,7 +8,7 @@ from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRepBndLib import brepbndlib_Add
 
 # Domain imports
-from src.interfaces.step_interfaces.parse_step_geometry_interface import ParseStepGeometryInterface
+from src.interfaces.steps.parse_step_geometry_interface import ParseStepGeometryInterface
 from src.implementation.models.geometry_model import GeometryModel 
 
 class ParseStepGeometryStep(ParseStepGeometryInterface):

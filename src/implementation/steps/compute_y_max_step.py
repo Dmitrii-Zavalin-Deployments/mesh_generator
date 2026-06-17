@@ -1,5 +1,5 @@
 # src/implementation/steps/compute_y_max_step.py
-from src.interfaces.step_interfaces.compute_y_max_interface import ComputeYMaxInterface
+from src.interfaces.steps.compute_y_max_interface import ComputeYMaxInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeYMaxStep(ComputeYMaxInterface):

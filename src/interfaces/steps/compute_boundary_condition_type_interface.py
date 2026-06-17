@@ -1,4 +1,4 @@
-from src.interfaces.step_interfaces.step_interface_base import StepInterfaceBase
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 

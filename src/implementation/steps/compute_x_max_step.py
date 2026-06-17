@@ -1,5 +1,5 @@
 # src/implementation/steps/compute_x_max_step.py
-from src.interfaces.step_interfaces.compute_x_max_interface import ComputeXMaxInterface
+from src.interfaces.steps.compute_x_max_interface import ComputeXMaxInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeXMaxStep(ComputeXMaxInterface):

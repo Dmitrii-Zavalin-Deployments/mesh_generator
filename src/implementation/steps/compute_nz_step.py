@@ -1,6 +1,6 @@
 # src/implementation/steps/compute_nz_step.py
 import math
-from src.interfaces.step_interfaces.compute_nz_interface import ComputeNzInterface
+from src.interfaces.steps.compute_nz_interface import ComputeNzInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeNzStep(ComputeNzInterface):

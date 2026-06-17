@@ -1,5 +1,5 @@
 # src/implementation/steps/compute_boundary_condition_type_step.py
-from src.interfaces.step_interfaces.compute_boundary_condition_type_interface import ComputeBoundaryConditionTypeInterface
+from src.interfaces.steps.compute_boundary_condition_type_interface import ComputeBoundaryConditionTypeInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 class ComputeBoundaryConditionTypeStep(ComputeBoundaryConditionTypeInterface):

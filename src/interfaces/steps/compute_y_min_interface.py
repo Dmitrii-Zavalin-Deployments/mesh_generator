@@ -1,19 +1,19 @@
-from src.interfaces.step_interfaces.step_interface_base import StepInterfaceBase
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 
 
-class ComputeXMaxInterface(StepInterfaceBase):
+class ComputeYMinInterface(StepInterfaceBase):
     """
-    S3 — compute_x_max
+    S4 — compute_y_min
 
     Contract‑only interface for the step that computes:
-        results.grid.x_max
+        results.grid.y_min
 
     Consumes:
         - parsed geometry (internal, not stored in the Sovereign Container)
 
     Produces:
-        - state.results_grid["x_max"]
+        - state.results_grid["y_min"]
 
     This interface defines *only* the structural contract.
     No logic, no defaults, no computation is permitted.
@@ -24,7 +24,7 @@ class ComputeXMaxInterface(StepInterfaceBase):
     def run(self, state: MeshGeneratorStateInterface, config) -> None:
         """
         Compute exactly one schema‑level property:
-            results.grid.x_max
+            results.grid.y_min
 
         Must:
             - read only previously‑computed properties

@@ -4,7 +4,7 @@ from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_ON
 
-from src.interfaces.step_interfaces.compute_mask_interface import ComputeMaskInterface
+from src.interfaces.steps.compute_mask_interface import ComputeMaskInterface
 from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
 from src.implementation.models.geometry_model import GeometryModel
 
