@@ -13,7 +13,6 @@ from src.state.mesh_generator_state import MeshGeneratorStateInterface
 # OCC/Physics Stack Imports
 # We need these here because voxelization requires geometric intersection queries
 from OCC.Core.TopoDS import TopoDS_Shape
-from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 
 class ComputeMaskInterface(StepInterfaceBase):
     """
