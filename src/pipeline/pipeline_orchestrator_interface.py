@@ -6,8 +6,8 @@ Defines the execution lifecycle for assembling and executing the sequential
 step chain against the Sovereign State container.
 """
 
-from typing import Any
-from src.state.mesh_generator_state import MeshGeneratorStateInterface
+# FIX: Import ConfigInterface to enforce type safety
+from src.state.mesh_generator_state import MeshGeneratorStateInterface, ConfigInterface
 from src.pipeline.pipeline_interface import PipelineInterface
 
 class PipelineOrchestratorInterface:
@@ -18,13 +18,13 @@ class PipelineOrchestratorInterface:
     designed to coordinate the sequential execution of the mesh generation steps.
     """
 
-    def run(self, state: MeshGeneratorStateInterface, config: Any) -> PipelineInterface:
+    def run(self, state: MeshGeneratorStateInterface, config: ConfigInterface) -> PipelineInterface:
         """
         Executes the full pipeline sequence of steps.
 
         Args:
             state: The unified Sovereign State container to be processed.
-            config: Read-only pipeline configuration adjustments.
+            config: Read-only pipeline configuration adjustments (strict ConfigInterface).
 
         Returns:
             A read-only view of the finalized mesh generation state 
