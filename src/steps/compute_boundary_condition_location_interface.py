@@ -5,9 +5,9 @@ Contract‑only interface for step S12.i.1.
 This file is part of the core architecture and is version‑controlled.
 """
 
-from src.interfaces.steps.step_interface_base import StepInterfaceBase
-from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
-from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+from src.steps.step_interface_base import StepInterfaceBase
+from src.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.config.config_interface import MeshGeneratorConfigInterface
 
 class ComputeBoundaryConditionLocationInterface(StepInterfaceBase):
     """
@@ -35,8 +35,6 @@ class ComputeBoundaryConditionLocationInterface(StepInterfaceBase):
     No logic, no defaults, no computation is permitted.
     """
 
-    ALLOWED_MEMBERS = {"run"}
-
     def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface, index: int) -> None:
         """
         Compute exactly one schema‑level property:
@@ -51,4 +49,4 @@ class ComputeBoundaryConditionLocationInterface(StepInterfaceBase):
 
         Implementations must override this method.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Each step implementation must provide its own 'run' method.")

@@ -1,0 +1,1300 @@
+📄 List of files to be merged:
+-------------------------------------------
+• download_from_dropbox.sh
+• state/grid_interface.py
+• state/boundary_condition_interface.py
+• state/mesh_generator_state_interface.py
+• io/dropbox_utils.py
+• io/upload_to_dropbox.py
+• io/download_from_dropbox.py
+• config/config_interface.py
+• pipeline/pipeline_interface.py
+• upload_to_dropbox.sh
+• steps/compute_x_max_interface.py
+• steps/compute_z_min_interface.py
+• steps/compute_boundary_condition_location_interface.py
+• steps/compute_y_max_interface.py
+• steps/compute_x_min_interface.py
+• steps/compute_y_min_interface.py
+• steps/compute_boundary_condition_surface_id_interface.py
+• steps/compute_nz_interface.py
+• steps/compute_mask_interface.py
+• steps/compute_ny_interface.py
+• steps/compute_nx_interface.py
+• steps/compute_boundary_condition_type_interface.py
+• steps/parse_step_geometry_interface.py
+• steps/step_interface_base.py
+• steps/compute_z_max_interface.py
+-------------------------------------------
+
+========== START OF FILE: download_from_dropbox.sh ==========
+#!/bin/bash
+# src/download_from_dropbox.sh
+# 📦 Ingestion Orchestrator — Aligned with Deterministic Initialization.
+
+# 1. Environment Guard (Strict Validation)
+if [[ -z "${APP_KEY}" || -z "${APP_SECRET}" || -z "${REFRESH_TOKEN}" ]]; then
+    echo "❌ ERROR: Missing required credentials (APP_KEY, APP_SECRET, REFRESH_TOKEN)."
+    exit 1
+fi
+
+# 2. Path Definition (SSoT)
+export DROPBOX_FOLDER="/simulators"
+export LOCAL_FOLDER="./data/testing-input-output"
+export LOG_FILE="./dropbox_download_log.txt"
+
+# 3. Setup
+mkdir -p "$LOCAL_FOLDER"
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+
+# 4. Execution Logic
+# The Python script now performs internal DI (Dependency Injection) 
+# and handles all authentication logic internally.
+echo "🔄 Triggering Python Ingestion Worker..."
+
+python3 -c "
+from pathlib import Path
+from src.io.dropbox_utils import TokenManager
+from src.io.download_from_dropbox import CloudIngestor
+import os
+
+# Deterministic Initialization: Config derived from explicit environment input
+tm = TokenManager(client_id=os.environ['APP_KEY'], client_secret=os.environ['APP_SECRET'])
+ingestor = CloudIngestor(tm, os.environ['REFRESH_TOKEN'], Path(os.environ['LOG_FILE']))
+
+# Execution: Added '.json' to allowed_ext to ensure config files are synced.
+# The sync method now supports recursive discovery and folder reconstruction.
+ingestor.sync(
+    os.environ['DROPBOX_FOLDER'], 
+    Path(os.environ['LOCAL_FOLDER']), 
+    ['.h5', '.npy', '.json']
+)
+"
+
+# 5. Result Verification
+if [ $? -eq 0 ]; then
+    # Audit check: Count how many files actually landed in the target directory
+    FILE_COUNT=$(find "$LOCAL_FOLDER" -type f | wc -l)
+    
+    if [ "$FILE_COUNT" -gt 0 ]; then
+        echo "✅ SUCCESS: $FILE_COUNT files synchronized to $LOCAL_FOLDER"
+    else
+        echo "⚠️  WARNING: Sync reported success but 0 files were downloaded."
+        echo "   Check if files in Dropbox match the extensions: .h5, .npy, .json"
+        exit 1
+    fi
+else
+    echo "❌ ERROR: Ingestion failed during Python execution."
+    exit 1
+fi========== END OF FILE: download_from_dropbox.sh ==========
+
+========== START OF FILE: state/grid_interface.py ==========
+"""
+src/state/grid_interface.py
+
+Contract‑only interface for results.grid.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from typing import TypedDict
+
+class GridInterface(TypedDict, total=False):
+    """
+    Contract‑only interface for results.grid.
+
+    Matches the schema defined in mesh_generator_results_schema.json.
+    This interface ensures that the geometric extents (S2–S7) and the
+    resolution parameters (S8–S10) are handled with strict type safety.
+    """
+
+    # Bounding box components (S2–S7)
+    x_min: float
+    x_max: float
+    y_min: float
+    y_max: float
+    z_min: float
+    z_max: float
+
+    # Grid resolution (S8–S10)
+    # nx, ny, nz represent the discrete cell counts in each dimension
+    nx: int
+    ny: int
+    nz: int========== END OF FILE: state/grid_interface.py ==========
+
+========== START OF FILE: state/boundary_condition_interface.py ==========
+"""
+src/state/boundary_condition_interface.py
+
+Contract‑only interface for a single boundary condition entry 
+in results.boundary_conditions[i].
+
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from typing import TypedDict
+
+class BoundaryConditionInterface(TypedDict, total=False):
+    """
+    Contract‑only interface for a single boundary condition entry.
+    
+    This matches the structure defined in both the results schema and the 
+    final output schema. It contains no physics values, only the spatial
+    and categorical descriptors required by the meshing engine.
+    """
+
+    # S12.i.1 — Domain localization flag
+    # Maps to one of: "x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "wall"
+    location: str
+
+    # S12.i.2 — Execution calculation behavior rule mapping
+    # Maps to one of: "no-slip", "free-slip", "inflow", "outflow", "pressure"
+    type: str
+
+    # S12.i.3 — Unique tracking link pointing back to the CAD surface root
+    # Used for identification and mapping back to the raw geometry.
+    surface_id: str========== END OF FILE: state/boundary_condition_interface.py ==========
+
+========== START OF FILE: state/mesh_generator_state_interface.py ==========
+"""
+src/state/mesh_generator_state_interface.py
+
+Contract‑only interface for the Mesh Generator Sovereign Container.
+This acts as the single source of truth for the entire pipeline execution.
+"""
+
+from typing import TypedDict, List, Dict, Any
+from OCC.Core.TopoDS import TopoDS_Shape
+from .grid_interface import GridInterface
+from .boundary_condition_interface import BoundaryConditionInterface
+
+class MeshGeneratorStateInterface(TypedDict, total=False):
+    """
+    Contract‑only interface for the Mesh Generator Sovereign Container.
+    
+    This interface mirrors the structure of mesh_generator_output_schema.json.
+    It encapsulates:
+    1. The raw input reference.
+    2. The structured internal model (for serialization).
+    3. The transient internal geometry (for computation).
+    4. The final results data blocks (grid, mask, BCs).
+    """
+
+    # ----------------------------------------------------------------------
+    # Inputs (Mapped to Output Schema "inputs" block)
+    # ----------------------------------------------------------------------
+    inputs_step_file: str            # Path to the source STEP file
+    inputs_step_model: Dict[str, Any] # Structured geometry/topology data
+
+    # ----------------------------------------------------------------------
+    # Transient Internal State (Used for computation, not exported to JSON)
+    # ----------------------------------------------------------------------
+    cad_solid: TopoDS_Shape          # In-memory OpenCASCADE B-Rep pointer
+
+    # ----------------------------------------------------------------------
+    # Results (Mapped to Output Schema "results" block)
+    # ----------------------------------------------------------------------
+    results_grid: GridInterface                # Grid extents and resolutions
+    results_mask: List[int]                    # Flattened cell state (-1, 0, 1)
+    results_boundary_conditions: List[BoundaryConditionInterface]========== END OF FILE: state/mesh_generator_state_interface.py ==========
+
+========== START OF FILE: io/dropbox_utils.py ==========
+# src/io/dropbox_utils.py
+
+"""
+Archivist I/O: Dropbox Authentication Logic.
+
+Compliance:
+- Rule 0 (Law of Performance): Uses __slots__ to eliminate memory overhead.
+- Rule 5 (Deterministic Init): Requires explicit config instantiation.
+- Rule 8 (API Minimalism): Unified interface for token management.
+"""
+
+from typing import Final
+
+import requests
+
+
+class TokenManager:
+    """
+    Manages OAuth2 token lifecycle with strict memory management.
+    """
+    __slots__ = ['_client_id', '_client_secret']
+    
+    TOKEN_URL: Final = "https://api.dropbox.com/oauth2/token"
+
+    def __init__(self, client_id: str, client_secret: str):
+        # Rule 5: Deterministic Initialization
+        self._client_id = client_id
+        self._client_secret = client_secret
+
+    def refresh_access_token(self, refresh_token: str) -> str:
+        """
+        Refreshes the OAuth2 access token.
+        """
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": self._client_id,
+            "client_secret": self._client_secret
+        }
+        
+        response = requests.post(self.TOKEN_URL, data=payload)
+        
+        if response.status_code == 200:
+            return response.json()["access_token"]
+        
+        # Explicit error reporting for CI/CD logs
+        raise RuntimeError(
+            f"❌ Dropbox Auth Failed | Status: {response.status_code} | Body: {response.text}"
+        )========== END OF FILE: io/dropbox_utils.py ==========
+
+========== START OF FILE: io/upload_to_dropbox.py ==========
+# src/io/upload_to_dropbox.py
+
+"""
+Archivist I/O: Cloud Upload Module.
+"""
+
+from pathlib import Path
+
+import dropbox
+
+from src.io.dropbox_utils import TokenManager
+
+
+class CloudUploader:
+    """
+    Handles secure uploading of simulation artifacts.
+    Uses __slots__ per Rule 0 to minimize memory footprint.
+    """
+    __slots__ = ['dbx']
+
+    def __init__(self, token_manager: TokenManager, refresh_token: str):
+        access_token = token_manager.refresh_access_token(refresh_token)
+        self.dbx = dropbox.Dropbox(access_token)
+
+    def upload(self, local_path: Path, dropbox_folder: str):
+        """
+        Atomic upload operation with explicit path handling.
+        """
+        if not local_path.exists():
+            raise FileNotFoundError(f"Local file '{local_path}' not found.")
+
+        # Ensure dropbox_folder starts with a slash and does not end with one
+        folder = f"/{dropbox_folder.strip('/')}"
+        dropbox_file_path = f"{folder}/{local_path.name}"
+        
+        with open(local_path, "rb") as f:
+            # Rule 0: Using f.read() is fine for small/medium Zips, 
+            # for multi-GB files, we would use session_upload.
+            self.dbx.files_upload(
+                f.read(), 
+                dropbox_file_path, 
+                mode=dropbox.files.WriteMode.overwrite
+            )
+        
+        print(f"✅ Successfully uploaded: {dropbox_file_path}")========== END OF FILE: io/upload_to_dropbox.py ==========
+
+========== START OF FILE: io/download_from_dropbox.py ==========
+# src/io/download_from_dropbox.py
+
+"""
+Archivist I/O: Cloud Ingestion Module.
+
+Compliance:
+- Rule 0 (Law of Performance): Uses __slots__ for memory efficiency.
+- Rule 5 (Deterministic Init): Relies on injected TokenManager.
+- Rule 8 (API Minimalism): Single-responsibility ingestion logic.
+"""
+
+import os
+from pathlib import Path
+
+import dropbox
+
+from src.io.dropbox_utils import TokenManager
+
+
+class CloudIngestor:
+    """
+    Handles secure synchronization of simulation artifacts.
+    Uses __slots__ to minimize memory footprint during heavy I/O.
+    """
+    __slots__ = ['dbx', 'log_path']
+
+    def __init__(self, token_manager: TokenManager, refresh_token: str, log_path: Path):
+        """
+        Deterministic initialization via TokenManager dependency.
+        """
+        access_token = token_manager.refresh_access_token(refresh_token)
+        self.dbx = dropbox.Dropbox(access_token)
+        self.log_path = log_path
+
+    def sync(self, source_folder: str, target_folder: Path, allowed_ext: list):
+        """
+        Atomic sync operation with recursive discovery and path reconstruction.
+        """
+        target_folder.mkdir(parents=True, exist_ok=True)
+        # Normalize source folder for path math
+        src_base = source_folder.lower().rstrip('/')
+        
+        with open(self.log_path, "a") as log:
+            log.write(f"🚀 Ingestion started: {source_folder}\n")
+            
+            has_more = True
+            cursor = None
+            
+            while has_more:
+                # Rule 8: Recursive discovery enabled to match legacy behavior
+                result = (self.dbx.files_list_folder_continue(cursor) 
+                          if cursor else self.dbx.files_list_folder(source_folder, recursive=True))
+                
+                for entry in result.entries:
+                    # Case 1: Handle Files
+                    if isinstance(entry, dropbox.files.FileMetadata):
+                        if not allowed_ext or Path(entry.name).suffix.lower() in allowed_ext:
+                            # Reconstruct relative path to maintain folder hierarchy
+                            rel_path = os.path.relpath(entry.path_lower, src_base)
+                            local_file_path = target_folder / rel_path
+                            
+                            # Ensure the local subdirectory exists
+                            local_file_path.parent.mkdir(parents=True, exist_ok=True)
+                            self._download_file(entry, local_file_path, log)
+                    
+                    # Case 2: Handle Explicit Folders (Optional but keeps log parity)
+                    elif isinstance(entry, dropbox.files.FolderMetadata):
+                        rel_path = os.path.relpath(entry.path_lower, src_base)
+                        (target_folder / rel_path).mkdir(parents=True, exist_ok=True)
+
+                has_more = result.has_more
+                cursor = result.cursor
+            log.write("🎉 Ingestion complete.\n")
+
+    def _download_file(self, entry, local_path: Path, log):
+        """Internal helper for specific file transfer."""
+        _, res = self.dbx.files_download(path=entry.path_lower)
+        with open(local_path, "wb") as f:
+            f.write(res.content)
+        log.write(f"✅ Downloaded {entry.path_lower} -> {local_path}\n")========== END OF FILE: io/download_from_dropbox.py ==========
+
+========== START OF FILE: config/config_interface.py ==========
+"""
+mesh_generator/config/config_interface.py
+
+Contract‑only interface for Mesh Generator runtime configuration.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class MeshGeneratorConfigInterface:
+    """
+    Contract‑only interface for Mesh Generator runtime configuration.
+
+    This interface defines the minimal set of configuration parameters
+    required by steps S8–S12 in the Minimal Step Path.
+
+    These parameters are:
+        - NOT part of the Input Schema
+        - NOT part of the Sovereign Container
+        - Injected at runtime only
+        - Validated against mesh_generator_config.schema.json
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, and no computation are permitted.
+    """
+
+    # Version identifier of the meshing/solver backend.
+    solver_version: str
+
+    # Geometric tolerance used during STEP parsing and point-in-solid classification.
+    tolerance: float
+
+    # Maximum allowed mesh element size used when computing grid resolution.
+    max_element_size: float
+
+    # Minimum allowed mesh element size used when computing grid resolution.
+    min_element_size: float========== END OF FILE: config/config_interface.py ==========
+
+========== START OF FILE: pipeline/pipeline_interface.py ==========
+"""
+src/pipeline/pipeline_interface.py
+
+The Global State View Contract.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+class PipelineInterface:
+    """
+    Contract‑only composite interface for the global pipeline state.
+    Provides a read‑only view of the final state after the Minimal Step Chain.
+    
+    This interface serves as the primary gateway for PipelineCoherenceSignatures 
+    to validate the structural integrity of the generated mesh without accessing 
+    the internal, mutable Sovereign Container.
+    """
+
+    @property
+    def geometry(self):
+        """
+        Access to the internal B-Rep geometry model (TopoDS_Shape).
+        Required for topological coherence checks.
+        """
+        raise NotImplementedError
+
+    @property
+    def grid(self):
+        """
+        Access to the finalized grid extents and resolution.
+        Maps directly to results.grid in the output schema.
+        """
+        raise NotImplementedError
+
+    @property
+    def mask(self):
+        """
+        Access to the finalized fluid/solid mask array.
+        Maps directly to results.mask in the output schema.
+        """
+        raise NotImplementedError
+
+    @property
+    def boundary_conditions(self):
+        """
+        Access to the finalized list of boundary conditions.
+        Maps directly to results.boundary_conditions in the output schema.
+        """
+        raise NotImplementedError========== END OF FILE: pipeline/pipeline_interface.py ==========
+
+========== START OF FILE: upload_to_dropbox.sh ==========
+#!/bin/bash
+# src/upload_to_dropbox.sh
+# 📤 Dropbox Upload Orchestrator — Professional Cloud Export Gate.
+
+# 1. Environment Guard
+if [[ -z "${APP_KEY}" || -z "${APP_SECRET}" || -z "${REFRESH_TOKEN}" ]]; then
+    echo "❌ ERROR: Missing required credentials."
+    exit 1
+fi
+
+# 2. Path Resolution
+# We look for the zip in the testing-input-output folder where the solver usually outputs
+BASE_WORK_DIR=$(pwd)
+DEFAULT_ZIP="${BASE_WORK_DIR}/data/testing-input-output/bernoulli_solver_output.json"
+export LOCAL_ZIP_PATH="${1:-$DEFAULT_ZIP}"
+
+# 3. Validation
+if [ ! -f "$LOCAL_ZIP_PATH" ]; then
+    echo "❌ ERROR: Target file not found at $LOCAL_ZIP_PATH."
+    # List directory to help debug why it's missing in logs
+    ls -R data/
+    exit 1
+fi
+
+export PYTHONPATH="${PYTHONPATH}:${BASE_WORK_DIR}"
+
+echo "🔄 Triggering Python CloudUploader for: $LOCAL_ZIP_PATH"
+
+# 4. Execution
+python3 -c "
+from pathlib import Path
+from src.io.dropbox_utils import TokenManager
+from src.io.upload_to_dropbox import CloudUploader
+import os
+
+# Deterministic Init
+tm = TokenManager(client_id=os.environ['APP_KEY'], client_secret=os.environ['APP_SECRET'])
+uploader = CloudUploader(tm, os.environ['REFRESH_TOKEN'])
+
+# Execute
+uploader.upload(
+    Path(os.environ['LOCAL_ZIP_PATH']), 
+    '/simulators'
+)
+"
+
+# 5. Final Result Audit
+if [ $? -eq 0 ]; then
+    echo "✅ PIPELINE COMPLETE: Upload successful."
+else
+    echo "❌ CRITICAL ERROR: Dropbox upload failed."
+    exit 1
+fi========== END OF FILE: upload_to_dropbox.sh ==========
+
+========== START OF FILE: steps/compute_x_max_interface.py ==========
+"""
+src/steps/compute_x_max_interface.py
+
+Contract‑only interface for step S3.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeXMaxInterface(StepInterfaceBase):
+    """
+    S3 — compute_x_max
+
+    Contract‑only interface for the step that computes:
+        results.grid.x_max
+
+    This step is a geometric query. It traverses the parsed CAD B-Rep 
+    structure to determine the absolute maximum spatial extent along 
+    the X-axis of the domain.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface - used for tolerance/precision settings)
+
+    Produces:
+        - state.results_grid["x_max"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.x_max
+
+        Must:
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["x_max"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_x_max_interface.py ==========
+
+========== START OF FILE: steps/compute_z_min_interface.py ==========
+"""
+src/steps/compute_z_min_interface.py
+
+Contract‑only interface for step S6.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeZMinInterface(StepInterfaceBase):
+    """
+    S6 — compute_z_min
+
+    Contract‑only interface for the step that computes:
+        results.grid.z_min
+
+    This step is the geometric anchor for the Z-axis. It traverses the 
+    parsed CAD B-Rep structure to determine the absolute minimum spatial 
+    extent along the Z-axis of the domain.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface - used for precision/tolerance)
+
+    Produces:
+        - state.results_grid["z_min"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.z_min
+
+        Must:
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["z_min"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_z_min_interface.py ==========
+
+========== START OF FILE: steps/compute_boundary_condition_location_interface.py ==========
+"""
+src/steps/compute_boundary_condition_location_interface.py
+
+Contract‑only interface for step S12.i.1.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeBoundaryConditionLocationInterface(StepInterfaceBase):
+    """
+    S12.i.1 — compute_boundary_condition_i_location
+
+    Contract‑only interface for the step that computes:
+        results.boundary_conditions[i].location
+
+    This step determines which global domain face a given geometric surface
+    corresponds to, based on the parsed geometry and global grid extents.
+
+    Consumes:
+        - parsed geometry (internal, accessed via state)
+        - grid extents (from state.results_grid)
+        - runtime configuration (MeshGeneratorConfigInterface)
+        - the boundary‑condition index (int)
+
+    Produces:
+        - state.results_boundary_conditions[i]["location"]
+
+    Allowed values:
+        "x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "wall"
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface, index: int) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.boundary_conditions[i].location
+
+        Must:
+            - read only previously‑computed properties (grid extents, tolerance).
+            - write exactly one property: results.boundary_conditions[index].location.
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+            - enforce the Single‑Responsibility Rule.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_boundary_condition_location_interface.py ==========
+
+========== START OF FILE: steps/compute_y_max_interface.py ==========
+"""
+src/steps/compute_y_max_interface.py
+
+Contract‑only interface for step S5.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeYMaxInterface(StepInterfaceBase):
+    """
+    S5 — compute_y_max
+
+    Contract‑only interface for the step that computes:
+        results.grid.y_max
+
+    This step is a geometric query. It traverses the parsed CAD B-Rep 
+    structure to determine the absolute maximum spatial extent along 
+    the Y-axis of the domain.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["y_max"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.y_max
+
+        Must:
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["y_max"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_y_max_interface.py ==========
+
+========== START OF FILE: steps/compute_x_min_interface.py ==========
+"""
+src/steps/compute_x_min_interface.py
+
+Contract‑only interface for step S2.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeXMinInterface(StepInterfaceBase):
+    """
+    S2 — compute_x_min
+
+    Contract‑only interface for the step that computes:
+        results.grid.x_min
+
+    This step is the geometric anchor for the X-axis. It traverses the 
+    parsed CAD B-Rep structure to determine the absolute minimum spatial 
+    extent along the X-axis of the domain.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface - used for precision/tolerance)
+
+    Produces:
+        - state.results_grid["x_min"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.x_min
+
+        Must:
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["x_min"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_x_min_interface.py ==========
+
+========== START OF FILE: steps/compute_y_min_interface.py ==========
+"""
+src/steps/compute_y_min_interface.py
+
+Contract‑only interface for step S4.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeYMinInterface(StepInterfaceBase):
+    """
+    S4 — compute_y_min
+
+    Contract‑only interface for the step that computes:
+        results.grid.y_min
+
+    This step is the geometric anchor for the Y-axis. It traverses the 
+    parsed CAD B-Rep structure to determine the absolute minimum spatial 
+    extent along the Y-axis of the domain.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface - used for precision/tolerance)
+
+    Produces:
+        - state.results_grid["y_min"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.y_min
+
+        Must:
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["y_min"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_y_min_interface.py ==========
+
+========== START OF FILE: steps/compute_boundary_condition_surface_id_interface.py ==========
+"""
+src/steps/compute_boundary_condition_surface_id_interface.py
+
+Contract‑only interface for step S12.i.3.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeBoundaryConditionSurfaceIdInterface(StepInterfaceBase):
+    """
+    S12.i.3 — compute_boundary_condition_i_surface_id
+
+    Contract‑only interface for the step that computes:
+        results.boundary_conditions[i].surface_id
+
+    This step acts as the traceability link, connecting the abstracted 
+    computational boundary condition back to the originating geometric face.
+
+    Consumes:
+        - parsed geometry (internal CAD topology)
+        - the boundary‑condition index (int)
+
+    Produces:
+        - state.results_boundary_conditions[i]["surface_id"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface, index: int) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.boundary_conditions[i].surface_id
+
+        Must:
+            - read the geometry associated with boundary index 'i'.
+            - write exactly one property: results.boundary_conditions[index].surface_id.
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+            - enforce the Single‑Responsibility Rule.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_boundary_condition_surface_id_interface.py ==========
+
+========== START OF FILE: steps/compute_nz_interface.py ==========
+"""
+src/steps/compute_nz_interface.py
+
+Contract‑only interface for step S10.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeNzInterface(StepInterfaceBase):
+    """
+    S10 — compute_nz
+
+    Contract‑only interface for the step that computes:
+        results.grid.nz
+
+    This step acts as the resolution calculator for the Z-axis. It derives 
+    the discrete cell count (integer) from the continuous geometric 
+    bounding box (z_min, z_max) and the resolution rules defined in 
+    the configuration.
+
+    Consumes:
+        - grid extents (state.results_grid.z_min, state.results_grid.z_max)
+        - runtime configuration (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["nz"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.nz
+
+        Must:
+            - read previously‑computed z_min and z_max.
+            - read config.max_element_size and config.min_element_size.
+            - write exactly one property: state.results_grid["nz"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_nz_interface.py ==========
+
+========== START OF FILE: steps/compute_mask_interface.py ==========
+"""
+src/steps/compute_mask_interface.py
+
+Contract‑only interface for step S11.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeMaskInterface(StepInterfaceBase):
+    """
+    S11 — compute_mask
+
+    Contract‑only interface for the step that computes:
+        results.mask
+
+    This step is the "Voxelizer". It maps the continuous B-Rep geometry 
+    into a discrete, flattened 1D array of integers representing the 
+    domain state.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - grid resolution (state.results_grid.nx, ny, nz)
+        - tolerance (config.tolerance)
+
+    Produces:
+        - state.results_mask (flattened 1D array of ints in {-1, 0, 1})
+
+    Physical Mapping:
+        -1 : Wall (Boundary Condition)
+         0 : Solid
+         1 : Fluid (Interior)
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, and no computation are permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.mask
+
+        Must:
+            - utilize state.cad_solid for spatial classification.
+            - read only previously‑computed grid properties (nx, ny, nz).
+            - write exactly one property: state.results_mask.
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_mask_interface.py ==========
+
+========== START OF FILE: steps/compute_ny_interface.py ==========
+"""
+src/steps/compute_ny_interface.py
+
+Contract‑only interface for step S9.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeNyInterface(StepInterfaceBase):
+    """
+    S9 — compute_ny
+
+    Contract‑only interface for the step that computes:
+        results.grid.ny
+
+    This step acts as the resolution calculator for the Y-axis. It derives 
+    the discrete cell count (integer) from the continuous geometric 
+    bounding box (y_min, y_max) and the resolution rules defined in 
+    the configuration.
+
+    Consumes:
+        - grid extents (state.results_grid.y_min, state.results_grid.y_max)
+        - runtime configuration (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["ny"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.ny
+
+        Must:
+            - read previously‑computed y_min and y_max.
+            - read config.max_element_size and config.min_element_size.
+            - write exactly one property: state.results_grid["ny"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_ny_interface.py ==========
+
+========== START OF FILE: steps/compute_nx_interface.py ==========
+"""
+src/steps/compute_nx_interface.py
+
+Contract‑only interface for step S8.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeNxInterface(StepInterfaceBase):
+    """
+    S8 — compute_nx
+
+    Contract‑only interface for the step that computes:
+        results.grid.nx
+
+    This step acts as the resolution calculator for the X-axis. It derives 
+    the discrete cell count (integer) from the continuous geometric 
+    bounding box (x_min, x_max) and the resolution rules defined in 
+    the configuration.
+
+    Consumes:
+        - grid extents (state.results_grid.x_min, state.results_grid.x_max)
+        - runtime configuration (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["nx"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.nx
+
+        Must:
+            - read previously‑computed x_min and x_max.
+            - read config.max_element_size and config.min_element_size.
+            - write exactly one property: state.results_grid["nx"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_nx_interface.py ==========
+
+========== START OF FILE: steps/compute_boundary_condition_type_interface.py ==========
+"""
+src/steps/compute_boundary_condition_type_interface.py
+
+Contract‑only interface for step S12.i.2.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeBoundaryConditionTypeInterface(StepInterfaceBase):
+    """
+    S12.i.2 — compute_boundary_condition_i_type
+
+    Contract‑only interface for the step that computes:
+        results.boundary_conditions[i].type
+
+    This step acts as the policy engine for the mesh. It determines the 
+    physical boundary type (e.g., "no-slip", "outflow") based on the 
+    geometric location previously identified in S12.i.1.
+
+    Consumes:
+        - parsed geometry classification (internal)
+        - runtime configuration (MeshGeneratorConfigInterface)
+        - results.boundary_conditions[i].location (computed in S12.i.1)
+
+    Produces:
+        - state.results_boundary_conditions[i]["type"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface, index: int) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.boundary_conditions[i].type
+
+        Must:
+            - read previously‑computed location and config parameters.
+            - write exactly one property: results.boundary_conditions[index].type.
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+            - enforce the Single‑Responsibility Rule.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_boundary_condition_type_interface.py ==========
+
+========== START OF FILE: steps/parse_step_geometry_interface.py ==========
+"""
+src/steps/parse_step_geometry_interface.py
+
+Contract‑only interface for step S1.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+from src.implementation.models.geometry_model import GeometryModel
+
+class ParseStepGeometryInterface(StepInterfaceBase):
+    """
+    S1 — parse_step_geometry
+
+    Contract‑only interface for the step that initializes the geometry:
+        output: GeometryModel
+
+    This is the "Bootstrap" step. It transforms the raw input file (provided
+    via state/config) into the internal geometric representation required 
+    by all downstream operations.
+
+    Consumes:
+        - state.inputs_step_file (path to file)
+        - runtime configuration (MeshGeneratorConfigInterface)
+
+    Produces:
+        - GeometryModel (The sovereign container for B-Rep data)
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> GeometryModel:
+        """
+        Bootstrap the pipeline by converting raw input into a usable GeometryModel.
+
+        Must:
+            - load the geometry from the file path provided in state/config.
+            - perform no schema-level mutations in this method (the returned
+              model is injected by the orchestrator).
+            - contain no implementation logic.
+
+        Implementations must override this method and return a valid GeometryModel.
+        """
+        raise NotImplementedError========== END OF FILE: steps/parse_step_geometry_interface.py ==========
+
+========== START OF FILE: steps/step_interface_base.py ==========
+class StepInterfaceBase:
+    """
+    Base contract‑only interface for all Mesh Generator steps.
+    Subclasses may only define the allowed method name.
+
+    This interface enforces the Constitution by prohibiting subclasses
+    from defining any methods or attributes not explicitly declared
+    in the interface contract.
+    """
+
+    # Only one allowed member for all step interfaces
+    ALLOWED_MEMBERS = {"run"}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # 1. Read the configuration
+        allowed = getattr(cls, 'ALLOWED_MEMBERS', {"run"})
+
+        # 2. Validate all members
+        for name, value in cls.__dict__.items():
+            if name.startswith("__"):
+                continue
+            
+            # Now we don't have to skip "ALLOWED_MEMBERS" because 
+            # we aren't checking the dict keys directly for configuration
+            if name not in allowed and name != "ALLOWED_MEMBERS":
+                raise TypeError(
+                    f"CONSTITUTION VIOLATION: Subclass '{cls.__name__}' is strictly "
+                    f"prohibited from defining custom member '{name}'."
+                )
+
+    def run(self, state, config):
+        """
+        Transform the Sovereign Container by computing exactly one
+        schema‑level property. Must not perform any other computation
+        or mutation.
+        """
+        raise NotImplementedError========== END OF FILE: steps/step_interface_base.py ==========
+
+========== START OF FILE: steps/compute_z_max_interface.py ==========
+"""
+src/steps/compute_z_max_interface.py
+
+Contract‑only interface for step S7.
+This file is part of the core architecture and is version‑controlled.
+"""
+
+from src.interfaces.steps.step_interface_base import StepInterfaceBase
+from src.interfaces.state.mesh_generator_state_interface import MeshGeneratorStateInterface
+from src.interfaces.config.config_interface import MeshGeneratorConfigInterface
+
+class ComputeZMaxInterface(StepInterfaceBase):
+    """
+    S7 — compute_z_max
+
+    Contract‑only interface for the step that computes:
+        results.grid.z_max
+
+    This step is a geometric query. It traverses the parsed CAD B-Rep 
+    structure to determine the absolute maximum spatial extent along 
+    the Z-axis of the domain.
+
+    Consumes:
+        - parsed geometry (state.cad_solid)
+        - runtime configuration (MeshGeneratorConfigInterface)
+
+    Produces:
+        - state.results_grid["z_max"]
+
+    This interface defines *only* the structural contract.
+    No logic, no defaults, no computation is permitted.
+    """
+
+    ALLOWED_MEMBERS = {"run"}
+
+    def run(self, state: MeshGeneratorStateInterface, config: MeshGeneratorConfigInterface) -> None:
+        """
+        Compute exactly one schema‑level property:
+            results.grid.z_max
+
+        Must:
+            - perform a geometric query on state.cad_solid.
+            - write exactly one property: state.results_grid["z_max"].
+            - perform no other mutation of the state.
+            - contain no implementation logic.
+
+        Implementations must override this method.
+        """
+        raise NotImplementedError========== END OF FILE: steps/compute_z_max_interface.py ==========
+

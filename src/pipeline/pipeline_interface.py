@@ -5,6 +5,11 @@ The Global State View Contract.
 This file is part of the core architecture and is version‑controlled.
 """
 
+from typing import List
+from OCC.Core.TopoDS import TopoDS_Shape
+from src.state.grid_interface import GridInterface
+from src.state.boundary_condition_interface import BoundaryConditionInterface
+
 class PipelineInterface:
     """
     Contract‑only composite interface for the global pipeline state.
@@ -16,7 +21,7 @@ class PipelineInterface:
     """
 
     @property
-    def geometry(self):
+    def geometry(self) -> TopoDS_Shape:
         """
         Access to the internal B-Rep geometry model (TopoDS_Shape).
         Required for topological coherence checks.
@@ -24,7 +29,7 @@ class PipelineInterface:
         raise NotImplementedError
 
     @property
-    def grid(self):
+    def grid(self) -> GridInterface:
         """
         Access to the finalized grid extents and resolution.
         Maps directly to results.grid in the output schema.
@@ -32,7 +37,7 @@ class PipelineInterface:
         raise NotImplementedError
 
     @property
-    def mask(self):
+    def mask(self) -> List[int]:
         """
         Access to the finalized fluid/solid mask array.
         Maps directly to results.mask in the output schema.
@@ -40,7 +45,7 @@ class PipelineInterface:
         raise NotImplementedError
 
     @property
-    def boundary_conditions(self):
+    def boundary_conditions(self) -> List[BoundaryConditionInterface]:
         """
         Access to the finalized list of boundary conditions.
         Maps directly to results.boundary_conditions in the output schema.

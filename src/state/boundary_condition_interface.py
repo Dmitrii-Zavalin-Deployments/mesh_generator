@@ -19,11 +19,11 @@ class BoundaryConditionInterface(TypedDict, total=False):
     """
 
     # S12.i.1 — Domain localization flag
-    # Maps to one of: "x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "wall"
+    # Allowed values: "x_min", "x_max", "y_min", "y_max", "z_min", "z_max", "wall"
     location: str
 
     # S12.i.2 — Execution calculation behavior rule mapping
-    # Maps to one of: "no-slip", "free-slip", "inflow", "outflow", "pressure"
+    # Allowed values: "no-slip", "free-slip", "inflow", "outflow", "pressure"
     type: str
 
     # S12.i.3 — Unique tracking link pointing back to the CAD surface root

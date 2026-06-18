@@ -7,8 +7,8 @@ This acts as the single source of truth for the entire pipeline execution.
 
 from typing import TypedDict, List, Dict, Any
 from OCC.Core.TopoDS import TopoDS_Shape
-from .grid_interface import GridInterface
-from .boundary_condition_interface import BoundaryConditionInterface
+from src.state.grid_interface import GridInterface
+from src.state.boundary_condition_interface import BoundaryConditionInterface
 
 class MeshGeneratorStateInterface(TypedDict, total=False):
     """
@@ -25,13 +25,13 @@ class MeshGeneratorStateInterface(TypedDict, total=False):
     # ----------------------------------------------------------------------
     # Inputs (Mapped to Output Schema "inputs" block)
     # ----------------------------------------------------------------------
-    inputs_step_file: str            # Path to the source STEP file
+    inputs_step_file: str             # Path to the source STEP file
     inputs_step_model: Dict[str, Any] # Structured geometry/topology data
 
     # ----------------------------------------------------------------------
     # Transient Internal State (Used for computation, not exported to JSON)
     # ----------------------------------------------------------------------
-    cad_solid: TopoDS_Shape          # In-memory OpenCASCADE B-Rep pointer
+    cad_solid: TopoDS_Shape           # In-memory OpenCASCADE B-Rep pointer
 
     # ----------------------------------------------------------------------
     # Results (Mapped to Output Schema "results" block)

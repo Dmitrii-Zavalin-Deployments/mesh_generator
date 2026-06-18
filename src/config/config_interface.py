@@ -1,5 +1,5 @@
 """
-mesh_generator/config/config_interface.py
+src/config/config_interface.py
 
 Contract‑only interface for Mesh Generator runtime configuration.
 This file is part of the core architecture and is version‑controlled.
@@ -7,14 +7,13 @@ This file is part of the core architecture and is version‑controlled.
 
 from dataclasses import dataclass
 
-
 @dataclass(frozen=True)
 class MeshGeneratorConfigInterface:
     """
     Contract‑only interface for Mesh Generator runtime configuration.
 
     This interface defines the minimal set of configuration parameters
-    required by steps S8–S12 in the Minimal Step Path.
+    required by the pipeline steps.
 
     These parameters are:
         - NOT part of the Input Schema
