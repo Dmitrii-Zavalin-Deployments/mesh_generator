@@ -1,39 +1,40 @@
+"""
+src/steps/step_interface_base.py
+
+Architectural enforcement base class.
+This file is the root of the Step hierarchy and ensures all steps
+strictly adhere to the "Single Responsibility" contract.
+"""
+
 class StepInterfaceBase:
     """
-    Base contract‑only interface for all Mesh Generator steps.
-    Subclasses may only define the allowed method name.
-
-    This interface enforces the Constitution by prohibiting subclasses
-    from defining any methods or attributes not explicitly declared
-    in the interface contract.
+    Base class for all pipeline steps.
+    
+    Uses __init_subclass__ to enforce the 'ALLOWED_MEMBERS' contract.
+    Any attempt to add unauthorized methods or logic to a subclass
+    will trigger an immediate TypeError at runtime (startup).
     """
-
-    # Only one allowed member for all step interfaces
-    ALLOWED_MEMBERS = {"run"}
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-
-        # 1. Read the configuration
-        allowed = getattr(cls, 'ALLOWED_MEMBERS', {"run"})
-
-        # 2. Validate all members
+        
+        # Retrieve the allowed members from the subclass (default to empty set)
+        allowed = getattr(cls, "ALLOWED_MEMBERS", set())
+        
+        # Inspect the class namespace for methods
         for name, value in cls.__dict__.items():
-            if name.startswith("__"):
-                continue
-            
-            # Now we don't have to skip "ALLOWED_MEMBERS" because 
-            # we aren't checking the dict keys directly for configuration
-            if name not in allowed and name != "ALLOWED_MEMBERS":
-                raise TypeError(
-                    f"CONSTITUTION VIOLATION: Subclass '{cls.__name__}' is strictly "
-                    f"prohibited from defining custom member '{name}'."
-                )
+            # Check if it's a method/function (excluding internal dunder methods)
+            if callable(value) and not name.startswith("__"):
+                if name not in allowed:
+                    raise TypeError(
+                        f"Architectural Violation in {cls.__name__}: "
+                        f"Method '{name}' is not permitted. "
+                        f"Allowed members: {allowed}"
+                    )
 
-    def run(self, state, config):
+    def run(self, *args, **kwargs) -> None:
         """
-        Transform the Sovereign Container by computing exactly one
-        schema‑level property. Must not perform any other computation
-        or mutation.
+        The entry point for every step. 
+        Implementations must override this method.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Each step implementation must provide its own 'run' method.")
