@@ -39,8 +39,8 @@ class ComputeBoundaryConditionsInterface(StepInterfaceBase):
         # ----------------------------------------------------------------------
         # STEP 1: TRANSIENT DATA & CONFIG ACQUISITION
         # ----------------------------------------------------------------------
-        normals = state["transients"]["surface_normals"]
-        surface_ids = state["transients"]["all_surface_ids"]
+        state["transients"]["surface_normals"]
+        state["transients"]["all_surface_ids"]
         
         # ----------------------------------------------------------------------
         # STEP 2: CLASSIFICATION LOGIC
