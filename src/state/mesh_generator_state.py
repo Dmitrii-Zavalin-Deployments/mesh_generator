@@ -92,19 +92,30 @@ class ParsedGeometryInterface(TypedDict):
     # Master list of all individual surface IDs recognized in the CAD model
     all_surface_ids: List[str]
 
+# ==============================================================================
+# 3. THE CONFIG
+# ==============================================================================
+
+class ConfigInterface(TypedDict):
+    """
+    Configuration parameters used during this mesh generation run.
+    Mapped directly to the config block in mesh_generator_output_schema.json.
+    """
+    solver_version: str
+    tolerance: float
+    max_element_size: float
+    min_element_size: float
 
 # ==============================================================================
-# 3. THE SOVEREIGN CONTAINER (Unified Single Source of Truth)
+# 4. THE SOVEREIGN CONTAINER (Unified Single Source of Truth)
 # ==============================================================================
 
 class MeshGeneratorStateInterface(TypedDict):
     """
     The Unified State Container representing the strict union of the 
-    Input, Transient, and Results schemas. 
-    
-    Passed continuously down the pipeline to eliminate global states 
-    and maintain zero-bureaucracy atomicity.
+    Input, Configuration, Transient, and Results schemas.
     """
     inputs: InputsInterface
+    config: ConfigInterface  # Added to guarantee strict schema symmetry
     transients: ParsedGeometryInterface
     results: ResultsInterface
