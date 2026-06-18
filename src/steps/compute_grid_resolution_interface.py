@@ -26,29 +26,28 @@ class ComputeGridResolutionInterface(StepInterfaceBase):
         Calculates grid resolution cells.
         
         This step bridges the gap between the continuous physical space 
-        (meters/inches) and the discrete computational space (cells).
+        (meters) and the discrete computational space (cells).
         
         Args:
             state: The unified Sovereign State container.
-            config: Configuration dictionary expected to contain 'cell_size'.
+            config: Configuration dictionary expected to contain 'max_element_size'.
             
         Raises:
-            ValueError: If 'cell_size' is missing or invalid (<= 0).
-            KeyError: If grid extents were not initialized by Step 2.
+            ValueError: If 'max_element_size' is missing or invalid (<= 0).
+            KeyError: If grid extents were not initialized by the previous step.
         """
         # ----------------------------------------------------------------------
         # STEP 1: CONFIGURATION & DATA ACQUISITION
         # ----------------------------------------------------------------------
-        # We fetch the physical extents we calculated in Step 2.
+        # We fetch the physical extents we calculated in the previous step.
         grid = state["results"]["grid"]
         
-        # We fetch the target cell size from config.
-        # Ensure your config object has a 'cell_size' key.
-        cell_size = config.get("cell_size")
+        # We fetch the target element size from config (Schema: mesh_generator_config_schema.json)
+        target_element_size = config.get("max_element_size")
         
-        if cell_size is None or cell_size <= 0:
+        if target_element_size is None or target_element_size <= 0:
             raise ValueError(
-                f"[Compute Resolution Error] Invalid or missing 'cell_size' in config: {cell_size}"
+                f"[Compute Resolution Error] Invalid or missing 'max_element_size' in config: {target_element_size}"
             )
 
         # ----------------------------------------------------------------------
@@ -59,10 +58,10 @@ class ComputeGridResolutionInterface(StepInterfaceBase):
         dy = grid["y_max"] - grid["y_min"]
         dz = grid["z_max"] - grid["z_min"]
 
-        # Calculate number of cells (rounding up to ensure coverage)
-        nx = math.ceil(dx / cell_size)
-        ny = math.ceil(dy / cell_size)
-        nz = math.ceil(dz / cell_size)
+        # Calculate number of cells (rounding up ensures cells are <= max_element_size)
+        nx = math.ceil(dx / target_element_size)
+        ny = math.ceil(dy / target_element_size)
+        nz = math.ceil(dz / target_element_size)
 
         # Ensure a minimum grid of 1x1x1 to prevent invalid states
         nx = max(nx, 1)
