@@ -49,13 +49,14 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: 📦 Install Physics Stack & Dev Tools
+      - name: 📦 Install Physics Stack (Conda)
+        # We only install the binary-heavy physics engine here
         run: |
-          conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp pytest pytest-cov autoflake ruff vulture pip
+          conda install -y -c conda-forge pythonocc-core
 
-      - name: 📥 Install Python Dependencies (pip)
-        # Only runs if requirements.txt exists to prevent pipeline crashes
-        if: hashFiles('requirements.txt') != ''
+      - name: 📥 Install Python Dependencies (Pip)
+        # This covers EVERYTHING in your requirements.txt
+        # Conda already provided the environment base; Pip fills the application logic
         run: |
           pip install --no-cache-dir -r requirements.txt
 
@@ -203,12 +204,14 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: 📦 Install Physics Stack
+      - name: 📦 Install Physics Stack (Conda)
+        # We only install the binary-heavy physics engine here
         run: |
-          conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp pip
+          conda install -y -c conda-forge pythonocc-core
 
-      - name: 📥 Install Python Dependencies (pip)
-        if: hashFiles('requirements.txt') != ''
+      - name: 📥 Install Python Dependencies (Pip)
+        # This covers EVERYTHING in your requirements.txt
+        # Conda already provided the environment base; Pip fills the application logic
         run: |
           pip install --no-cache-dir -r requirements.txt
 
