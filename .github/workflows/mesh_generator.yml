@@ -49,14 +49,14 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: 📦 Install Physics Stack (Conda)
-        # We only install the binary-heavy physics engine here
+      - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
-          conda install -y -c conda-forge pythonocc-core
+          # 1. Install heavy binary physics stack AND pip (to create the environment)
+          conda install -y -c conda-forge pythonocc-core numpy pip
 
-      - name: 📦 Install Dependencies
+      - name: 📥 Install Python Utility Dependencies
         run: |
-          python -m pip install --upgrade pip
+          # 2. Use the pip you just installed to handle the rest
           python -m pip install --no-cache-dir -r requirements.txt
 
       - name: 🧹 Auto-Clean (Autoflake)
@@ -203,14 +203,14 @@ jobs:
           channels: conda-forge
           channel-priority: strict
 
-      - name: 📦 Install Physics Stack (Conda)
-        # We only install the binary-heavy physics engine here
+      - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
-          conda install -y -c conda-forge pythonocc-core
+          # 1. Install heavy binary physics stack AND pip (to create the environment)
+          conda install -y -c conda-forge pythonocc-core numpy pip
 
-      - name: 📦 Install Dependencies
+      - name: 📥 Install Python Utility Dependencies
         run: |
-          python -m pip install --upgrade pip
+          # 2. Use the pip you just installed to handle the rest
           python -m pip install --no-cache-dir -r requirements.txt
 
       - name: 📥 Synchronize Input (Dropbox)
