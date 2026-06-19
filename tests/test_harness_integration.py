@@ -140,3 +140,52 @@ def test_discovery_prototype_execution():
     assert bc_entry["location"] == "wall"
     assert bc_entry["type"] == "no-slip"
     assert bc_entry["surface_id"] == "face_1"
+
+# =====================================================================
+# PHASE 1: EXIT GATE VERIFICATION (POLYMORPHIC TEST)
+# =====================================================================
+
+# Test data matrix: (filename, expected_bounds, expected_bc_count)
+SHAPES_TO_TEST = [
+    ("sample_geometry.step", (-1.0, 1.0), 1), # Sphere
+    ("cube.step", (0.0, 2.0), 6),             # Cube (2x2x2 box)
+]
+
+@pytest.mark.parametrize("step_filename, bounds, expected_bcs", SHAPES_TO_TEST)
+def test_mesh_generator_generalization(step_filename, bounds, expected_bcs):
+    """
+    Polymorphic test that verifies the mesh generator against multiple 
+    geometries.
+    """
+    in_data = dummy_in()
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    stp_path = os.path.join(current_dir, "dummies", step_filename)
+    
+    # Skip if file hasn't been generated yet (prevents CI crashes)
+    if not os.path.exists(stp_path):
+        pytest.skip(f"Asset {step_filename} not found, skipping...")
+
+    in_data.override(step_file=stp_path)
+    config = get_mock_config()
+    config["max_element_size"] = 0.5 
+    
+    # 2. Execute
+    final_payload = solve(in_data, config)
+    grid = final_payload["results"]["grid"]
+    
+    # 3. Assert Bounds (Generic)
+    min_b, max_b = bounds
+    assert grid["x_min"] == pytest.approx(min_b, abs=1e-2)
+    assert grid["x_max"] == pytest.approx(max_b, abs=1e-2)
+    assert grid["y_min"] == pytest.approx(min_b, abs=1e-2)
+    assert grid["y_max"] == pytest.approx(max_b, abs=1e-2)
+    assert grid["z_min"] == pytest.approx(min_b, abs=1e-2)
+    assert grid["z_max"] == pytest.approx(max_b, abs=1e-2)
+    
+    # 4. Assert Resolution (Allow epsilon drift [4, 5])
+    assert grid["nx"] in [4, 5]
+    assert grid["ny"] in [4, 5]
+    assert grid["nz"] in [4, 5]
+    
+    # 5. Assert Boundary Conditions
+    assert len(final_payload["results"]["boundary_conditions"]) == expected_bcs

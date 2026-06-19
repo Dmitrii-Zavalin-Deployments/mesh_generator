@@ -33,6 +33,11 @@ jobs:
         run: |
           conda install -y -c conda-forge pythonocc-core numpy scipy freecad cgal gxx_linux-64 gmp pytest pytest-cov pip
 
+      - name: 🛠️ Generate Test Geometry Assets
+        run: |
+          # Ensures assets are dynamically created in the CI environment
+          python3 scripts/generate_cube.py
+
       - name: 🧪 Verify Discovery Prototype
         run: |
           # Executes the integration test verifying dummy_in/dummy_out schemas
