@@ -1,4 +1,3 @@
-import numpy as np
 
 class dummy_in(dict):
     """
