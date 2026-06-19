@@ -86,7 +86,7 @@ def test_discovery_prototype_execution():
     # Ensure path maps to the correct dummy location in GitHub Actions
     # Uses absolute path generation to prevent runner failures
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    stp_path = os.path.join(current_dir, "dummies", "dummy_model.stp")
+    stp_path = os.path.join(current_dir, "dummies", "sample_geometry.step")
     in_data.override(step_file=stp_path)
     
     config = get_mock_config()
