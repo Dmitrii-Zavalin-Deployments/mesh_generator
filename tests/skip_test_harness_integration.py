@@ -1,6 +1,7 @@
 import os
 import pytest
 import numpy as np
+from OCC.Core.BRepBndLib import brepbndlib
 
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.Bnd import Bnd_Box

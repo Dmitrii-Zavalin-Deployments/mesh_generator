@@ -1,5 +1,6 @@
 # src/steps/resolution.py
 import numpy as np
+from OCC.Core.BRepBndLib import brepbndlib
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer, GridState
 
