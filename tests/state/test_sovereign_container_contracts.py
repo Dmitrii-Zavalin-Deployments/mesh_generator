@@ -74,7 +74,7 @@ def test_results_contract_validation(instantiated_container):
     Verifies the Sovereign Container exposes all required output fields 
     dictated by the dummy_out schema, ready to be populated.
     """
-    out_schema = dummy_out()["results"]
+    dummy_out()["results"]
     
     # 1. Verify that the properties exist on the object to hold the result schema
     assert hasattr(instantiated_container, 'grid'), "Contract Violation: 'grid' property missing."
