@@ -4,11 +4,17 @@ import pytest
 from src.state.mesh_generator_state import SovereignContainer
 from tests.dummies.dummy_harness import dummy_in, dummy_out, get_mock_config
 
+# -------------------------------------------------------------------------
+# SETUP: Infrastructure for Structural Verification
+# -------------------------------------------------------------------------
+
 @pytest.fixture
 def valid_config():
     """Provides a structurally perfect config that satisfies the strict schema."""
     config = get_mock_config()
-    # Patching the missing boundary_map required by the new strict schema
+    
+    # The configuration requires a boundary_map to define spatial constraints.
+    # We explicitly patch this to satisfy the strict schema requirements.
     config["boundary_map"] = {
         "x_min": "inflow", "x_max": "outflow",
         "y_min": "no-slip", "y_max": "no-slip",
@@ -21,6 +27,9 @@ def valid_config():
 def instantiated_container(valid_config):
     """Provides a cleanly initialized container for structural probing."""
     in_data = dummy_in()
+    
+    # We instantiate the SovereignContainer. This represents the 'Physical State'
+    # of the system before any computation occurs.
     return SovereignContainer(
         step_file=in_data["inputs"]["step_file"],
         max_element_size=valid_config["max_element_size"],
@@ -30,37 +39,47 @@ def instantiated_container(valid_config):
         boundary_map=valid_config["boundary_map"]
     )
 
+# -------------------------------------------------------------------------
+# CONTRACT TESTS: The Literate Narrative
+# -------------------------------------------------------------------------
 
 def test_input_contract_validation(instantiated_container):
     """
-    Test 1: Input Contract Validation
-    Verifies the Sovereign Container contains all required fields from dummy_in 
-    with exact type parity.
+    Narrative: We must verify that the input 'step_file' contract is honored.
+    The container must hold the file reference exactly as defined in the input harness.
     """
     in_data = dummy_in()
     
-    # 1. Verify existence of the attribute
+    # 1. Verification of the attribute: 'step_file'
+    # The SovereignContainer must provide an entry point for the STEP geometry.
     assert hasattr(instantiated_container, 'step_file'), "Contract Violation: 'step_file' missing from container."
     
-    # 2. Verify exact type parity
+    # 2. Type parity verification:
+    # We define the type expectation as a standard string.
     assert isinstance(instantiated_container.step_file, str), "Contract Violation: 'step_file' must be a string."
     
-    # 3. Verify value mapping matches the dummy_in harness
+    # 3. Value parity:
+    # We assert that the container data equals the input harness data.
+    #    (container.step_file) == (harness.step_file)
     assert instantiated_container.step_file == in_data["inputs"]["step_file"], "Contract Violation: Input data mapping failed."
 
 
 def test_config_contract_validation(instantiated_container, valid_config):
     """
-    Test 2: Config Contract Validation
-    Verifies the Sovereign Container satisfies the configuration requirements 
-    (config.json) with no missing parameters.
+    Narrative: We verify the configuration contract.
+    The container acts as the single source of truth for simulation parameters.
     """
-    # 1. Verify existence of all config attributes
+    # We list the mandatory configuration attributes:
+    #    solver_version, tolerance, max_element_size, min_element_size, bc_map
     expected_attrs = ['solver_version', 'tolerance', 'max_element_size', 'min_element_size', 'bc_map']
+    
+    # Each attribute must exist and conform to its schema-defined type.
     for attr in expected_attrs:
+        # Check for existence
         assert hasattr(instantiated_container, attr), f"Contract Violation: '{attr}' missing from container."
         
-    # 2. Verify strict type parity based on config schema
+    # We validate the type definitions for the simulation physics:
+    #    Solver Version (str), Tolerance (float), Max Size (float), Min Size (float), BC Map (dict)
     assert isinstance(instantiated_container.solver_version, str), "Contract Violation: 'solver_version' must be a string."
     assert isinstance(instantiated_container.tolerance, float), "Contract Violation: 'tolerance' must be a float."
     assert isinstance(instantiated_container.max_element_size, float), "Contract Violation: 'max_element_size' must be a float."
@@ -70,18 +89,21 @@ def test_config_contract_validation(instantiated_container, valid_config):
 
 def test_results_contract_validation(instantiated_container):
     """
-    Test 3: Results Contract Validation
-    Verifies the Sovereign Container exposes all required output fields 
-    dictated by the dummy_out schema, ready to be populated.
+    Narrative: We verify the results contract.
+    Before execution, the container must reserve space for the outputs (grid, mask, BCs).
     """
-    dummy_out()["results"]
+    # The result schema dictates three placeholders:
+    #     Grid (Structural Mesh), Mask (Fluid/Solid mapping), Boundary Conditions
     
-    # 1. Verify that the properties exist on the object to hold the result schema
+    # 1. Existence Check:
+    # The attributes must be defined to hold the future computation.
     assert hasattr(instantiated_container, 'grid'), "Contract Violation: 'grid' property missing."
     assert hasattr(instantiated_container, 'mask'), "Contract Violation: 'mask' property missing."
     assert hasattr(instantiated_container, 'boundary_conditions'), "Contract Violation: 'boundary_conditions' property missing."
     
-    # 2. Verify initialization state (must be None prior to pipeline execution)
+    # 2. State Check:
+    # A fresh container must initialize these values to None to prevent 'dirty' data.
+    #    State = None (Empty/Initialized)
     assert instantiated_container.grid is None, "Contract Violation: 'grid' must initialize as None."
     assert instantiated_container.mask is None, "Contract Violation: 'mask' must initialize as None."
     assert instantiated_container.boundary_conditions is None, "Contract Violation: 'boundary_conditions' must initialize as None."
