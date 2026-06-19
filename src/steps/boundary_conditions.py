@@ -67,12 +67,18 @@ class BoundaryConditionsStep(StepInterface):
                     # Check if the voxel's faces coincide with the grid domain boundaries
                     # within the permitted geometric tolerance (tol).
                     location = "wall" # Default classification for interior interfaces
-                    if abs(vx_min - grid.x_min) < tol: location = "x_min"
-                    elif abs(vx_max - grid.x_max) < tol: location = "x_max"
-                    elif abs(vy_min - grid.y_min) < tol: location = "y_min"
-                    elif abs(vy_max - grid.y_max) < tol: location = "y_max"
-                    elif abs(vz_min - grid.z_min) < tol: location = "z_min"
-                    elif abs(vz_max - grid.z_max) < tol: location = "z_max"
+                    if abs(vx_min - grid.x_min) < tol:
+                        location = "x_min"
+                    elif abs(vx_max - grid.x_max) < tol:
+                        location = "x_max"
+                    elif abs(vy_min - grid.y_min) < tol:
+                        location = "y_min"
+                    elif abs(vy_max - grid.y_max) < tol:
+                        location = "y_max"
+                    elif abs(vz_min - grid.z_min) < tol:
+                        location = "z_min"
+                    elif abs(vz_max - grid.z_max) < tol:
+                        location = "z_max"
                     
                     # --- Physical Condition Assignment ---
                     # Enforce explicit configuration: Every detected location must 
