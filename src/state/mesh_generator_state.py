@@ -1,5 +1,4 @@
 # src/state/mesh_generator_state.py
-from typing import List, Optional, Dict
 from OCC.Core.TopoDS import TopoDS_Shape
 
 class BoundaryConditionState:
