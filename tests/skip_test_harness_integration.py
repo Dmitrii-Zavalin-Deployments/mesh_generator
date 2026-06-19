@@ -26,7 +26,7 @@ def solve(dummy_in_state, config):
     
     # --- S2-S7: Domain Tracing ---
     bbox = Bnd_Box()
-    brepbndlib_Add(shape, bbox)
+    brepbndlib.Add(shape, bbox)
     x_min, y_min, z_min, x_max, y_max, z_max = bbox.Get()
     
     # --- S8-S10: Grid Resolution ---

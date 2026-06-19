@@ -43,7 +43,7 @@ def get_min_feature_size(shape) -> float:
     # 3. Fallback: If no edges exist (e.g., pure mathematical spheres), 
     # use the smallest bounding box dimension.
     bbox = Bnd_Box()
-    brepbndlib_Add(shape, bbox)
+    brepbndlib.Add(shape, bbox)
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
     
     return float(min(xmax - xmin, ymax - ymin, zmax - zmin))
