@@ -1,4 +1,6 @@
-from typing import List
+# src/state/mesh_generator_state.py
+from typing import List, Optional
+from OCC.Core.TopoDS import TopoDS_Shape
 
 class BoundaryConditionState:
     """
@@ -8,44 +10,23 @@ class BoundaryConditionState:
     __slots__ = ('location', 'type', 'surface_id')
 
     def __init__(self, location: str, type: str, surface_id: str):
-        # Explicit initialization. Missing arguments will naturally raise TypeError.
-        self.location = location
-        self.type = type
-        self.surface_id = surface_id
-
+        self.location = str(location)
+        self.type = str(type)
+        self.surface_id = str(surface_id)
 
 class GridState:
     """
     State container for the Grid Extents and Resolution.
     Preserves the nested structure defined in mesh_generator_results_schema.json.
     """
-    __slots__ = (
-        'x_min', 'x_max', 
-        'y_min', 'y_max', 
-        'z_min', 'z_max', 
-        'nx', 'ny', 'nz'
-    )
+    __slots__ = ('x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max', 'nx', 'ny', 'nz')
+    def __init__(self, x_min: float, x_max: float, y_min: float, y_max: float, z_min: float, z_max: float, nx: int, ny: int, nz: int):
+        self.x_min, self.x_max = float(x_min), float(x_max)
+        self.y_min, self.y_max = float(y_min), float(y_max)
+        self.z_min, self.z_max = float(z_min), float(z_max)
+        self.nx, self.ny, self.nz = int(nx), int(ny), int(nz)
 
-    def __init__(
-        self, 
-        x_min: float, x_max: float, 
-        y_min: float, y_max: float, 
-        z_min: float, z_max: float, 
-        nx: int, ny: int, nz: int
-    ):
-        self.x_min = float(x_min)
-        self.x_max = float(x_max)
-        self.y_min = float(y_min)
-        self.y_max = float(y_max)
-        self.z_min = float(z_min)
-        self.z_max = float(z_max)
-        
-        self.nx = int(nx)
-        self.ny = int(ny)
-        self.nz = int(nz)
-
-
-class MeshGeneratorState:
+class SovereignContainer:
     """
     THE SOVEREIGN CONTAINER
     
@@ -56,53 +37,70 @@ class MeshGeneratorState:
     No default values or convenience fallbacks are permitted.
     """
     __slots__ = (
-        # --- INPUT SCHEMA PROPERTIES ---
-        'step_file',
-        
-        # --- CONFIG SCHEMA PROPERTIES ---
-        'solver_version',
-        'tolerance',
-        'max_element_size',
-        'min_element_size',
-        
-        # --- RESULTS SCHEMA PROPERTIES ---
-        'grid',
-        'mask',
-        'boundary_conditions'
+        'step_file', 'solver_version', 'tolerance', 'max_element_size', 'min_element_size',
+        '_grid', '_mask', '_boundary_conditions', 'cad_solid'
     )
 
     def __init__(
-        self,
-        step_file: str,
-        solver_version: str,
-        tolerance: float,
-        max_element_size: float,
-        min_element_size: float,
-        grid: GridState,
-        mask: List[int],
-        boundary_conditions: List[BoundaryConditionState]
+        self, 
+        step_file: str, 
+        max_element_size: float, 
+        solver_version: str, 
+        tolerance: float, 
+        min_element_size: float
     ):
         """
-        Initialization is strictly deterministic. The orchestrator must explicitly 
-        provide all fields. For data that is not yet computed (like the mask), 
-        the orchestrator must explicitly pass an empty list (e.g., `mask=[]`).
+        Explicit Initialization: No defaults permitted. 
+        All pipeline configuration must be provided by the caller.
         """
         self.step_file = str(step_file)
-        
         self.solver_version = str(solver_version)
         self.tolerance = float(tolerance)
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)
         
-        # Nested structures (Preserving symmetry with JSON schemas)
-        if not isinstance(grid, GridState):
+        # --- Computed Fields (Initialized as None) ---
+        self._grid = None
+        self._mask = None
+        self._boundary_conditions = None
+        self.cad_solid = None
+
+    # --- Properties with Constitution Enforcement ---
+
+    @property
+    def grid(self): return self._grid
+
+    @grid.setter
+    def grid(self, value):
+        if value is not None and not isinstance(value, GridState):
             raise TypeError("CONSTITUTION VIOLATION: 'grid' must be an instance of GridState.")
-        self.grid = grid
-        
-        if not isinstance(mask, list):
+        self._grid = value
+
+    @property
+    def mask(self): return self._mask
+
+    @mask.setter
+    def mask(self, value):
+        if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'mask' must be a List.")
-        self.mask = mask
-        
-        if not isinstance(boundary_conditions, list):
+        self._mask = value
+
+    @property
+    def boundary_conditions(self): return self._boundary_conditions
+
+    @boundary_conditions.setter
+    def boundary_conditions(self, value):
+        if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'boundary_conditions' must be a List.")
-        self.boundary_conditions = boundary_conditions
+        self._boundary_conditions = value
+    
+    @property
+    def cad_solid(self): 
+        return self._cad_solid
+
+    @cad_solid.setter
+    def cad_solid(self, value):
+        # We allow None (the "unloaded" state) or a TopoDS_Shape
+        if value is not None and not isinstance(value, TopoDS_Shape):
+            raise TypeError(f"CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape, not {type(value)}.")
+        self._cad_solid = value
