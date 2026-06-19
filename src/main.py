@@ -1,5 +1,6 @@
 import sys
 import json
+from jsonschema import validate, ValidationError
 from src.state.mesh_generator_state import SovereignContainer
 from src.pipeline.orchestrator import Orchestrator
 from src.steps.ingestion import IngestionStep
@@ -8,20 +9,33 @@ from src.steps.resolution import ResolutionStep
 from src.steps.categorization import CategorizationStep
 from src.steps.boundary_conditions import BoundaryConditionsStep
 
+def validate_json(data, schema_path):
+    """Strictly validates data against a JSON schema. Raises ValidationError on failure."""
+    with open(schema_path, 'r') as f:
+        schema = json.load(f)
+    try:
+        validate(instance=data, schema=schema)
+        print(f"✅ Schema validation passed: {schema_path}")
+    except ValidationError as e:
+        print(f"❌ SCHEMA VIOLATION: {schema_path}")
+        raise e
+
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python main.py <input_step_json> <output_json>")
+        print("Usage: python -m src.main <input_step_json> <output_json>")
         sys.exit(1)
 
     input_path, output_path = sys.argv[1], sys.argv[2]
 
-    # 1. Load Inputs
+    # 1. Load & Validate Inputs
     with open(input_path, 'r') as f:
         input_data = json.load(f)
+    validate_json(input_data, "schema/mesh_generator_input.schema.json")
 
-    # 2. Load Config
+    # 2. Load & Validate Config
     with open("config/config.json", 'r') as f:
         config = json.load(f)
+    validate_json(config, "schema/mesh_generator_config_schema.json")
 
     # 3. Initialize Sovereign Container
     container = SovereignContainer(
@@ -43,11 +57,9 @@ def main():
     ])
     pipeline.run(container)
 
-    # 5. Serialize Output to JSON (Aligned with mesh_generator_output_schema.json)
+    # 5. Serialize Output
     output_data = {
-        "inputs": {
-            "step_model": {"path": container.step_file} 
-        },
+        "inputs": {"step_model": {"path": container.step_file}},
         "config": {
             "solver_version": container.solver_version,
             "tolerance": container.tolerance,
