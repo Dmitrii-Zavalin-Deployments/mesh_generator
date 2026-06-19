@@ -113,13 +113,13 @@ jobs:
         run: |
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "✅ All systems nominal. No anomalies detected in solver lifecycle."
-            cat <<EOF > src/debug/forensic_audit.sh
+            cat <<EOF > debug/forensic_audit.sh
           #!/bin/bash
           # Description: Automated forensic audit for Navier-Stokes solver failures.
           # Status: Dormant (All systems nominal)
           exit 0
           EOF
-            chmod +x src/debug/forensic_audit.sh
+            chmod +x debug/forensic_audit.sh
             echo "🧹 Diagnostic script has been reset to Dormant mode."
           else
             echo "⚠️ CI Failure Detected. Initiating Deep Forensic Audit..."
@@ -127,11 +127,11 @@ jobs:
             echo "ls -R output:"
             ls -R || echo "output dir not found"
             echo "============================================================"
-            echo "src/debug/forensic_audit.sh run results:"
-            if [ -f "src/debug/forensic_audit.sh" ]; then
-              bash src/debug/forensic_audit.sh
+            echo "debug/forensic_audit.sh run results:"
+            if [ -f "debug/forensic_audit.sh" ]; then
+              bash debug/forensic_audit.sh
             else
-              echo "❌ Critical: Diagnostic script 'src/debug/forensic_audit.sh' not found."
+              echo "❌ Critical: Diagnostic script 'debug/forensic_audit.sh' not found."
             fi
             echo "============================================================"
             echo "📉 RE-RUNNING FAILED TEST FOR FINAL SIGNAL"
@@ -143,8 +143,8 @@ jobs:
         # This only runs if the '🔍 Forensic Audit' step and tests passed
         if: success()
         run: |
-          git add src/debug/forensic_audit.sh
-          if [ -n "$(git status --porcelain src/debug/forensic_audit.sh)" ]; then
+          git add debug/forensic_audit.sh
+          if [ -n "$(git status --porcelain debug/forensic_audit.sh)" ]; then
             git commit -m "🤖 robot: forensic reset [PASS]"
             TARGET_COMMIT=$(git rev-parse HEAD)
 
