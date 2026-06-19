@@ -1,5 +1,6 @@
 import sys
 import json
+import os
 from jsonschema import validate, ValidationError
 from src.state.mesh_generator_state import SovereignContainer
 from src.pipeline.orchestrator import Orchestrator
@@ -37,9 +38,18 @@ def main():
         config = json.load(f)
     validate_json(config, "schema/mesh_generator_config_schema.json")
 
+    # 2.5 Strict STEP File Verification
+    # We verify the path before initializing the container to ensure 
+    # the contract is physically satisfied.
+    step_file = input_data['inputs']['step_file']
+    if not os.path.exists(step_file):
+        raise RuntimeError(
+            f"CONSTITUTION VIOLATION: STEP file not found at: {os.path.abspath(step_file)}"
+        )
+
     # 3. Initialize Sovereign Container
     container = SovereignContainer(
-        step_file=input_data['inputs']['step_file'],
+        step_file=step_file,
         max_element_size=config['max_element_size'],
         solver_version=config['solver_version'],
         tolerance=config['tolerance'],
