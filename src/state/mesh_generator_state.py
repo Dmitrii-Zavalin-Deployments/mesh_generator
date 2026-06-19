@@ -37,7 +37,7 @@ class SovereignContainer:
     """
     __slots__ = (
         'step_file', 'solver_version', 'tolerance', 'max_element_size', 'min_element_size',
-        'bc_map', '_grid', '_mask', '_boundary_conditions', 'cad_solid', '_bbox'
+        'bc_map', '_grid', '_mask', '_boundary_conditions', '_cad_solid', '_bbox'
     )
 
     def __init__(
