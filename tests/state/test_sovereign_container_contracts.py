@@ -2,7 +2,7 @@
 
 import pytest
 from src.state.mesh_generator_state import SovereignContainer
-from tests.dummies.dummy_harness import dummy_in, dummy_out, get_mock_config
+from tests.dummies.dummy_harness import dummy_in, get_mock_config
 
 # -------------------------------------------------------------------------
 # SETUP: Infrastructure for Structural Verification
