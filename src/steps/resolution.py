@@ -2,18 +2,53 @@
 import numpy as np
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer, GridState
-from OCC.Core.BRepGProp import brepgprop_VolumeProperties
+
+# OCC Imports for feature detection
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopAbs import TopAbs_EDGE
+from OCC.Core.BRepGProp import brepgprop_LinearProperties
 from OCC.Core.GProp import GProp_GProps
+from OCC.Core.BRepBndLib import brepbndlib_Add
+from OCC.Core.Bnd import Bnd_Box
 
 def get_min_feature_size(shape) -> float:
     """
-    Utility function to analyze the geometry.
-    In a real implementation, you would use BRepExtrema or 
-    Medial Axis analysis here to find the actual minimum thickness.
-    For this prototype, we return a mock value representing feature detection.
+    Utility function to analyze the geometry for adaptive fidelity.
+    
+    It traverses the topology of the shape to find the shortest edge,
+    which typically represents the thinnest feature (e.g., plate thickness).
+    Falls back to the overall bounding box minimum dimension if no valid edges exist.
     """
-    # TODO: Implement robust feature detection here (e.g., using BRepExtrema)
-    return 0.1 
+    explorer = TopExp_Explorer(shape, TopAbs_EDGE)
+    min_length = float('inf')
+    
+    # 1. Traversal: Inspect all edges in the geometry
+    while explorer.More():
+        edge = explorer.Current()
+        props = GProp_GProps()
+        
+        # Calculate linear properties. For edges, Mass() returns the length.
+        brepgprop_LinearProperties(edge, props)
+        length = props.Mass()
+        
+        # Filter out degenerate/zero-length artifacts
+        if length > 1e-7:
+            min_length = min(min_length, length)
+            
+        explorer.Next()
+        
+    # 2. Return shortest edge if found
+    if min_length != float('inf'):
+        return float(min_length)
+        
+    # 3. Fallback: If no edges exist (e.g., pure mathematical spheres), 
+    # use the smallest bounding box dimension.
+    bbox = Bnd_Box()
+    brepbndlib_Add(shape, bbox)
+    xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
+    
+    return float(min(xmax - xmin, ymax - ymin, zmax - zmin))
+
 
 class ResolutionStep(StepInterface):
     """
@@ -28,6 +63,7 @@ class ResolutionStep(StepInterface):
     def execute(self, container: SovereignContainer):
         """
         Executes the grid resolution calculation with adaptive constraints.
+        
         Args:
             container: The SovereignContainer instance. 
                        Requires a populated 'bbox' from TracingStep and 
@@ -50,8 +86,8 @@ class ResolutionStep(StepInterface):
         # Check against the container's resolution floor and ceiling.
         if min_feature < container.min_element_size:
             raise RuntimeError(
-                f"GEOMETRY VIOLATION: Thinnest feature ({min_feature}) is smaller "
-                f"than the minimum allowed element size ({container.min_element_size})."
+                f"GEOMETRY VIOLATION: Thinnest feature ({min_feature:.4f}) is smaller "
+                f"than the minimum allowed element size ({container.min_element_size:.4f})."
             )
         
         # Determine the effective resolution:
@@ -59,13 +95,13 @@ class ResolutionStep(StepInterface):
         # (to avoid aliasing). Otherwise, we cap it at the user-defined max.
         adaptive_el = min(container.max_element_size, max(container.min_element_size, min_feature))
         
-        # UNPACKING: Translate the tuple into readable spatial coordinates.
+        # 3. UNPACKING: Translate the tuple into readable spatial coordinates.
         # The Bnd_Box provides the precise physical limits of the CAD geometry.
         x_min, y_min, z_min, x_max, y_max, z_max = container.bbox
         
         # 4. DISCRETIZATION LOGIC
         # We use the 'adaptive_el' instead of the global 'max_element_size'.
-        # 1. Calculation: (Span / max_element_size) gives the number of intervals.
+        # 1. Calculation: (Span / adaptive_el) gives the number of intervals.
         # 2. np.ceil: We always round up. It is better to have a slightly finer 
         #    grid that fully encapsulates the geometry than to truncate a cell 
         #    and lose physical boundary information.
@@ -76,7 +112,7 @@ class ResolutionStep(StepInterface):
         ny = max(1, int(np.ceil((y_max - y_min) / adaptive_el)))
         nz = max(1, int(np.ceil((z_max - z_min) / adaptive_el)))
         
-        # STATE PERSISTENCE:
+        # 5. STATE PERSISTENCE:
         # We wrap the results in a 'GridState' object. This acts as an immutable
         # contract for the next steps (Categorization, BCs). By injecting this 
         # into 'container.grid', we trigger the SovereignContainer's setter 
