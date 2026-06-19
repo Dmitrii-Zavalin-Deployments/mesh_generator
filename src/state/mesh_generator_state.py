@@ -38,7 +38,7 @@ class SovereignContainer:
     """
     __slots__ = (
         'step_file', 'solver_version', 'tolerance', 'max_element_size', 'min_element_size',
-        '_grid', '_mask', '_boundary_conditions', 'cad_solid'
+        '_grid', '_mask', '_boundary_conditions', 'cad_solid', '_bbox'
     )
 
     def __init__(
@@ -64,6 +64,7 @@ class SovereignContainer:
         self._mask = None
         self._boundary_conditions = None
         self.cad_solid = None
+        self._bbox = None # Initialized as empty
 
     # --- Properties with Constitution Enforcement ---
 
@@ -104,3 +105,12 @@ class SovereignContainer:
         if value is not None and not isinstance(value, TopoDS_Shape):
             raise TypeError(f"CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape, not {type(value)}.")
         self._cad_solid = value
+    
+    @property
+    def bbox(self): return self._bbox
+
+    @bbox.setter
+    def bbox(self, value):
+        if value is not None and not isinstance(value, tuple):
+            raise TypeError("CONSTITUTION VIOLATION: 'bbox' must be a tuple.")
+        self._bbox = value
