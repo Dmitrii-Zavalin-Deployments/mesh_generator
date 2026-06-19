@@ -1,5 +1,5 @@
 # src/state/mesh_generator_state.py
-from typing import List, Optional
+from typing import List, Optional, Dict
 from OCC.Core.TopoDS import TopoDS_Shape
 
 class BoundaryConditionState:
@@ -38,7 +38,7 @@ class SovereignContainer:
     """
     __slots__ = (
         'step_file', 'solver_version', 'tolerance', 'max_element_size', 'min_element_size',
-        '_grid', '_mask', '_boundary_conditions', 'cad_solid', '_bbox'
+        'bc_map', '_grid', '_mask', '_boundary_conditions', 'cad_solid', '_bbox'
     )
 
     def __init__(
@@ -47,7 +47,8 @@ class SovereignContainer:
         max_element_size: float, 
         solver_version: str, 
         tolerance: float, 
-        min_element_size: float
+        min_element_size: float,
+        boundary_map: dict  # Added explicitly
     ):
         """
         Explicit Initialization: No defaults permitted. 
@@ -58,6 +59,7 @@ class SovereignContainer:
         self.tolerance = float(tolerance)
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)
+        self.bc_map = dict(boundary_map) # Enforced map
         
         # --- Computed Fields (Initialized as None) ---
         self._grid = None
