@@ -52,7 +52,7 @@ jobs:
       - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
           # 1. Install heavy binary physics stack AND pip (to create the environment)
-          conda install -y -c conda-forge pythonocc-core numpy pip
+          conda install -y -c conda-forge -c defaults pythonocc-core numpy pip
 
       - name: 📥 Install Python Utility Dependencies
         run: |
@@ -206,7 +206,7 @@ jobs:
       - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
           # 1. Install heavy binary physics stack AND pip (to create the environment)
-          conda install -y -c conda-forge pythonocc-core numpy pip
+          conda install -y -c conda-forge -c defaults pythonocc-core numpy pip
 
       - name: 📥 Install Python Utility Dependencies
         run: |

@@ -37,7 +37,7 @@ ingestor = CloudIngestor(tm, os.environ['REFRESH_TOKEN'], Path(os.environ['LOG_F
 ingestor.sync(
     os.environ['DROPBOX_FOLDER'], 
     Path(os.environ['LOCAL_FOLDER']), 
-    ['.h5', '.npy', '.json']
+    ['.h5', '.npy', '.json', '.step']
 )
 "
 
@@ -50,7 +50,7 @@ if [ $? -eq 0 ]; then
         echo "✅ SUCCESS: $FILE_COUNT files synchronized to $LOCAL_FOLDER"
     else
         echo "⚠️  WARNING: Sync reported success but 0 files were downloaded."
-        echo "   Check if files in Dropbox match the extensions: .h5, .npy, .json"
+        echo "   Check if files in Dropbox match the extensions: .h5, .npy, .json", '.step'
         exit 1
     fi
 else
