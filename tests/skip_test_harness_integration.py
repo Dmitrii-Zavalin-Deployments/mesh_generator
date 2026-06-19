@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 
 from OCC.Core.STEPControl import STEPControl_Reader
-from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopAbs import TopAbs_FACE

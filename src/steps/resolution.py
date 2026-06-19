@@ -8,7 +8,6 @@ from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopAbs import TopAbs_EDGE
 from OCC.Core.BRepGProp import brepgprop_LinearProperties
 from OCC.Core.GProp import GProp_GProps
-from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.Bnd import Bnd_Box
 
 def get_min_feature_size(shape) -> float:
