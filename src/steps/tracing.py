@@ -1,7 +1,7 @@
 # src/steps/tracing.py
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
-from OCC.Core.BRepBndLib import brepbndlib_Add
+from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.Bnd import Bnd_Box
 
 class TracingStep(StepInterface):
@@ -39,13 +39,14 @@ class TracingStep(StepInterface):
         bbox = Bnd_Box()
         
         # GEOMETRIC CALCULATION: 
-        # 'brepbndlib_Add' iterates through the TopoDS_Shape (the cad_solid).
+        # Updated to use the static 'brepbndlib.Add' method to satisfy API requirements.
         # It automatically expands the 'bbox' dimensions to encapsulate every 
         # vertex, edge, and face within the solid.
-        brepbndlib_Add(container.cad_solid, bbox)
+        brepbndlib.Add(container.cad_solid, bbox)
         
         # DATA PERSISTENCE:
         # bbox.Get() returns the raw (x_min, y_min, z_min, x_max, y_max, z_max) tuple.
-        # We store this in the container so the 'ResolutionStep' can determine 
-        # the grid resolution (nx, ny, nz) based on these bounds.
-        container.bbox = bbox.Get()
+        # We explicitly unpack the values and cast to a tuple to ensure 
+        # the type satisfies the SovereignContainer setter contract.
+        xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
+        container.bbox = (xmin, ymin, zmin, xmax, ymax, zmax)
