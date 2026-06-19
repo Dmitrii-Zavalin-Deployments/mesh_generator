@@ -222,10 +222,11 @@ jobs:
           echo "--- testing-input-output folder content:---"
           ls -R data/testing-input-output/
 
-      - name: 🌊 Execute mesh generator
+      - name: 🚀 Execute mesh generator
         run: |
-          # Use module execution to maintain correct import paths from root
-          python3 -m src.main ./data/testing-input-output/mesh_generator_input.json ./data/testing-input-output/mesh_generator_output.json
+          # Use $GITHUB_WORKSPACE to ensure we are always pointing to the project root
+          python -m src.main "${GITHUB_WORKSPACE}/data/testing-input-output/mesh_generator_input.json" \
+                            "${GITHUB_WORKSPACE}/data/testing-input-output/mesh_generator_output.json"
 
       - name: 📤 Synchronize Results (Dropbox)
         if: success()
