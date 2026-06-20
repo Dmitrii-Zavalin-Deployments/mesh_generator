@@ -1,5 +1,6 @@
 # tests/test_ingestion.py
 import logging
+import os
 import pytest
 from src.steps.ingestion import IngestionStep
 from src.state.mesh_generator_state import SovereignContainer
@@ -15,19 +16,28 @@ def get_dummy_container(step_path: str) -> SovereignContainer:
         boundary_map={"x_min": "inlet"}
     )
 
-def test_ingestion_logs_on_success(caplog, tmp_path):
-    # 1. Setup: Create a temp dummy file
-    dummy_step = tmp_path / "test_geometry.step"
-    dummy_step.write_text("dummy")
+def test_ingestion_logs_on_success(caplog):
+    # 1. Setup: Reference the actual geometry dummy file
+    # Ensure the path is relative to the project root (where pytest executes)
+    dummy_step_path = os.path.join("tests", "dummies", "sample_geometry.step")
+    
+    assert os.path.exists(dummy_step_path), f"Dummy file missing at {dummy_step_path}"
 
     # 2. Instantiate with full contract
-    container = get_dummy_container(str(dummy_step))
+    container = get_dummy_container(dummy_step_path)
     step = IngestionStep()
     
     with caplog.at_level(logging.INFO):
+        # 3. Execution
         step.execute(container)
+        
+        # 4. Assertions: Verify logic AND geometry loading
         assert "Starting IngestionStep" in caplog.text
         assert "IngestionStep successful" in caplog.text
+        
+        # Verify the actual geometry was loaded into the container
+        # Since the dummy file is a valid sphere, cad_solid should not be None
+        assert container.cad_solid is not None, "Ingestion failed to populate cad_solid."
 
 def test_ingestion_logs_error_on_failure(caplog):
     # 1. Instantiate with non-existent path
