@@ -1,6 +1,6 @@
 # tests/test_categorization.py
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
 from src.steps.categorization import CategorizationStep
 from src.state.mesh_generator_state import SovereignContainer, Grid
