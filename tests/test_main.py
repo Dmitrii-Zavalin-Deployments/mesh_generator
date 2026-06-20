@@ -1,8 +1,7 @@
 # tests/test_main.py
 import pytest
 import json
-import sys
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open
 from jsonschema import ValidationError
 from src.main import main
 from tests.dummies.dummy_harness import dummy_in, get_mock_config
