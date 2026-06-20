@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch
 from OCC.Core.TopoDS import TopoDS_Shape
 from src.steps.resolution import ResolutionStep
-from src.state.mesh_generator_state import SovereignContainer, GridState
+from src.state.mesh_generator_state import SovereignContainer
 
 def get_dummy_container(bbox=None, cad_solid=None) -> SovereignContainer:
     """Helper to ensure contract adherence."""
