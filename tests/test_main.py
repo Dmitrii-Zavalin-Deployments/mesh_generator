@@ -1,6 +1,7 @@
 # tests/test_main.py
 import pytest
 import json
+import sys
 from unittest.mock import patch, mock_open
 from jsonschema import ValidationError
 from src.main import main
@@ -54,8 +55,7 @@ def test_main_happy_path():
     config_data = get_mock_config()
     stub_container = SerializableStubContainer()
 
-    # We patch validate (from jsonschema) instead of validate_json (from main)
-    # to ensure the code inside validate_json executes.
+    # side_effect: [Input, InputSchema, Config, ConfigSchema]
     with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
          patch("builtins.open", mock_open(read_data='{}')), \
          patch("json.load", side_effect=[input_data, {}, config_data, {}]), \
@@ -72,11 +72,10 @@ def test_main_validation_failure():
     """[ERROR PATH: SCHEMA VIOLATION] Verify validation failure logic in validate_json."""
     mock_input_data = dummy_in()
     
-    # We allow validate_json to run, but patch jsonschema.validate to raise the error.
-    # This hits the try-except block in src.main.py lines 25-30.
+    # side_effect: [Input, InputSchema, Config, ConfigSchema]
     with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
          patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[mock_input_data, {}]), \
+         patch("json.load", side_effect=[mock_input_data, {}, {}, {}]), \
          patch("jsonschema.validate", side_effect=ValidationError("Invalid Schema")), \
          patch("os.path.exists", return_value=True):
         
