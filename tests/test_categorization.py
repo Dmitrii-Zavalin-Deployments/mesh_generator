@@ -1,6 +1,7 @@
 # tests/test_categorization.py
 import os
 import pytest
+from unittest.mock import patch, MagicMock
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone
 from src.steps.categorization import CategorizationStep
@@ -77,3 +78,59 @@ def test_categorization_guard_clause():
     step = CategorizationStep()
     with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
         step.execute(container)
+
+@patch("src.steps.categorization.BRepClass3d_SolidClassifier")
+def test_categorization_branch_solid(mock_classifier_class):
+    """Forces the 'Solid' branch (Lines 84-85) to reach 100% coverage."""
+    # 1. Setup Mock
+    mock_classifier = MagicMock()
+    mock_classifier.State.return_value = TopAbs_IN # Force ALL corners IN
+    mock_classifier_class.return_value = mock_classifier
+    
+    # 2. Setup Container
+    harness = dummy_in()
+    container = SovereignContainer(
+        step_file=harness["inputs"]["step_file"],
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={"x_min": "inlet"}
+    )
+    container.cad_solid = MagicMock() # Mock the shape
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1) # 1x1x1 grid
+    
+    # 3. Execute
+    step = CategorizationStep()
+    step.execute(container)
+    
+    # 4. Assert
+    assert container.mask[0] == 0  # Solid
+    assert mock_classifier.Perform.called
+
+@patch("src.steps.categorization.BRepClass3d_SolidClassifier")
+def test_categorization_branch_fluid(mock_classifier_class):
+    """Forces the 'Fluid' branch (Lines 86-88) to reach 100% coverage."""
+    # 1. Setup Mock
+    mock_classifier = MagicMock()
+    mock_classifier.State.return_value = TopAbs_OUT # Force ALL corners OUT
+    mock_classifier_class.return_value = mock_classifier
+    
+    # 2. Setup Container
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={}
+    )
+    container.cad_solid = MagicMock()
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    
+    # 3. Execute
+    step = CategorizationStep()
+    step.execute(container)
+    
+    # 4. Assert
+    assert container.mask[0] == 1  # Fluid
