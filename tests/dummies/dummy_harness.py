@@ -58,4 +58,5 @@ def get_mock_config():
         "tolerance": 1e-6,
         "max_element_size": 0.5,
         "min_element_size": 0.1
+        "boundary_map": {}
     }
