@@ -45,6 +45,10 @@ def test_orchestrator_execution_flow():
     step_a = MagicMock(spec=StepInterface)
     step_b = MagicMock(spec=StepInterface)
     
+    manager = MagicMock()
+    manager.attach_mock(step_a.execute, 'step_a')
+    manager.attach_mock(step_b.execute, 'step_b')
+    
     # 2. Execution: Run the orchestrator.
     orchestrator = Orchestrator([step_a, step_b])
     result = orchestrator.run(container)
@@ -55,9 +59,6 @@ def test_orchestrator_execution_flow():
     
     # B. The execution order is preserved (Sequential Integrity).
     # We use a manager to record the calls to verify the sequence explicitly.
-    manager = MagicMock()
-    manager.attach_mock(step_a.execute, 'step_a')
-    manager.attach_mock(step_b.execute, 'step_b')
     
     # Re-run to verify sequence with manager (or just check the mock calls history)
     # Since we already ran it, we check the call history:
