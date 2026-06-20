@@ -3,7 +3,6 @@ import os
 import pytest
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone
-from OCC.Core.TopoDS import TopoDS_Shape
 from src.steps.categorization import CategorizationStep
 from src.state.mesh_generator_state import SovereignContainer, Grid
 from tests.dummies.dummy_harness import dummy_in
