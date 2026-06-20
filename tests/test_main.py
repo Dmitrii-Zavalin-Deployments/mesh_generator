@@ -1,7 +1,6 @@
 # tests/test_main.py
 import pytest
 import json
-import sys
 from unittest.mock import patch, mock_open
 from jsonschema import ValidationError
 from src.main import main
