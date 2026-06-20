@@ -11,8 +11,8 @@ fi
 # 2. Path Resolution
 # We look for the zip in the testing-input-output folder where the solver usually outputs
 BASE_WORK_DIR=$(pwd)
-DEFAULT_ZIP="${BASE_WORK_DIR}/data/testing-input-output/bernoulli_solver_output.json"
-export LOCAL_ZIP_PATH="${1:-$DEFAULT_ZIP}"
+OUTPUT_TO_UPLOAD="${BASE_WORK_DIR}/data/testing-input-output/mesh_generator_output.json"
+export LOCAL_ZIP_PATH="${1:-$OUTPUT_TO_UPLOAD}"
 
 # 3. Validation
 if [ ! -f "$LOCAL_ZIP_PATH" ]; then
