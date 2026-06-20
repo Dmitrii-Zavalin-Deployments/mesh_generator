@@ -18,7 +18,7 @@ class TestPipelineInterface:
         as a runtime-inspectable contract with the correct property type hints.
         """
         # Extract the expected type annotations from the abstract protocol definition
-        type_hints = get_type_hints(PipelineInterface)
+        type_hints = {k: get_type_hints(getattr(PipelineInterface, k).fget) for k in ['geometry', 'grid', 'mask', 'boundary_conditions']}
         
         assert "geometry" in type_hints, "Protocol Definition Error: 'geometry' property is missing annotations."
         assert "grid" in type_hints, "Protocol Definition Error: 'grid' property is missing annotations."

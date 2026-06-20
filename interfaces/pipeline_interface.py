@@ -1,8 +1,9 @@
 # interfaces/pipeline_interface.py
-from typing import List, Protocol
+from typing import List, Protocol, runtime_checkable
 from OCC.Core.TopoDS import TopoDS_Shape
 from interfaces.mesh_generator_interface import GridInterface, BoundaryConditionInterface
 
+@runtime_checkable
 class PipelineInterface(Protocol):
     """
     Composite interface for the global pipeline state.
