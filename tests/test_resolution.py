@@ -12,46 +12,53 @@ def test_get_min_feature_size_edge_detection():
     """
     [BRANCH COVERAGE: Edge Path]
     We verify the utility correctly identifies the smallest edge length.
+    To prevent low-level C++ deadlocks in headless environments, all native
+    extension functions must be fully patched.
     """
-    # 1. Setup: We mock the TopExp_Explorer to simulate finding two edges.
-    # Edge A has length 5.0, Edge B has length 2.0.
+    # 1. Setup: We isolate the system by mocking both the topology explorer 
+    # and the global C++ linear property calculator wrapper.
     with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
-         patch("src.steps.resolution.GProp_GProps") as mock_props:
+         patch("src.steps.resolution.GProp_GProps") as mock_props, \
+         patch("src.steps.resolution.brepgprop_LinearProperties") as mock_linear_engine:
         
-        # Configure mock to iterate twice
+        # We simulate finding exactly two edges before terminating the iteration.
         mock_explorer.return_value.More.side_effect = [True, True, False]
         
-        # Configure mock property mass (length)
+        # We specify two mock lengths: Edge A = 5.0, Edge B = 2.0.
         mock_props.return_value.Mass.side_effect = [5.0, 2.0]
         
-        # 2. Execution:
+        # 2. Execution: Run the feature size calculator inside our pure Python sandbox.
         min_feature = get_min_feature_size(TopoDS_Shape())
         
         # 3. Verification:
-        # The algorithm should return the minimum length found (2.0).
+        # The algorithm must accurately isolate and return the lowest bound value.
         assert min_feature == 2.0
 
 def test_get_min_feature_size_bbox_fallback():
     """
     [BRANCH COVERAGE: Fallback Path]
     If no edges are present, the system must calculate the smallest 
-    bounding box dimension.
+    bounding box dimension. We intercept the bounding box library call 
+    to ensure zero native memory leaks.
     """
-    # 1. Setup: We mock an empty topology where the edge explorer finds nothing.
+    # 1. Setup: We simulate a geometry lacking structural edge components.
     with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
-         patch("src.steps.resolution.Bnd_Box") as mock_bbox:
+         patch("src.steps.resolution.Bnd_Box") as mock_bbox, \
+         patch("src.steps.resolution.brepbndlib") as mock_bnd_engine:
         
+        # The explorer reports no edges instantly.
         mock_explorer.return_value.More.return_value = False
         
-        # Configure the bounding box to return: x_span=10, y_span=5, z_span=20
-        # bbox.Get() returns (xmin, ymin, zmin, xmax, ymax, zmax)
-        # Bbox dims: x=10, y=5, z=20. Expected min is 5.
-        mock_bbox.return_value.Get.return_value = (0, 0, 0, 10, 5, 20)
+        # We supply an explicit bounding box output tuple:
+        # Formatted as (xmin, ymin, zmin, xmax, ymax, zmax)
+        # Yields dimensional lengths: DeltaX = 10.0, DeltaY = 5.0, DeltaZ = 20.0
+        mock_bbox.return_value.Get.return_value = (0.0, 0.0, 0.0, 10.0, 5.0, 20.0)
         
-        # 2. Execution:
+        # 2. Execution: Run calculation.
         min_feature = get_min_feature_size(TopoDS_Shape())
         
         # 3. Verification:
+        # The minimum dimensional delta among all bounds is 5.0 (the Y axis span).
         assert min_feature == 5.0
 
 # --- ARCHITECTURAL GATE TEST SUITE: ResolutionStep ---
