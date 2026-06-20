@@ -71,11 +71,12 @@ def test_main_validation_failure():
     """[ERROR PATH: SCHEMA VIOLATION] Verify validation failure logic in validate_json."""
     mock_input_data = dummy_in()
     
-    # side_effect: [Input, InputSchema, Config, ConfigSchema]
+    # We patch 'src.main.validate' (the local import) instead of 'jsonschema.validate'
+    # We inject get_mock_config() to ensure that even if validation passes, the config is valid.
     with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
          patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[mock_input_data, {}, {}, {}]), \
-         patch("jsonschema.validate", side_effect=ValidationError("Invalid Schema")), \
+         patch("json.load", side_effect=[mock_input_data, {}, get_mock_config(), {}]), \
+         patch("src.main.validate", side_effect=ValidationError("Invalid Schema")), \
          patch("os.path.exists", return_value=True):
         
         with pytest.raises(ValidationError):
