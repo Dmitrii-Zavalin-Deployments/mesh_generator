@@ -1,6 +1,10 @@
 # src/steps/boundary_conditions.py
+import logging
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer, BoundaryConditionState
+
+# Configure module-level logger
+logger = logging.getLogger(__name__)
 
 class BoundaryConditionsStep(StepInterface):
     """
@@ -12,7 +16,7 @@ class BoundaryConditionsStep(StepInterface):
     proximity to the domain extremities.
     """
     
-    __slots__ = () # Stateless: Logic only; strictly follows the constitutional template.
+    __slots__ = ()
 
     def execute(self, container: SovereignContainer):
         """
@@ -25,15 +29,16 @@ class BoundaryConditionsStep(StepInterface):
         """
         # --- Constitution Check: Dependencies must be resolved by previous steps ---
         if container.grid is None or container.mask is None:
-            raise RuntimeError(
-                "CONSTITUTION VIOLATION: Pipeline order failure. "
-                "'grid' and 'mask' must be computed before BoundaryConditionsStep."
-            )
+            error_msg = "CONSTITUTION VIOLATION: Pipeline order failure. 'grid' and 'mask' must be computed."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
+        logger.info("Starting Boundary Condition Mapping...")
 
         grid = container.grid
         mask = container.mask
-        tol = container.tolerance # User-defined geometric tolerance
-        bc_map = container.bc_map # Configuration-defined BC lookup table
+        tol = container.tolerance 
+        bc_map = container.bc_map 
 
         bcs = []
         
@@ -85,10 +90,9 @@ class BoundaryConditionsStep(StepInterface):
                     # be defined in the bc_map. If a location is missing, we raise 
                     # a configuration error to prevent silent simulation failure.
                     if location not in bc_map:
-                        raise KeyError(
-                            f"CONSTITUTION VIOLATION: Boundary location '{location}' "
-                            "detected but not defined in 'bc_map' configuration."
-                        )
+                        error_msg = f"CONSTITUTION VIOLATION: Boundary location '{location}' detected but not defined in 'bc_map'."
+                        logger.error(error_msg)
+                        raise KeyError(error_msg)
                     
                     bc_type = bc_map[location]
                     
@@ -103,3 +107,4 @@ class BoundaryConditionsStep(StepInterface):
                     
         # Persistence: Container setter validates the final list structure
         container.boundary_conditions = bcs
+        logger.info(f"Mapping complete. Identified {len(bcs)} boundary conditions.")
