@@ -107,5 +107,5 @@ def main():
         json.dump(output_data, f, indent=2)
     logger.info(f"Results serialized to: {output_path}")
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
