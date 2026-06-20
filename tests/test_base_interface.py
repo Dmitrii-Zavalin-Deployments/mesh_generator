@@ -32,7 +32,6 @@ class TestBaseInterface:
             class RogueStep(StepInterface):
                 def execute(self, container):
                     """Required entry point."""
-                    pass
                 
                 def unauthorized_helper_method(self):
                     """This method triggers a structural compilation failure."""
