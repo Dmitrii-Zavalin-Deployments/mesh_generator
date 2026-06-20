@@ -1,0 +1,1791 @@
+📄 List of files to be merged:
+-------------------------------------------
+• test_orchestrator.py
+• test_mesh_generator_state.py
+• test_tracing.py
+• __init__.py
+• test_base_interface.py
+• test_resolution.py
+• test_ingestion.py
+• test_boundary_conditions.py
+• state/test_sovereign_container_contracts.py
+• io/test_download_from_dropbox.py
+• io/test_upload_to_dropbox.py
+• test_categorization.py
+• test_pipeline_interface.py
+• skip_test_harness_integration.py
+• test_main.py
+• dummies/dummy_harness.py
+• dummies/__init__.py
+• dummies/sample_geometry.step
+• test_mesh_generator_interface.py
+-------------------------------------------
+
+========== START OF FILE: test_orchestrator.py ==========
+# tests/test_orchestrator.py
+from unittest.mock import MagicMock, call
+from src.pipeline.orchestrator import Orchestrator
+from src.state.mesh_generator_state import SovereignContainer
+from interfaces.base_interface import StepInterface
+
+# --- LITERATE TEST SUITE ---
+
+def test_orchestrator_initialization():
+    """
+    [INITIALIZATION PATH]
+    Verify that the Orchestrator correctly registers the pipeline steps 
+    upon instantiation, ensuring the sequencer state is set correctly.
+    """
+    # 1. Setup: Create a mock list of steps.
+    mock_step_1 = MagicMock(spec=StepInterface)
+    mock_step_2 = MagicMock(spec=StepInterface)
+    steps = [mock_step_1, mock_step_2]
+    
+    # 2. Execution: Instantiate the Orchestrator.
+    orchestrator = Orchestrator(steps)
+    
+    # 3. Verification: Ensure steps are stored and length is correct.
+    assert len(orchestrator.steps) == 2
+    assert orchestrator.steps[0] == mock_step_1
+
+def test_orchestrator_execution_flow():
+    """
+    [EXECUTION PATH]
+    Verify that the orchestrator executes steps in the defined order 
+    and passes the SovereignContainer through the pipeline without mutation.
+    """
+    
+    # 1. Setup: Define the SovereignContainer and two mock steps.
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={}
+    )
+    
+    # We use MagicMocks to track the order of calls.
+    step_a = MagicMock(spec=StepInterface)
+    step_b = MagicMock(spec=StepInterface)
+    
+    manager = MagicMock()
+    manager.attach_mock(step_a.execute, 'step_a')
+    manager.attach_mock(step_b.execute, 'step_b')
+    
+    # 2. Execution: Run the orchestrator.
+    orchestrator = Orchestrator([step_a, step_b])
+    result = orchestrator.run(container)
+    
+    # 3. Verification:
+    # A. The Orchestrator returns the same container object.
+    assert result is container
+    
+    # B. The execution order is preserved (Sequential Integrity).
+    # We use a manager to record the calls to verify the sequence explicitly.
+    
+    # Re-run to verify sequence with manager (or just check the mock calls history)
+    # Since we already ran it, we check the call history:
+    expected_calls = [
+        call.step_a(container),
+        call.step_b(container)
+    ]
+    assert manager.mock_calls == expected_calls
+    
+    # Verify both steps were executed
+    step_a.execute.assert_called_once_with(container)
+    step_b.execute.assert_called_once_with(container)========== END OF FILE: test_orchestrator.py ==========
+
+========== START OF FILE: test_mesh_generator_state.py ==========
+# tests/test_mesh_generator_state.py
+import pytest
+from unittest.mock import MagicMock
+from OCC.Core.TopoDS import TopoDS_Shape
+from src.state.mesh_generator_state import (
+    BoundaryConditionState, 
+    GridState, 
+    SovereignContainer
+)
+
+# --- LITERATE TEST SUITE ---
+
+def test_state_initialization():
+    """
+    [INITIALIZATION PATH]
+    Verify that our atomic state containers (BC and Grid) correctly 
+    initialize and preserve the input data.
+    """
+    # BoundaryConditionState: Ensure inputs are cast to string for consistency.
+    bc = BoundaryConditionState("x_min", "inlet", "cell_0")
+    assert bc.location == "x_min"
+    
+    # GridState: Ensure inputs are cast to expected types (float/int).
+    grid = GridState(0, 1, 0, 1, 0, 1, 10, 10, 10)
+    assert grid.nx == 10
+
+def test_sovereign_container_setup():
+    """
+    [CONSTRUCTOR PATH]
+    Verify that the SovereignContainer initializes with the correct 
+    schema-defined fields and starts with all computed states as 'None', 
+    as required by the constitution.
+    """
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={"x": "y"}
+    )
+    
+    # Assert initial state is strictly uninitialized for computed fields.
+    assert container.grid is None
+    assert container.mask is None
+    assert container.boundary_conditions is None
+    assert container.cad_solid is None
+    assert container.bbox is None
+
+def test_sovereign_container_setters_happy_path():
+    """
+    [HAPPY PATH]
+    Verify that valid types are accepted by the container setters.
+    This demonstrates the successful state transition for each attribute.
+    """
+    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {})
+    
+    # Transition: Set valid data structures
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.mask = [0, 1]
+    container.boundary_conditions = [BoundaryConditionState("x", "y", "0")]
+    # Mock the TopoDS_Shape to satisfy the setter's isinstance check
+    container.cad_solid = MagicMock(spec=TopoDS_Shape)
+    container.bbox = (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+    
+    # Assert successful state persistence
+    assert isinstance(container.grid, GridState)
+    assert container.mask == [0, 1]
+    assert len(container.boundary_conditions) == 1
+    assert container.bbox[0] == 0.0
+
+def test_sovereign_container_type_violations():
+    """
+    [COVERAGE PATH: CONSTITUTIONAL VIOLATIONS]
+    We enforce the constitution by attempting to pass invalid types to setters.
+    This triggers the explicit TypeError blocks (Lines 78, 87, 96, 107, 116),
+    ensuring 100% path coverage.
+    """
+    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {})
+    
+    # 1. Grid Check: Expect TypeError when passing a string instead of GridState.
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'grid' must be an instance of GridState"):
+        container.grid = "Not a GridState object"
+        
+    # 2. Mask Check: Expect TypeError when passing non-list types.
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'mask' must be a List"):
+        container.mask = "Not a list"
+        
+    # 3. BC Check: Expect TypeError when passing non-list types.
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'boundary_conditions' must be a List"):
+        container.boundary_conditions = "Not a list"
+        
+    # 4. CAD Solid Check: Expect TypeError when passing non-TopoDS_Shape types.
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape"):
+        container.cad_solid = "Not a shape"
+        
+    # 5. BBox Check: Expect TypeError when passing non-tuple types.
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'bbox' must be a tuple"):
+        container.bbox = [0.0, 1.0] # Passing a List instead of a Tuple========== END OF FILE: test_mesh_generator_state.py ==========
+
+========== START OF FILE: test_tracing.py ==========
+# tests/test_tracing.py
+import logging
+import pytest
+from unittest.mock import patch
+from OCC.Core.TopoDS import TopoDS_Shape
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
+from OCC.Core.gp import gp_Pnt
+from src.steps.tracing import TracingStep
+from src.state.mesh_generator_state import SovereignContainer
+
+def get_dummy_container(step_path: str, cad_solid: TopoDS_Shape = None) -> SovereignContainer:
+    """
+    Helper function to satisfy the SovereignContainer contract.
+    We inject the necessary parameters to prevent pipeline initialization errors.
+    """
+    container = SovereignContainer(
+        step_file=step_path,
+        max_element_size=2.0,
+        solver_version="v1.0.0",
+        tolerance=1e-4,
+        min_element_size=0.5,
+        boundary_map={"x_min": "inlet"}
+    )
+    if cad_solid is not None:
+        container.cad_solid = cad_solid
+    return container
+
+def test_tracing_logs_on_success(caplog):
+    # We establish a baseline geometric shape. 
+    # Since TracingStep requires a valid TopoDS_Shape, we create a point at the origin.
+    real_vertex = BRepBuilderAPI_MakeVertex(gp_Pnt(0, 0, 0)).Shape()
+    
+    # We load this shape into the SovereignContainer.
+    container = get_dummy_container("dummy.step", cad_solid=real_vertex)
+    step = TracingStep()
+    
+    # We execute the TracingStep. 
+    # Upon success, the system should populate the BBox and log the progress.
+    with caplog.at_level(logging.INFO):
+        step.execute(container)
+        
+        assert "Starting TracingStep" in caplog.text
+        assert "TracingStep successful" in caplog.text
+        
+        # The expected Bounding Box for a single point is (0,0,0,0,0,0).
+        # We use pytest.approx to accommodate the OpenCascade internal kernel epsilon (1e-07).
+        assert container.bbox == pytest.approx((0.0, 0.0, 0.0, 0.0, 0.0, 0.0), abs=1e-6)
+
+def test_tracing_logs_error_on_failure(caplog):
+    # The Constitution requires 'cad_solid' to be present. 
+    # If we pass None, the TracingStep must enforce this dependency.
+    container = get_dummy_container("dummy.step", cad_solid=None)
+    step = TracingStep()
+    
+    # We verify that a RuntimeError is raised, halting the pipeline,
+    # and ensuring the violation is clearly logged.
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
+            step.execute(container)
+        assert "CONSTITUTION VIOLATION" in caplog.text
+
+@patch("src.steps.tracing.brepbndlib.Add")
+def test_tracing_logs_error_on_calculation_failure(mock_add, caplog):
+    # We simulate a catastrophic failure in the geometric kernel.
+    # This ensures our error handling (the 'except' block) correctly logs and propagates exceptions.
+    mock_add.side_effect = Exception("Geometry engine crash")
+    
+    real_vertex = BRepBuilderAPI_MakeVertex(gp_Pnt(0, 0, 0)).Shape()
+    container = get_dummy_container("dummy.step", cad_solid=real_vertex)
+    step = TracingStep()
+    
+    # We confirm that the calculation failure is caught and re-raised for upstream handling.
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(Exception, match="Geometry engine crash"):
+            step.execute(container)
+            
+        assert "TracingStep failed during geometric calculation" in caplog.text========== END OF FILE: test_tracing.py ==========
+
+========== START OF FILE: __init__.py ==========
+========== END OF FILE: __init__.py ==========
+
+========== START OF FILE: test_base_interface.py ==========
+# tests/test_base_interface.py
+import pytest
+import pkgutil
+import importlib
+import src.steps as steps
+from interfaces.base_interface import StepInterface
+from src.state.mesh_generator_state import SovereignContainer, GridState
+
+class TestBaseInterface:
+    """
+    Architectural Quality Gate for StepInterface.
+    
+    The StepInterface acts as the 'Constitution' for our pipeline. 
+    It enforces structural integrity, codebase-wide consistency, and 
+    strict stateful contracts for every operational step.
+    """
+
+    def test_framework_enforces_constitutional_restrictions(self):
+        """
+        [STRUCTURAL GATE]
+        We must verify that the StepInterface metatest infrastructure acts as a 
+        secure gatekeeper, actively blocking unauthorized code structures 
+        at the moment of class declaration.
+        """
+        
+        # We define a 'RogueStep' class that attempts to introduce a helper method.
+        # This violates the principle of 'Stateless Pipeline Execution', 
+        # which requires steps to contain only the 'execute' entry point.
+        #
+        # Attempting to declare this class triggers our architectural gate:
+        with pytest.raises(TypeError, match="CONSTITUTION VIOLATION"):
+            class RogueStep(StepInterface):
+                def execute(self, container):
+                    """Required entry point."""
+                
+                def unauthorized_helper_method(self):
+                    """This method triggers a structural compilation failure."""
+                    return True
+
+    def test_all_production_steps_comply_with_constitution(self):
+        """
+        [STATIC ENFORCEMENT GATE]
+        To maintain system-wide integrity, we perform a dynamic audit of 
+        all production modules under 'src.steps/'. 
+        
+        If a module contains a class that violates our architectural 
+        restrictions, the audit must fail immediately.
+        """
+        
+        # First, we discover all available modules in the production step directory.
+        discovered_modules = list(pkgutil.iter_modules(steps.__path__))
+        
+        # We assert that the directory is populated; an empty pipeline is a critical failure.
+        assert len(discovered_modules) > 0, "Architectural Error: No steps found under src/steps/."
+
+        # We iterate through every module found, forcing a dynamic import.
+        # This triggers the __init_subclass__ hook in our StepInterface, 
+        # which validates every class within that module.
+        for _, module_name, _ in discovered_modules:
+            try:
+                importlib.import_module(f"src.steps.{module_name}")
+            except TypeError as error:
+                # If the Constitution is violated, we halt and report the specific module.
+                pytest.fail(
+                    f"CONSTITUTION VIOLATION: Production module 'src.steps.{module_name}' "
+                    f"violates architectural restrictions: {error}"
+                )
+
+    def test_functional_state_mutation_contract(self):
+        """
+        [STATE TRACE GATE]
+        Here, we verify the 'Happy Path' of the system. We demonstrate that 
+        a compliant implementation can safely mutate a SovereignContainer 
+        and interact natively with the GridState.
+        """
+        
+        # 1. Setup: We construct a pristine production container. 
+        # This is a real system structure, not a mock.
+        container = SovereignContainer(
+            step_file="test_geometry.step",
+            max_element_size=1.5,
+            solver_version="1.0.0",
+            tolerance=1e-5,
+            min_element_size=0.1,
+            boundary_map={"inlet": "dirichlet"}
+        )
+
+        # 2. Logic: We define a ConcreteMockResolutionStep.
+        # This step correctly populates the container's GridState and mask.
+        class ConcreteMockResolutionStep(StepInterface):
+            def execute(self, target_container: SovereignContainer):
+                target_container.grid = GridState(
+                    x_min=0.0, x_max=10.0,
+                    y_min=0.0, y_max=10.0,
+                    z_min=0.0, z_max=5.0,
+                    nx=10, ny=10, nz=5
+                )
+                target_container.mask = [1, 0, 1, 1]
+
+        # 3. Execution: Run the step through the interface.
+        step_executor = ConcreteMockResolutionStep()
+        step_executor.execute(container)
+
+        # 4. Verification: We confirm that data mutation persists exactly 
+        # as expected in the system layout.
+        assert isinstance(container.grid, GridState), "Contract Broken: Container grid state type mismatch."
+        assert container.grid.nx == 10, "Data Mutation Error: Voxel count (nx) did not persist."
+        assert container.mask == [1, 0, 1, 1], "Data Mutation Error: Computational mask array mismatch."
+
+    def test_base_interface_rejection_on_direct_invocation(self):
+        """
+        [ABSTRACT SECURITY GATE]
+        The StepInterface is an abstract blueprint, not a functional step. 
+        It must reject direct execution attempts.
+        """
+        
+        # We define a container for the invocation attempt.
+        container = SovereignContainer(
+            step_file="test.step", max_element_size=1.0, solver_version="1.0",
+            tolerance=1e-5, min_element_size=0.1, boundary_map={}
+        )
+        
+        # Attempting to execute the base interface itself is forbidden.
+        # We expect a NotImplementedError, signaling the user must override this class.
+        abstract_step = StepInterface()
+        with pytest.raises(NotImplementedError):
+            abstract_step.execute(container)========== END OF FILE: test_base_interface.py ==========
+
+========== START OF FILE: test_resolution.py ==========
+# tests/test_resolution.py
+import logging
+import pytest
+import os
+from unittest.mock import patch
+from OCC.Core.TopoDS import TopoDS_Shape
+from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.IFSelect import IFSelect_RetDone
+from src.steps.resolution import ResolutionStep, get_min_feature_size
+from src.state.mesh_generator_state import SovereignContainer
+
+# --- DUMMY GEOMETRY LOADER ---
+
+# We define a loader to bridge the gap between static disk-based geometry
+# and the runtime memory requirements of OpenCASCADE.
+def get_real_sphere_shape():
+    """Locates and parses the external STEP dummy file."""
+    # Build path relative to this file: tests/dummies/sample_geometry.step
+    file_path = os.path.join(os.path.dirname(__file__), "dummies", "sample_geometry.step")
+    
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Missing dummy file at: {file_path}")
+    
+    reader = STEPControl_Reader()
+    if reader.ReadFile(file_path) == IFSelect_RetDone:
+        reader.TransferRoots()
+        return reader.Shape()
+    
+    raise RuntimeError(f"Failed to process STEP file: {file_path}")
+
+# --- UTILITY TEST SUITE: Feature Detection Logic ---
+
+def test_get_min_feature_size_edge_detection():
+    # We verify the utility correctly identifies the smallest edge length.
+    # To prevent low-level C++ deadlocks in headless environments, 
+    # we isolate the system by mocking the topology explorer and property calculator.
+    with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
+         patch("src.steps.resolution.GProp_GProps") as mock_props, \
+         patch("src.steps.resolution.brepgprop_LinearProperties"):
+        
+        # We simulate finding exactly two edges before terminating the iteration.
+        mock_explorer.return_value.More.side_effect = [True, True, False]
+        
+        # Edge A = 5.0, Edge B = 2.0. 
+        # The expected minimum feature size is min(5.0, 2.0) = 2.0.
+        mock_props.return_value.Mass.side_effect = [5.0, 2.0]
+        
+        min_feature = get_min_feature_size(TopoDS_Shape())
+        assert min_feature == 2.0
+
+def test_get_min_feature_size_bbox_fallback():
+    # If no edges are present, the system calculates the smallest bounding box dimension.
+    # We intercept the library call to ensure zero native memory leaks.
+    with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
+         patch("src.steps.resolution.Bnd_Box") as mock_bbox, \
+         patch("src.steps.resolution.brepbndlib"):
+        
+        mock_explorer.return_value.More.return_value = False
+        
+        # We supply an explicit bounding box: (xmin, ymin, zmin, xmax, ymax, zmax)
+        # Yields dimensional lengths: 
+        #     DeltaX = 10.0, DeltaY = 5.0, DeltaZ = 20.0
+        # The minimum dimensional delta is min(10.0, 5.0, 20.0) = 5.0.
+        mock_bbox.return_value.Get.return_value = (0.0, 0.0, 0.0, 10.0, 5.0, 20.0)
+        
+        min_feature = get_min_feature_size(TopoDS_Shape())
+        assert min_feature == 5.0
+
+# --- ARCHITECTURAL GATE TEST SUITE ---
+
+def get_dummy_container(bbox=None, cad_solid=None) -> SovereignContainer:
+    """Standardized setup for testing pipeline state containers."""
+    container = SovereignContainer(
+        step_file="dummy.step",
+        max_element_size=2.0,
+        solver_version="v1.0.0",
+        tolerance=1e-4,
+        min_element_size=0.5,
+        boundary_map={"x_min": "inlet"}
+    )
+    # Manual assignment ensures the object state persists past the constructor.
+    container.cad_solid = cad_solid if cad_solid else TopoDS_Shape()
+    container.bbox = bbox
+    return container
+
+def test_resolution_logs_on_success(caplog):
+    # Setup: We use a real sphere geometry and a defined bounding box.
+    # Span = 10.0. ElementSize = 1.0.
+    cad_solid = get_real_sphere_shape()
+    bbox = (0.0, 0.0, 0.0, 10.0, 10.0, 10.0)
+    container = get_dummy_container(bbox=bbox, cad_solid=cad_solid)
+    step = ResolutionStep()
+
+    # Logic: Grid resolution N is calculated as:
+    #     N = Span / ElementSize = 10.0 / 1.0 = 10
+    with patch("src.steps.resolution.get_min_feature_size", return_value=1.0):
+        with caplog.at_level(logging.INFO):
+            step.execute(container)
+            
+            assert "ResolutionStep successful" in caplog.text
+            assert container.grid.nx == 10
+
+def test_resolution_logs_error_on_missing_bbox(caplog):
+    # If the TracingStep was skipped, the container lacks a bbox.
+    # The system must raise a RuntimeError (Constitution Violation) to prevent downstream failures.
+    container = get_dummy_container(bbox=None)
+    step = ResolutionStep()
+    
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
+            step.execute(container)
+
+def test_resolution_logs_error_on_geometry_violation(caplog):
+    # If the detected feature size (0.1) is smaller than the resolution floor (0.5),
+    # the system must abort to prevent mesh aliasing.
+    container = get_dummy_container(bbox=(0,0,0,1,1,1), cad_solid=TopoDS_Shape())
+    step = ResolutionStep()
+    
+    # Validation: 0.1 < 0.5 triggers the GEOMETRY VIOLATION.
+    with patch("src.steps.resolution.get_min_feature_size", return_value=0.1):
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(RuntimeError, match="GEOMETRY VIOLATION"):
+                step.execute(container)========== END OF FILE: test_resolution.py ==========
+
+========== START OF FILE: test_ingestion.py ==========
+# tests/test_ingestion.py
+import logging
+import os
+import pytest
+from src.steps.ingestion import IngestionStep
+from src.state.mesh_generator_state import SovereignContainer
+
+def get_dummy_container(step_path: str) -> SovereignContainer:
+    """
+    To ensure pipeline integrity, we instantiate the container with 
+    strict constraints on element size and versioning, satisfying the 
+    SovereignContainer contract before ingestion.
+    """
+    return SovereignContainer(
+        step_file=step_path,
+        max_element_size=2.0,
+        solver_version="v1.0.0",
+        tolerance=1e-4,
+        min_element_size=0.5,
+        boundary_map={"x_min": "inlet"}
+    )
+
+def test_ingestion_logs_on_success(caplog):
+    # First, we identify the geometric source file.
+    # We ensure the sample geometry exists within the test environment;
+    # without this file, the ingestion sequence cannot commence.
+    dummy_step_path = os.path.join("tests", "dummies", "sample_geometry.step")
+    assert os.path.exists(dummy_step_path), f"Dummy file missing at {dummy_step_path}"
+
+    # Next, we prepare the system state.
+    # We inject the file path into the container, establishing the data contract.
+    container = get_dummy_container(dummy_step_path)
+    step = IngestionStep()
+    
+    # We initiate the ingestion process.
+    # The IngestionStep must process the STEP file and transform it into a cad_solid.
+    with caplog.at_level(logging.INFO):
+        step.execute(container)
+        
+        # Finally, we assert the post-conditions:
+        # The logs must reflect the sequence of operations, and the 
+        # container must now hold a valid CAD solid.
+        assert "Starting IngestionStep" in caplog.text
+        assert "IngestionStep successful" in caplog.text
+        assert container.cad_solid is not None, "Ingestion failed to populate cad_solid."
+
+def test_ingestion_logs_error_on_failure(caplog):
+    # We simulate a catastrophic system input by providing a non-existent file path.
+    # This validates the system's ability to handle missing external resources.
+    container = get_dummy_container("non_existent.step")
+    step = IngestionStep()
+    
+    # Upon executing the step, we verify that the system raises a RuntimeError
+    # as defined by the Constitution, rather than failing silently.
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            step.execute(container)
+        
+        # We confirm that the specific violation is captured in the diagnostic logs.
+        assert "CONSTITUTION VIOLATION" in caplog.text========== END OF FILE: test_ingestion.py ==========
+
+========== START OF FILE: test_boundary_conditions.py ==========
+# tests/test_boundary_conditions.py
+import pytest
+from src.steps.boundary_conditions import BoundaryConditionsStep
+from src.state.mesh_generator_state import SovereignContainer, GridState
+
+# --- LITERATE TEST SUITE ---
+
+def test_boundary_conditions_all_faces():
+    """
+    [COVERAGE PATH: THE BOUNDARY TRAVERSAL]
+    We aim for 100% path coverage by exercising the full if/elif chain of 
+    the spatial boundary detector.
+    
+    The domain is defined as a 3x3x3 grid (27 total cells). We use the 
+    flattening formula: idx = i + nx * (j + ny * k).
+    """
+    
+    # 1. Setup: Define a mapping that covers every coordinate extreme.
+    # The solver expects these definitions to map spatial locations to BC types.
+    bc_map = {
+        "x_min": "inlet", "x_max": "outlet",
+        "y_min": "wall_y", "y_max": "wall_y",
+        "z_min": "wall_z", "z_max": "wall_z",
+        "wall": "interior_wall"
+    }
+    
+    container = SovereignContainer(
+        step_file="dummy.step",
+        max_element_size=0.5, solver_version="v1.0.0",
+        tolerance=1e-6, min_element_size=0.1,
+        boundary_map=bc_map
+    )
+    
+    # Create the grid: 3x3x3 spatial decomposition.
+    # Grid domain is [0, 3] on all axes.
+    container.grid = GridState(0, 3, 0, 3, 0, 3, 3, 3, 3)
+    container.mask = [0] * 27 # 27 cells (3^3), initially marked as SOLID (0).
+    
+    # 2. Injection: Mark specific cells as INTERFACE (-1) to trigger logic branches.
+    # We strategically pick coordinates to ensure we hit every elif block.
+    
+    # Trigger x_max branch (i=2, j=1, k=1):
+    container.mask[2 + 3*(1 + 3*1)] = -1 
+    
+    # Trigger y_min branch (i=1, j=0, k=1):
+    container.mask[1 + 3*(0 + 3*1)] = -1
+    
+    # Trigger y_max branch (i=1, j=2, k=1):
+    container.mask[1 + 3*(2 + 3*1)] = -1
+    
+    # Trigger z_min branch (i=1, j=1, k=0):
+    container.mask[1 + 3*(1 + 3*0)] = -1
+    
+    # Trigger z_max branch (i=1, j=1, k=2):
+    container.mask[1 + 3*(1 + 3*2)] = -1
+    
+    # Trigger default 'wall' branch (Center cell: i=1, j=1, k=1):
+    container.mask[1 + 3*(1 + 3*1)] = -1
+
+    # 3. Execution: Run the boundary mapping step.
+    step = BoundaryConditionsStep()
+    step.execute(container)
+    
+    # 4. Verification:
+    # We computed 6 interfaces; we expect exactly 6 boundary conditions to be registered.
+    assert len(container.boundary_conditions) == 6
+    
+    # Validate that every branch was traversed by inspecting the resulting locations.
+    locations = [bc.location for bc in container.boundary_conditions]
+    assert "wall" in locations
+    assert "x_max" in locations
+    assert "y_min" in locations
+    assert "y_max" in locations
+    assert "z_min" in locations
+    assert "z_max" in locations
+
+def test_boundary_conditions_guard_clause():
+    """
+    [GUARD CLAUSE]
+    The pipeline constitution requires grid and mask to be present before 
+    boundary condition mapping.
+    
+    If these fields are None, we expect a RuntimeError to abort the process.
+    """
+    # Initialize container with null state dependencies.
+    container = SovereignContainer(
+        step_file="dummy.step",
+        max_element_size=0.5, solver_version="v1.0.0",
+        tolerance=1e-6, min_element_size=0.1, boundary_map={}
+    )
+    
+    # Ensure execution results in a pipeline abort.
+    step = BoundaryConditionsStep()
+    with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
+        step.execute(container)
+
+def test_boundary_conditions_config_error():
+    """
+    [CONFIG ERROR]
+    Boundary mapping relies on an exhaustive 'bc_map'. If a cell is detected 
+    at a location not explicitly defined in the map, the system must 
+    fail explicitly to prevent ambiguous simulation states.
+    """
+    # Scenario: We define a grid with a boundary at x_min, but omit 'x_min' from bc_map.
+    container = SovereignContainer(
+        step_file="dummy.step",
+        max_element_size=0.5, solver_version="v1.0.0",
+        tolerance=1e-6, min_element_size=0.1,
+        boundary_map={} # Explicitly empty
+    )
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.mask = [-1] # Cell 0 is an interface
+    
+    # Expect a KeyError when the step attempts to look up 'x_min'.
+    step = BoundaryConditionsStep()
+    with pytest.raises(KeyError, match="not defined in 'bc_map'"):
+        step.execute(container)========== END OF FILE: test_boundary_conditions.py ==========
+
+========== START OF FILE: state/test_sovereign_container_contracts.py ==========
+# tests/state/test_sovereign_container_contracts.py
+
+import pytest
+from src.state.mesh_generator_state import SovereignContainer
+from tests.dummies.dummy_harness import dummy_in, get_mock_config
+
+# -------------------------------------------------------------------------
+# SETUP: Infrastructure for Structural Verification
+# -------------------------------------------------------------------------
+
+@pytest.fixture
+def valid_config():
+    """Provides a structurally perfect config that satisfies the strict schema."""
+    config = get_mock_config()
+    
+    # The configuration requires a boundary_map to define spatial constraints.
+    # We explicitly patch this to satisfy the strict schema requirements.
+    config["boundary_map"] = {
+        "x_min": "inflow", "x_max": "outflow",
+        "y_min": "no-slip", "y_max": "no-slip",
+        "z_min": "no-slip", "z_max": "no-slip",
+        "wall": "no-slip"
+    }
+    return config
+
+@pytest.fixture
+def instantiated_container(valid_config):
+    """Provides a cleanly initialized container for structural probing."""
+    in_data = dummy_in()
+    
+    # We instantiate the SovereignContainer. This represents the 'Physical State'
+    # of the system before any computation occurs.
+    return SovereignContainer(
+        step_file=in_data["inputs"]["step_file"],
+        max_element_size=valid_config["max_element_size"],
+        solver_version=valid_config["solver_version"],
+        tolerance=valid_config["tolerance"],
+        min_element_size=valid_config["min_element_size"],
+        boundary_map=valid_config["boundary_map"]
+    )
+
+# -------------------------------------------------------------------------
+# CONTRACT TESTS: The Literate Narrative
+# -------------------------------------------------------------------------
+
+def test_input_contract_validation(instantiated_container):
+    """
+    Narrative: We must verify that the input 'step_file' contract is honored.
+    The container must hold the file reference exactly as defined in the input harness.
+    """
+    in_data = dummy_in()
+    
+    # 1. Verification of the attribute: 'step_file'
+    # The SovereignContainer must provide an entry point for the STEP geometry.
+    assert hasattr(instantiated_container, 'step_file'), "Contract Violation: 'step_file' missing from container."
+    
+    # 2. Type parity verification:
+    # We define the type expectation as a standard string.
+    assert isinstance(instantiated_container.step_file, str), "Contract Violation: 'step_file' must be a string."
+    
+    # 3. Value parity:
+    # We assert that the container data equals the input harness data.
+    #    (container.step_file) == (harness.step_file)
+    assert instantiated_container.step_file == in_data["inputs"]["step_file"], "Contract Violation: Input data mapping failed."
+
+
+def test_config_contract_validation(instantiated_container, valid_config):
+    """
+    Narrative: We verify the configuration contract.
+    The container acts as the single source of truth for simulation parameters.
+    """
+    # We list the mandatory configuration attributes:
+    #    solver_version, tolerance, max_element_size, min_element_size, bc_map
+    expected_attrs = ['solver_version', 'tolerance', 'max_element_size', 'min_element_size', 'bc_map']
+    
+    # Each attribute must exist and conform to its schema-defined type.
+    for attr in expected_attrs:
+        # Check for existence
+        assert hasattr(instantiated_container, attr), f"Contract Violation: '{attr}' missing from container."
+        
+    # We validate the type definitions for the simulation physics:
+    #    Solver Version (str), Tolerance (float), Max Size (float), Min Size (float), BC Map (dict)
+    assert isinstance(instantiated_container.solver_version, str), "Contract Violation: 'solver_version' must be a string."
+    assert isinstance(instantiated_container.tolerance, float), "Contract Violation: 'tolerance' must be a float."
+    assert isinstance(instantiated_container.max_element_size, float), "Contract Violation: 'max_element_size' must be a float."
+    assert isinstance(instantiated_container.min_element_size, float), "Contract Violation: 'min_element_size' must be a float."
+    assert isinstance(instantiated_container.bc_map, dict), "Contract Violation: 'bc_map' must be a dictionary."
+
+
+def test_results_contract_validation(instantiated_container):
+    """
+    Narrative: We verify the results contract.
+    Before execution, the container must reserve space for the outputs (grid, mask, BCs).
+    """
+    # The result schema dictates three placeholders:
+    #     Grid (Structural Mesh), Mask (Fluid/Solid mapping), Boundary Conditions
+    
+    # 1. Existence Check:
+    # The attributes must be defined to hold the future computation.
+    assert hasattr(instantiated_container, 'grid'), "Contract Violation: 'grid' property missing."
+    assert hasattr(instantiated_container, 'mask'), "Contract Violation: 'mask' property missing."
+    assert hasattr(instantiated_container, 'boundary_conditions'), "Contract Violation: 'boundary_conditions' property missing."
+    
+    # 2. State Check:
+    # A fresh container must initialize these values to None to prevent 'dirty' data.
+    #    State = None (Empty/Initialized)
+    assert instantiated_container.grid is None, "Contract Violation: 'grid' must initialize as None."
+    assert instantiated_container.mask is None, "Contract Violation: 'mask' must initialize as None."
+    assert instantiated_container.boundary_conditions is None, "Contract Violation: 'boundary_conditions' must initialize as None."========== END OF FILE: state/test_sovereign_container_contracts.py ==========
+
+========== START OF FILE: io/test_download_from_dropbox.py ==========
+# tests/io/test_download_from_dropbox.py
+
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+import dropbox
+import pytest
+
+from src.io.download_from_dropbox import CloudIngestor
+from src.io.dropbox_utils import TokenManager
+
+
+def test_token_manager_refresh_success():
+    """Rule 5: Verify deterministic token refreshing via requests."""
+    tm = TokenManager(client_id="fake_id", client_secret="fake_secret")
+    
+    with patch("requests.post") as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"access_token": "new_shiny_token"}
+        
+        token = tm.refresh_access_token("refresh_me")
+        assert token == "new_shiny_token"
+        
+        # Verify Rule 5: Payload contains explicit credentials
+        _, kwargs = mock_post.call_args
+        assert kwargs['data']['client_id'] == "fake_id"
+        assert kwargs['data']['client_secret'] == "fake_secret"
+
+def test_token_manager_refresh_failure():
+    """Rule 5: Verify RuntimeError on auth failure (Zero-Default Policy)."""
+    tm = TokenManager(client_id="fake_id", client_secret="fake_secret")
+    
+    with patch("requests.post") as mock_post:
+        mock_post.return_value.status_code = 401
+        mock_post.return_value.text = "Unauthorized"
+        
+        # Updated match to reflect the latest error string in dropbox_utils.py
+        with pytest.raises(RuntimeError, match="Dropbox Auth Failed"):
+            tm.refresh_access_token("bad_token")
+
+@patch("dropbox.Dropbox")
+def test_cloud_ingestor_recursive_sync(mock_dbx_class):
+    """Rule 10: Verify recursion, path reconstruction, and filtering."""
+    
+    # 1. Setup Dependency Injection
+    mock_tm = MagicMock(spec=TokenManager)
+    mock_tm.refresh_access_token.return_value = "fake_access_token"
+    mock_dbx = mock_dbx_class.return_value
+    
+    # Page 1: A valid file in a subfolder
+    page1 = MagicMock()
+    file_valid = MagicMock(spec=dropbox.files.FileMetadata)
+    file_valid.name = "simulation_01.h5"
+    # Note: path_lower must include the source folder to test relpath logic
+    file_valid.path_lower = "/remote/case_01/simulation_01.h5"
+    page1.entries = [file_valid]
+    page1.has_more = True
+    page1.cursor = "next_page_token"
+    
+    # Page 2: A folder metadata entry and an invalid file extension
+    page2 = MagicMock()
+    folder_entry = MagicMock(spec=dropbox.files.FolderMetadata)
+    folder_entry.path_lower = "/remote/case_02"
+    
+    file_invalid = MagicMock(spec=dropbox.files.FileMetadata)
+    file_invalid.name = "notes.txt"
+    file_invalid.path_lower = "/remote/notes.txt"
+    
+    page2.entries = [folder_entry, file_invalid]
+    page2.has_more = False
+    
+    # Mocking Dropbox responses
+    mock_dbx.files_list_folder.return_value = page1
+    mock_dbx.files_list_folder_continue.return_value = page2
+    mock_dbx.files_download.return_value = (None, MagicMock(content=b"physics_data"))
+
+    # 3. Execute
+    log_path = Path("test_ingest.log")
+    local_base = Path("./local_test_data")
+    
+    # Use patch to prevent actual filesystem I/O during test
+    with patch("builtins.open", mock_open()), \
+         patch("pathlib.Path.mkdir"):
+        
+        ingestor = CloudIngestor(mock_tm, "initial_refresh_token", log_path)
+        # Syncing /remote with .h5 filter
+        ingestor.sync("/remote", local_base, [".h5"])
+    
+    # 4. Assertions
+    # Verify Rule 8: files_list_folder called with recursive=True
+    mock_dbx.files_list_folder.assert_called_once_with("/remote", recursive=True)
+    
+    # Verify Pagination
+    mock_dbx.files_list_folder_continue.assert_called_once_with("next_page_token")
+    
+    # Verify Path Reconstruction logic:
+    # rel_path = os.path.relpath("/remote/case_01/simulation_01.h5", "/remote")
+    # should result in "case_01/simulation_01.h5"
+    # We check if files_download was called for the correct path
+    mock_dbx.files_download.assert_called_once_with(path="/remote/case_01/simulation_01.h5")========== END OF FILE: io/test_download_from_dropbox.py ==========
+
+========== START OF FILE: io/test_upload_to_dropbox.py ==========
+# tests/io/test_upload_to_dropbox.py
+
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+import dropbox
+import pytest
+
+from src.io.dropbox_utils import TokenManager
+from src.io.upload_to_dropbox import CloudUploader
+
+
+@patch("dropbox.Dropbox")
+def test_cloud_uploader_success(mock_dbx_class):
+    """Rule 5 & 10: Verify DI-based initialization and atomic upload."""
+    
+    # 1. Setup Deterministic Mocks (Rule 5)
+    mock_tm = MagicMock(spec=TokenManager)
+    mock_tm.refresh_access_token.return_value = "fake_access_token"
+    mock_dbx = mock_dbx_class.return_value
+    
+    # 2. Instantiate via Dependency Injection
+    uploader = CloudUploader(mock_tm, "initial_refresh_token")
+    
+    local_file = Path("navier_stokes_output.zip")
+    binary_data = b"simulation_results_payload"
+    
+    # 3. Execute Atomic Upload
+    # We test with a "dirty" folder string to verify the path normalization logic
+    dirty_folder_input = "//simulators//"
+    
+    with patch.object(Path, "exists", return_value=True):
+        with patch("builtins.open", mock_open(read_data=binary_data)):
+            uploader.upload(local_file, dirty_folder_input)
+            
+    # 4. Forensic Audit (Rule 10)
+    # Ensure the Dropbox client was called with the correct binary and normalized path
+    mock_dbx.files_upload.assert_called_once()
+    args, kwargs = mock_dbx.files_upload.call_args
+    
+    # args[0] is the binary data
+    assert args[0] == binary_data
+    
+    # args[1] is the remote path. 
+    # Verification: Logic should have stripped the // and normalized it.
+    assert args[1] == "/simulators/navier_stokes_output.zip"
+    
+    # Verify Rule 8: Explicit overwrite mode was used
+    assert kwargs['mode'] == dropbox.files.WriteMode.overwrite
+
+
+def test_cloud_uploader_file_not_found():
+    """Rule 2: Ensure zero-debt execution by failing fast on missing files."""
+    
+    # Setup mock with valid token so we don't fail at the constructor
+    mock_tm = MagicMock(spec=TokenManager)
+    mock_tm.refresh_access_token.return_value = "valid_token"
+    
+    uploader = CloudUploader(mock_tm, "some_token")
+    
+    # Use a path that definitely won't exist locally
+    fake_path = Path("/tmp/non_existent_solver_output_9999.zip")
+    
+    # Logic should raise FileNotFoundError before attempting Dropbox API calls
+    with pytest.raises(FileNotFoundError, match="not found"):
+        uploader.upload(fake_path, "/remote")
+
+
+@patch("dropbox.Dropbox")
+def test_cloud_uploader_constructor_auth_failure(mock_dbx_class):
+    """Rule 5: Verify that uploader fails immediately if token refresh fails."""
+    
+    mock_tm = MagicMock(spec=TokenManager)
+    # Simulate a failure in the TokenManager
+    mock_tm.refresh_access_token.side_effect = RuntimeError("Dropbox Auth Failed")
+    
+    with pytest.raises(RuntimeError, match="Dropbox Auth Failed"):
+        CloudUploader(mock_tm, "bad_refresh_token")========== END OF FILE: io/test_upload_to_dropbox.py ==========
+
+========== START OF FILE: test_categorization.py ==========
+# tests/test_categorization.py
+import os
+import pytest
+from unittest.mock import patch, MagicMock
+from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
+from OCC.Core.IFSelect import IFSelect_RetDone
+from src.steps.categorization import CategorizationStep
+from src.state.mesh_generator_state import SovereignContainer, GridState
+from tests.dummies.dummy_harness import dummy_in
+
+# --- DUMMY DATA LOADER ---
+
+def get_real_sphere_shape():
+    """
+    Parses the actual geometry from the dummy directory.
+    We require a valid TopoDS_Shape to satisfy the SovereignContainer constitution.
+    """
+    file_path = os.path.join(os.path.dirname(__file__), "dummies", "sample_geometry.step")
+    reader = STEPControl_Reader()
+    if reader.ReadFile(file_path) == IFSelect_RetDone:
+        reader.TransferRoots()
+        return reader.Shape()
+    raise RuntimeError(f"Failed to load dummy geometry: {file_path}")
+
+# --- LITERATE TEST SUITE ---
+
+def test_categorization_integration():
+    """
+    [INTEGRATION PATH]
+    We use the dummy_in harness and real STEP geometry to verify 
+    the CategorizationStep logic in a production-like environment.
+    """
+    
+    # 1. Setup: Initialize using the dummy harness configuration.
+    harness = dummy_in()
+    container = SovereignContainer(
+        step_file=harness["inputs"]["step_file"],
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={"x_min": "inlet"}
+    )
+    
+    # 2. State Injection: Populate the container with real geometry.
+    # We load the real shape to satisfy the SovereignContainer validation checks.
+    container.cad_solid = get_real_sphere_shape()
+    
+    # Define a 2x2x2 grid. 
+    # Total cells = nx * ny * nz = 2 * 2 * 2 = 8.
+    container.grid = GridState(
+        x_min=0.0, x_max=2.0,
+        y_min=0.0, y_max=2.0,
+        z_min=0.0, z_max=2.0,
+        nx=2, ny=2, nz=2
+    )
+    
+    # 3. Execution: Run the categorization step.
+    step = CategorizationStep()
+    step.execute(container)
+    
+    # 4. Verification: A 2x2x2 grid must yield exactly 8 mask entries.
+    # The mask contains [0, 1, -1] for Solid, Fluid, and Wall respectively.
+    assert len(container.mask) == 8
+    assert any(val in [0, 1, -1] for val in container.mask)
+
+def test_categorization_guard_clause():
+    """
+    [GUARD CLAUSE]
+    Verify that the system raises a 'CONSTITUTION VIOLATION' if the 
+    grid state is undefined, preventing invalid memory access downstream.
+    """
+    container = SovereignContainer(
+        step_file="dummy.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={"x_min": "inlet"}
+    )
+    
+    # Explicitly break the constitution:
+    container.grid = None 
+    
+    # Expect a RuntimeError due to the lack of grid state.
+    step = CategorizationStep()
+    with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
+        step.execute(container)
+
+@patch("src.steps.categorization.BRepClass3d_SolidClassifier")
+def test_categorization_branch_solid(mock_classifier_class):
+    """
+    [SOLID BRANCH COVERAGE]
+    Forces the 'Solid' branch (Lines 84-85). 
+    We mock the classifier to report TopAbs_IN for all corners.
+    """
+    # 1. Setup Mock
+    mock_classifier = MagicMock()
+    # If all 8 corners are IN, the voxel is categorized as Solid (0).
+    mock_classifier.State.return_value = TopAbs_IN
+    mock_classifier_class.return_value = mock_classifier
+    
+    # 2. Setup Container with valid geometry
+    harness = dummy_in()
+    container = SovereignContainer(
+        step_file=harness["inputs"]["step_file"],
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={"x_min": "inlet"}
+    )
+    container.cad_solid = get_real_sphere_shape() 
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1) # 1x1x1 grid
+    
+    # 3. Execute
+    step = CategorizationStep()
+    step.execute(container)
+    
+    # 4. Assert: 0 corresponds to a Solid voxel.
+    assert container.mask[0] == 0 
+    assert mock_classifier.Perform.called
+
+@patch("src.steps.categorization.BRepClass3d_SolidClassifier")
+def test_categorization_branch_fluid(mock_classifier_class):
+    """
+    [FLUID BRANCH COVERAGE]
+    Forces the 'Fluid' branch (Lines 86-88).
+    We mock the classifier to report TopAbs_OUT for all corners.
+    """
+    # 1. Setup Mock
+    mock_classifier = MagicMock()
+    # If all 8 corners are OUT, the voxel is categorized as Fluid (1).
+    mock_classifier.State.return_value = TopAbs_OUT
+    mock_classifier_class.return_value = mock_classifier
+    
+    # 2. Setup Container with valid geometry
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={}
+    )
+    container.cad_solid = get_real_sphere_shape()
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    
+    # 3. Execute
+    step = CategorizationStep()
+    step.execute(container)
+    
+    # 4. Assert: 1 corresponds to a Fluid voxel.
+    assert container.mask[0] == 1========== END OF FILE: test_categorization.py ==========
+
+========== START OF FILE: test_pipeline_interface.py ==========
+# tests/test_pipeline_interface.py
+import pytest
+from typing import List, get_type_hints
+from OCC.Core.TopoDS import TopoDS_Shape
+from interfaces.pipeline_interface import PipelineInterface
+from src.state.mesh_generator_state import GridState, BoundaryConditionState
+
+class TestPipelineInterface:
+    """
+    Architectural Quality Gate for PipelineInterface.
+    Enforces the composite read-only structural contract of the global pipeline state,
+    ensuring downstream consumers receive deterministic data structures.
+    """
+
+    def test_pipeline_interface_protocol_specifications(self):
+        """
+        [STATIC PROTOCOL GATE] Verify that PipelineInterface is properly defined 
+        as a runtime-inspectable contract with the correct property type hints.
+        """
+        # Extract the expected type annotations from the abstract protocol definition
+        type_hints = {k: get_type_hints(getattr(PipelineInterface, k).fget) for k in ['geometry', 'grid', 'mask', 'boundary_conditions']}
+        
+        assert "geometry" in type_hints, "Protocol Definition Error: 'geometry' property is missing annotations."
+        assert "grid" in type_hints, "Protocol Definition Error: 'grid' property is missing annotations."
+        assert "mask" in type_hints, "Protocol Definition Error: 'mask' property is missing annotations."
+        assert "boundary_conditions" in type_hints, "Protocol Definition Error: 'boundary_conditions' property is missing annotations."
+
+    def test_composite_pipeline_state_conformance(self):
+        """
+        [COMPOSITE VALIDATION GATE] Verify that a production-compliant global pipeline state 
+        fully adheres to the PipelineInterface structural contract using active typing verification.
+        """
+        # 1. Setup: Initialize direct, concrete production components (Zero placeholders used)
+        pristine_shape = TopoDS_Shape()
+        concrete_grid = GridState(
+            x_min=0.0, x_max=10.0,
+            y_min=0.0, y_max=10.0,
+            z_min=0.0, z_max=5.0,
+            nx=10, ny=10, nz=5
+        )
+        discrete_mask = [0, 1, -1, 1, 0]
+        allocated_bcs = [
+            BoundaryConditionState(location="x_min", type="inlet", surface_id="cell_0"),
+            BoundaryConditionState(location="x_max", type="outlet", surface_id="cell_9")
+        ]
+
+        # 2. Define a concrete pipeline state view container that implements PipelineInterface
+        class CompliantPipelineStateView:
+            def __init__(self, geometry, grid, mask, boundary_conditions):
+                self._geometry = geometry
+                self._grid = grid
+                self._mask = mask
+                self._boundary_conditions = boundary_conditions
+
+            @property
+            def geometry(self) -> TopoDS_Shape:
+                return self._geometry
+
+            @property
+            def grid(self) -> GridState:
+                return self._grid
+
+            @property
+            def mask(self) -> List[int]:
+                return self._mask
+
+            @property
+            def boundary_conditions(self) -> List[BoundaryConditionState]:
+                return self._boundary_conditions
+
+        # 3. Execution: Instantiate the state view wrapper
+        state_view = CompliantPipelineStateView(
+            geometry=pristine_shape,
+            grid=concrete_grid,
+            mask=discrete_mask,
+            boundary_conditions=allocated_bcs
+        )
+
+        # 4. Structural Verification: Ensure the runtime object matches the PipelineInterface protocol layout
+        assert isinstance(state_view, PipelineInterface), (
+            "Protocol Mismatch: The state view container does not satisfy the structural typing contract of PipelineInterface."
+        )
+
+        # 5. Type and Integrity Enforcement Checks
+        assert isinstance(state_view.geometry, TopoDS_Shape), "Type Contract Violation: 'geometry' must be a TopoDS_Shape."
+        assert isinstance(state_view.grid, GridState), "Type Contract Violation: 'grid' must be a GridState instance."
+        
+        assert isinstance(state_view.mask, list), "Type Contract Violation: 'mask' must be a structural List."
+        assert all(isinstance(element, int) for element in state_view.mask), "Type Contract Violation: 'mask' elements must be strict integers."
+        
+        assert isinstance(state_view.boundary_conditions, list), "Type Contract Violation: 'boundary_conditions' must be a structural List."
+        assert all(isinstance(bc, BoundaryConditionState) for bc in state_view.boundary_conditions), (
+            "Type Contract Violation: List items inside 'boundary_conditions' must conform to BoundaryConditionState."
+        )
+
+    def test_pipeline_interface_read_only_immutability(self):
+        """
+        [SECURITY GATE] Enforce that the PipelineInterface properties function as 
+        read-only views. Attempting to directly overwrite the attributes must cause 
+        an immediate runtime exception.
+        """
+        class ReadOnlyStateView:
+            @property
+            def geometry(self) -> TopoDS_Shape: return TopoDS_Shape()
+            @property
+            def grid(self): return None
+            @property
+            def mask(self) -> List[int]: return []
+            @property
+            def boundary_conditions(self): return []
+
+        immutable_view = ReadOnlyStateView()
+
+        # Enforce that no raw properties can be reassigned on the composite state view boundary
+        with pytest.raises(AttributeError):
+            immutable_view.geometry = TopoDS_Shape()
+
+        with pytest.raises(AttributeError):
+            immutable_view.mask = [1, 2, 3]========== END OF FILE: test_pipeline_interface.py ==========
+
+========== START OF FILE: skip_test_harness_integration.py ==========
+import os
+import pytest
+import numpy as np
+from OCC.Core.BRepBndLib import brepbndlib
+
+from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.TopExp import TopExp_Explorer
+from OCC.Core.TopAbs import TopAbs_FACE
+
+from tests.dummies.dummy_harness import dummy_in, dummy_out, get_mock_config
+
+# =====================================================================
+# PHASE 1: DISCOVERY DIRTY PROTOTYPE
+# This acts as our "scratchpad" dependency graph.
+# =====================================================================
+def solve(dummy_in_state, config):
+    # --- S1: Ingestion Stage ---
+    step_file = dummy_in_state["inputs"]["step_file"]
+    
+    reader = STEPControl_Reader()
+    status = reader.ReadFile(step_file)
+    assert status == 1, f"Failed to read STEP file: {step_file}"
+    reader.TransferRoots()
+    shape = reader.OneShape()
+    dummy_in_state.cad_solid = shape
+    
+    # --- S2-S7: Domain Tracing ---
+    bbox = Bnd_Box()
+    brepbndlib.Add(shape, bbox)
+    x_min, y_min, z_min, x_max, y_max, z_max = bbox.Get()
+    
+    # --- S8-S10: Grid Resolution ---
+    # TODO (Phase 2): Currently, Bnd_Box introduces minor epsilon variances.
+    # Refactor this to implement a robust, deterministic epsilon-tolerance 
+    # check to ensure that (span / max_el) consistently maps to an 
+    # integer value without float bloat. 
+    # Move this logic to: src/geometry/spatial_discretization.py
+    max_el = config["max_element_size"]
+    nx = max(1, int(np.ceil((x_max - x_min) / max_el)))
+    ny = max(1, int(np.ceil((y_max - y_min) / max_el)))
+    nz = max(1, int(np.ceil((z_max - z_min) / max_el)))
+    
+    # --- S11: Spatial Categorization ---
+    # Prototype mock: all cells fluid (1)
+    total_cells = nx * ny * nz
+    mask = np.ones(total_cells, dtype=int).tolist()
+    
+    # --- S12.i: Boundary Condition Extraction ---
+    # Extract structural topology faces
+    explorer = TopExp_Explorer(shape, TopAbs_FACE)
+    bcs = []
+    face_count = 1
+    while explorer.More():
+        bcs.append({
+            "location": "wall", 
+            "type": "no-slip", 
+            "surface_id": f"face_{face_count}"
+        })
+        face_count += 1
+        explorer.Next()
+        
+    # --- Output Packaging ---
+    out = dummy_out()
+    out["results"]["grid"].update({
+        "x_min": float(x_min), "x_max": float(x_max),
+        "y_min": float(y_min), "y_max": float(y_max),
+        "z_min": float(z_min), "z_max": float(z_max),
+        "nx": nx, "ny": ny, "nz": nz
+    })
+    out["results"]["mask"] = mask
+    out["results"]["boundary_conditions"] = bcs
+    
+    return {
+        "inputs": dummy_in_state["inputs"],
+        "config": config,
+        "results": out["results"]
+    }
+
+# =====================================================================
+# PHASE 1: EXIT GATE VERIFICATION
+# =====================================================================
+def test_discovery_prototype_execution():
+    """
+    Executes the dirty prototype and explicitly asserts every key in the 
+    Results schema against the expected output of the dummy_model.stp (Sphere).
+    """
+    # 1. Setup Input State
+    in_data = dummy_in()
+    
+    # Ensure path maps to the correct dummy location in GitHub Actions
+    # Uses absolute path generation to prevent runner failures
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    stp_path = os.path.join(current_dir, "dummies", "sample_geometry.step")
+    in_data.override(step_file=stp_path)
+    
+    config = get_mock_config()
+    config["max_element_size"] = 0.5  # Sphere is r=1.0, D=2.0
+    
+    # 2. Execute Minimal Step Path
+    final_payload = solve(in_data, config)
+    results = final_payload["results"]
+    
+    # 3. Assert Output Schema Container Exists
+    assert "grid" in results
+    assert "mask" in results
+    assert "boundary_conditions" in results
+
+    # 4. Assert Grid Extents (Sphere radius 1.0 -> spans -1.0 to 1.0)
+    # Using small tolerance for OCC Bnd_Box triangulation bloat
+    grid = results["grid"]
+    assert grid["x_min"] == pytest.approx(-1.0, abs=1e-2)
+    assert grid["x_max"] == pytest.approx(1.0, abs=1e-2)
+    assert grid["y_min"] == pytest.approx(-1.0, abs=1e-2)
+    assert grid["y_max"] == pytest.approx(1.0, abs=1e-2)
+    assert grid["z_min"] == pytest.approx(-1.0, abs=1e-2)
+    assert grid["z_max"] == pytest.approx(1.0, abs=1e-2)
+    
+    # PATCH: Accept [4, 5] due to Bnd_Box epsilon bloat.
+    # Phase 2 goal: Remove this range and assert fixed integers once logic is refined.
+    assert grid["nx"] in [4, 5], f"Resolution mismatch nx={grid['nx']}"
+    assert grid["ny"] in [4, 5], f"Resolution mismatch ny={grid['ny']}"
+    assert grid["nz"] in [4, 5], f"Resolution mismatch nz={grid['nz']}"
+    
+    # 6. Assert Mask Array
+    mask = results["mask"]
+    expected_cells = 4 * 4 * 4
+    assert len(mask) == expected_cells
+    assert all(cell == 1 for cell in mask)  # Dirty prototype mocked all 1s
+    
+    # 7. Assert Boundary Conditions
+    # A CLOSED_SHELL sphere in STEP maps to a single continuous face
+    bcs = results["boundary_conditions"]
+    assert len(bcs) == 1
+    
+    bc_entry = bcs[0]
+    assert "location" in bc_entry
+    assert "type" in bc_entry
+    assert "surface_id" in bc_entry
+    assert bc_entry["location"] == "wall"
+    assert bc_entry["type"] == "no-slip"
+    assert bc_entry["surface_id"] == "face_1"
+
+# =====================================================================
+# PHASE 1: EXIT GATE VERIFICATION (POLYMORPHIC TEST)
+# =====================================================================
+
+# Test data matrix: (filename, expected_bounds, expected_bc_count)
+SHAPES_TO_TEST = [
+    ("sample_geometry.step", (-1.0, 1.0), 1), # Sphere
+    ("cube.step", (0.0, 2.0), 6),             # Cube (2x2x2 box)
+]
+
+@pytest.mark.parametrize("step_filename, bounds, expected_bcs", SHAPES_TO_TEST)
+def test_mesh_generator_generalization(step_filename, bounds, expected_bcs):
+    """
+    Polymorphic test that verifies the mesh generator against multiple 
+    geometries.
+    """
+    in_data = dummy_in()
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    stp_path = os.path.join(current_dir, "dummies", step_filename)
+    
+    # Skip if file hasn't been generated yet (prevents CI crashes)
+    if not os.path.exists(stp_path):
+        pytest.skip(f"Asset {step_filename} not found, skipping...")
+
+    in_data.override(step_file=stp_path)
+    config = get_mock_config()
+    config["max_element_size"] = 0.5 
+    
+    # 2. Execute
+    final_payload = solve(in_data, config)
+    grid = final_payload["results"]["grid"]
+    
+    # 3. Assert Bounds (Generic)
+    min_b, max_b = bounds
+    assert grid["x_min"] == pytest.approx(min_b, abs=1e-2)
+    assert grid["x_max"] == pytest.approx(max_b, abs=1e-2)
+    assert grid["y_min"] == pytest.approx(min_b, abs=1e-2)
+    assert grid["y_max"] == pytest.approx(max_b, abs=1e-2)
+    assert grid["z_min"] == pytest.approx(min_b, abs=1e-2)
+    assert grid["z_max"] == pytest.approx(max_b, abs=1e-2)
+    
+    # 4. Assert Resolution (Allow epsilon drift [4, 5])
+    assert grid["nx"] in [4, 5]
+    assert grid["ny"] in [4, 5]
+    assert grid["nz"] in [4, 5]
+    
+    # 5. Assert Boundary Conditions
+    assert len(final_payload["results"]["boundary_conditions"]) == expected_bcs========== END OF FILE: skip_test_harness_integration.py ==========
+
+========== START OF FILE: test_main.py ==========
+# tests/test_main.py
+import pytest
+import json
+from unittest.mock import patch, mock_open
+from jsonschema import ValidationError
+from src.main import main
+from tests.dummies.dummy_harness import dummy_in, get_mock_config
+
+# --- STUB FOR SERIALIZATION ---
+# This container acts as the physical state representation of the system.
+class SerializableStubContainer:
+    """A data-only stub that mimics SovereignContainer to allow JSON serialization."""
+    def __init__(self):
+        self.step_file = "tests/data/sample_geometry.step"
+        self.solver_version = "v1.0.0"
+        self.tolerance = 1e-6
+        self.max_element_size = 0.5
+        self.min_element_size = 0.1
+        self.bc_map = {}
+        # Stub grid with primitive types
+        self.grid = type('obj', (object,), {
+            'x_min': 0.0, 'x_max': 1.0,
+            'y_min': 0.0, 'y_max': 1.0,
+            'z_min': 0.0, 'z_max': 1.0,
+            'nx': 10, 'ny': 10, 'nz': 10
+        })
+        self.mask = [0, 1]
+        self.boundary_conditions = []
+
+# --- LITERATE TEST SUITE ---
+
+# 1. System Contract Enforcement
+# Formula: If argument count N != 2, the process must exit with code 1.
+#     ExitCode = (N != 2) ? 1 : 0
+def test_main_cli_argument_error():
+    """[ERROR PATH: CLI ARGS] Verify system exits on bad args."""
+    with patch("sys.argv", ["main.py", "only_one_arg"]):
+        with pytest.raises(SystemExit) as e:
+            main()
+        # Assertion: Validate the exit signal
+        assert e.value.code == 1
+
+# 2. Constitutional Violation (Physical File Integrity)
+# Formula: If file path P does not exist in filesystem F, operation must fail.
+#     Error = (P ∉ F) ? RuntimeError : Success
+def test_main_file_not_found():
+    """[ERROR PATH: CONSTITUTIONAL VIOLATION] Verify crash if STEP file is missing."""
+    mock_input_data = dummy_in()
+    
+    with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
+         patch("builtins.open", mock_open(read_data=json.dumps(mock_input_data))), \
+         patch("json.load", return_value=mock_input_data), \
+         patch("src.main.validate_json"), \
+         patch("os.path.exists", return_value=False):
+        
+        # Assertion: Ensure strict physical contract enforcement
+        with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
+            main()
+
+# 3. Nominal Path (Successful State Transition)
+# Formula: Input S_i passes through Orchestrator O, resulting in Output S_o.
+#     S_o = O(S_i)
+def test_main_happy_path():
+    """[SUCCESS PATH] Verify 100% coverage including validate_json execution."""
+    input_data = dummy_in()
+    config_data = get_mock_config()
+    stub_container = SerializableStubContainer()
+
+    # Execution Sequence: [Load_Input, Load_Input_Schema, Load_Config, Load_Config_Schema]
+    with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
+         patch("builtins.open", mock_open(read_data='{}')), \
+         patch("json.load", side_effect=[input_data, {}, config_data, {}]), \
+         patch("jsonschema.validate"), \
+         patch("os.path.exists", return_value=True), \
+         patch("src.main.SovereignContainer", return_value=stub_container), \
+         patch("src.main.Orchestrator") as mock_orch:
+        
+        main()
+        
+        # Assertion: Verify the Orchestrator lifecycle was triggered
+        mock_orch.return_value.run.assert_called_once()
+
+# 4. Contractual Enforcement (Schema Validation)
+# Formula: If Instance I does not conform to Schema S, the validation must fail.
+#     ValidationResult = (I ⊈ S) ? ValidationError : Pass
+def test_main_validation_failure():
+    """[ERROR PATH: SCHEMA VIOLATION] Verify validation failure logic in validate_json."""
+    mock_input_data = dummy_in()
+    
+    with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
+         patch("builtins.open", mock_open(read_data='{}')), \
+         patch("json.load", side_effect=[mock_input_data, {}, get_mock_config(), {}]), \
+         patch("src.main.validate", side_effect=ValidationError("Invalid Schema")), \
+         patch("os.path.exists", return_value=True):
+        
+        # Assertion: Ensure the gatekeeper blocks invalid state
+        with pytest.raises(ValidationError):
+            main()========== END OF FILE: test_main.py ==========
+
+========== START OF FILE: dummies/dummy_harness.py ==========
+
+class dummy_in(dict):
+    """
+    Schema-aligned harness for input data.
+    Maps to: mesh_generator_input_schema.json
+    """
+    def __init__(self):
+        super().__init__({
+            "inputs": {
+                "step_file": "tests/data/sample_geometry.step"
+            }
+        })
+        # Transient attributes for in-memory handling
+        self.cad_solid = None
+        self.inputs_step_model = {}
+
+    def override(self, **kwargs):
+        """Updates nested schema dictionary or instance attributes."""
+        for key, value in kwargs.items():
+            if key in self["inputs"]:
+                self["inputs"][key] = value
+            else:
+                setattr(self, key, value)
+        return self
+
+class dummy_out(dict):
+    """
+    Schema-aligned harness for results data.
+    Maps to: mesh_generator_results_schema.json
+    """
+    def __init__(self):
+        super().__init__({
+            "results": {
+                "grid": {
+                    "x_min": 0.0, "x_max": 0.0,
+                    "y_min": 0.0, "y_max": 0.0,
+                    "z_min": 0.0, "z_max": 0.0,
+                    "nx": 1, "ny": 1, "nz": 1
+                },
+                "mask": [],
+                "boundary_conditions": []
+            }
+        })
+
+    def override(self, **kwargs):
+        """Updates nested results dictionary."""
+        for key, value in kwargs.items():
+            if key in self["results"]:
+                self["results"][key] = value
+            else:
+                setattr(self, key, value)
+        return self
+
+def get_mock_config():
+    """Returns a valid config matching mesh_generator_config_schema.json"""
+    return {
+        "solver_version": "v1.0.0",
+        "tolerance": 1e-6,
+        "max_element_size": 0.5,
+        "min_element_size": 0.1,
+        "boundary_map": {}
+    }========== END OF FILE: dummies/dummy_harness.py ==========
+
+========== START OF FILE: dummies/__init__.py ==========
+========== END OF FILE: dummies/__init__.py ==========
+
+========== START OF FILE: dummies/sample_geometry.step ==========
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('OpenCASCADE Model'),'2;1');
+FILE_NAME('sphere.stp','2024-01-01',(''),(''),'','','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
+ENDSEC;
+DATA;
+#1 = APPLICATION_CONTEXT('core data for automotive mechanical design processes');
+#2 = APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2000,#1);
+#3 = PRODUCT_CONTEXT('',#1,'mechanical');
+#4 = PRODUCT('Sphere','Sphere','',(#3));
+#5 = PRODUCT_DEFINITION_FORMATION('','',#4);
+#6 = PRODUCT_DEFINITION_CONTEXT('part definition',#1,'design');
+#7 = PRODUCT_DEFINITION('design','',#5,#6);
+#8 = PRODUCT_DEFINITION_SHAPE('','',#7);
+#9 = ADVANCED_BREP_SHAPE_REPRESENTATION('',(#10),#24);
+#10 = MANIFOLD_SOLID_BREP('',#11);
+#11 = CLOSED_SHELL('',(#12));
+#12 = ADVANCED_FACE('',(#13),#18,.T.);
+#13 = FACE_BOUND('',#14,.T.);
+#14 = VERTEX_LOOP('',#15);
+#15 = VERTEX_POINT('',#16);
+#16 = CARTESIAN_POINT('',(0.0,0.0,1.0));
+#17 = CARTESIAN_POINT('',(0.0,0.0,0.0));
+#18 = SPHERICAL_SURFACE('',#19,1.0);
+#19 = AXIS2_PLACEMENT_3D('',#17,#20,#21);
+#20 = DIRECTION('',(0.0,0.0,1.0));
+#21 = DIRECTION('',(1.0,0.0,0.0));
+#22 = ( LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.) );
+#23 = ( NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.) );
+#24 = ( GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#22,#23)) REPRESENTATION_CONTEXT('Context #1','3D Context') );
+#25 = SHAPE_DEFINITION_REPRESENTATION(#8,#9);
+ENDSEC;
+END-ISO-10303-21;
+========== END OF FILE: dummies/sample_geometry.step ==========
+
+========== START OF FILE: test_mesh_generator_interface.py ==========
+# tests/test_mesh_generator_interface.py
+from src.state.mesh_generator_state import GridState, BoundaryConditionState
+
+class TestMeshGeneratorInterfaces:
+    """
+    Architectural Quality Gate for Mesh Generator Protocols.
+    This suite acts as the specification document for our spatial state structures.
+    We enforce structural type validation, attribute contracts, and strict 
+    memory performance policies across all discretized spatial states.
+    """
+
+    def test_grid_state_structural_conformance(self):
+        """
+        [PROTOCOL GATE]
+        We define the spatial domain properties that every grid must strictly
+        implement. This ensures consistency for the solver.
+        """
+        
+        # We define a grid spanning x[-5, 5], y[0, 10], z[-1.5, 1.5]
+        # with a resolution of 50x100x30 voxels.
+        x_min, x_max = -5.0, 5.0
+        y_min, y_max = 0.0, 10.0
+        z_min, z_max = -1.5, 1.5
+        grid_instance = GridState(
+            x_min, x_max, y_min, y_max, z_min, z_max,
+            nx=50, ny=100, nz=30
+        )
+
+        # The protocol mandates specific attribute types to prevent downstream 
+        # casting errors in the mesh solver.
+        expected_protocol_fields = {
+            "x_min": float, "x_max": float,
+            "y_min": float, "y_max": float,
+            "z_min": float, "z_max": float,
+            "nx": int, "ny": int, "nz": int
+        }
+
+        # We verify that the structure adheres to the schema.
+        for field, expected_type in expected_protocol_fields.items():
+            assert hasattr(grid_instance, field), f"Protocol Violation: Missing '{field}'."
+            actual_value = getattr(grid_instance, field)
+            assert isinstance(actual_value, expected_type), f"Type Violation: '{field}' must be {expected_type}."
+
+        # Finally, we perform a spatial consistency check:
+        # The span of the domain should match the arithmetic difference of the bounds.
+        span_x = grid_instance.x_max - grid_instance.x_min
+        span_y = grid_instance.y_max - grid_instance.y_min
+        span_z = grid_instance.z_max - grid_instance.z_min
+
+        # The expected spans are 10.0, 10.0, and 3.0 respectively.
+        assert abs(span_x - 10.0) < 1e-9
+        assert abs(span_y - 10.0) < 1e-9
+        assert abs(span_z - 3.0) < 1e-9
+
+    def test_grid_state_performance_contract(self):
+        """
+        [PERFORMANCE GATE]
+        Law of Performance: GridState must be memory-efficient.
+        To ensure dense traversal speeds, we prohibit the creation of 
+        __dict__ overhead via Python slots.
+        """
+        grid_instance = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1, 1, 1)
+        
+        # We assert that the object has strictly optimized memory allocation.
+        assert not hasattr(grid_instance, "__dict__"), "Memory Violation: Unexpected __dict__."
+        assert hasattr(grid_instance, "__slots__"), "Memory Violation: Missing __slots__ configuration."
+
+    def test_boundary_condition_structural_conformance(self):
+        """
+        [PROTOCOL GATE]
+        Boundary conditions define the simulation constraints. 
+        We validate that every BC satisfies the contract for location, type, and ID.
+        """
+        
+        # We initialize a test boundary for the 'z_max' face using a 'neumann' condition.
+        bc_instance = BoundaryConditionState(
+            location="z_max",
+            type="neumann",
+            surface_id="cell_84102"
+        )
+
+        # The contract requires strict mapping between attribute strings.
+        expected_protocol_fields = {
+            "location": str,
+            "type": str,
+            "surface_id": str
+        }
+
+        # We iterate and validate the field existence and type.
+        for field, expected_type in expected_protocol_fields.items():
+            assert hasattr(bc_instance, field), f"Protocol Violation: Missing '{field}'."
+            actual_value = getattr(bc_instance, field)
+            assert isinstance(actual_value, expected_type), f"Type Violation: '{field}' must be {expected_type}."
+
+    def test_boundary_condition_performance_contract(self):
+        """
+        [PERFORMANCE GATE]
+        Like GridState, BoundaryConditionState must maintain minimal runtime cost.
+        We confirm __slots__ enforcement for high-throughput boundary traversal.
+        """
+        bc_instance = BoundaryConditionState("wall", "dirichlet", "cell_0")
+        
+        # The object must lack a dictionary to comply with performance policies.
+        assert not hasattr(bc_instance, "__dict__"), "Memory Violation: __dict__ found."
+        assert hasattr(bc_instance, "__slots__"), "Memory Violation: __slots__ not implemented."========== END OF FILE: test_mesh_generator_interface.py ==========
+

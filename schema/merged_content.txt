@@ -1,0 +1,360 @@
+📄 List of files to be merged:
+-------------------------------------------
+• mesh_generator_input.schema.json
+• mesh_generator_config_schema.json
+• mesh_generator_results_schema.json
+• mesh_generator_output_schema.json
+-------------------------------------------
+
+========== START OF FILE: mesh_generator_input.schema.json ==========
+{
+  "$id": "mesh_generator_input_schema.json",
+  "title": "Mesh Generator Input Schema",
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+    "inputs": {
+      "type": "object",
+      "description": "Raw STEP file provided to the mesh generator.",
+      "additionalProperties": false,
+      "properties": {
+        "step_file": {
+          "type": "string",
+          "description": "Path or filename of the uploaded STEP (.step/.stp) file."
+        }
+      },
+      "required": ["step_file"]
+    }
+  },
+
+  "required": ["inputs"]
+}========== END OF FILE: mesh_generator_input.schema.json ==========
+
+========== START OF FILE: mesh_generator_config_schema.json ==========
+{
+  "$id": "mesh_generator_config_schema.json",
+  "title": "Mesh Generator Configuration Schema",
+  "type": "object",
+  "description": "External configuration parameters used by the Mesh Generator to produce the CFD-ready grid, mask, and boundary conditions.",
+  "additionalProperties": false,
+  "properties": {
+    "solver_version": {
+      "type": "string",
+      "description": "Version identifier of the meshing/solver backend."
+    },
+    "tolerance": {
+      "type": "number",
+      "description": "Geometric tolerance used during STEP parsing, surface reconstruction, and point-in-solid classification."
+    },
+    "max_element_size": {
+      "type": "number",
+      "description": "Maximum allowed mesh element size used when computing grid resolution."
+    },
+    "min_element_size": {
+      "type": "number",
+      "description": "Minimum allowed mesh element size used when computing grid resolution."
+    },
+    "boundary_map": {
+      "type": "object",
+      "description": "Defines the mapping between spatial boundary locations (domain extents or internal walls) and physical condition types.",
+      "additionalProperties": false,
+      "properties": {
+        "x_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative X domain boundary." },
+        "x_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive X domain boundary." },
+        "y_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative Y domain boundary." },
+        "y_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive Y domain boundary." },
+        "z_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative Z domain boundary." },
+        "z_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive Z domain boundary." },
+        "wall": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Default condition type for internal structural interfaces (non-boundary)." }
+      }
+    }
+  },
+  "required": [
+    "solver_version",
+    "tolerance",
+    "max_element_size",
+    "min_element_size",
+    "boundary_map"
+  ]
+}========== END OF FILE: mesh_generator_config_schema.json ==========
+
+========== START OF FILE: mesh_generator_results_schema.json ==========
+{
+  "$id": "mesh_generator_results_schema.json",
+  "title": "Mesh Generator Results Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "results": {
+      "type": "object",
+      "description": "CFD-ready domain representation: grid extents, resolution, mask, and boundary conditions.",
+      "additionalProperties": false,
+      "properties": {
+        "grid": {
+          "type": "object",
+          "description": "Structured grid extents and resolution for Navier–Stokes solver.",
+          "additionalProperties": false,
+          "properties": {
+            "x_min": {
+              "type": "number"
+            },
+            "x_max": {
+              "type": "number"
+            },
+            "y_min": {
+              "type": "number"
+            },
+            "y_max": {
+              "type": "number"
+            },
+            "z_min": {
+              "type": "number"
+            },
+            "z_max": {
+              "type": "number"
+            },
+            "nx": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ny": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "nz": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max",
+            "z_min",
+            "z_max",
+            "nx",
+            "ny",
+            "nz"
+          ]
+        },
+        "mask": {
+          "type": "array",
+          "description": "Solid/fluid mask for Navier–Stokes solver. Canonical flattening: i + nx*(j + ny*k). Mapping: -1 = Wall (Boundary Condition), 0 = Solid, 1 = Fluid (Interior).",
+          "items": {
+            "type": "integer",
+            "enum": [
+              -1,
+              0,
+              1
+            ]
+          }
+        },
+        
+        "boundary_conditions": {
+          "type": "array",
+          "description": "Boundary condition locations and types derived from geometry.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "location": {
+                "type": "string",
+                "enum": [
+                  "x_min",
+                  "x_max",
+                  "y_min",
+                  "y_max",
+                  "z_min",
+                  "z_max",
+                  "wall"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "no-slip",
+                  "free-slip",
+                  "inflow",
+                  "outflow",
+                  "pressure"
+                ]
+              },
+              "surface_id": {
+                "type": "string",
+                "description": "Identifier of the originating geometric surface."
+              }
+            },
+            "required": [
+              "location",
+              "type"
+            ]
+          }
+        }
+      },
+      "required": [
+        "grid",
+        "mask",
+        "boundary_conditions"
+      ]
+    }
+  },
+  "required": [
+    "results"
+  ]
+}========== END OF FILE: mesh_generator_results_schema.json ==========
+
+========== START OF FILE: mesh_generator_output_schema.json ==========
+{
+  "$id": "mesh_generator_output_schema.json",
+  "title": "Mesh Generator Output Schema",
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+
+    "inputs": {
+      "type": "object",
+      "description": "Structured STEP model provided to the mesh generator.",
+      "additionalProperties": false,
+      "properties": {
+        "step_model": {
+          "type": "object",
+          "description": "Parsed STEP model represented as structured geometry/topology data."
+        }
+      },
+      "required": ["step_model"]
+    },
+
+    "config": {
+      "type": "object",
+      "description": "Configuration parameters used during this mesh generation run. Included for reproducibility and documentation.",
+      "additionalProperties": false,
+      "properties": {
+        "solver_version": {
+          "type": "string",
+          "description": "Version identifier of the meshing/solver backend."
+        },
+        "tolerance": {
+          "type": "number",
+          "description": "Geometric tolerance used during STEP parsing, surface reconstruction, and point-in-solid classification."
+        },
+        "max_element_size": {
+          "type": "number",
+          "description": "Maximum allowed mesh element size used when computing grid resolution."
+        },
+        "min_element_size": {
+          "type": "number",
+          "description": "Minimum allowed mesh element size used when computing grid resolution."
+        },
+        "boundary_map": {
+          "type": "object",
+          "description": "Defines the mapping between spatial boundary locations (domain extents or internal walls) and physical condition types.",
+          "additionalProperties": false,
+          "properties": {
+            "x_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative X domain boundary." },
+            "x_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive X domain boundary." },
+            "y_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative Y domain boundary." },
+            "y_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive Y domain boundary." },
+            "z_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative Z domain boundary." },
+            "z_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive Z domain boundary." },
+            "wall": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Default condition type for internal structural interfaces (non-boundary)." }
+          }
+        }
+      },
+      "required": [
+        "solver_version",
+        "tolerance",
+        "max_element_size",
+        "min_element_size",
+        "boundary_map"
+      ]
+    },
+
+    "results": {
+      "type": "object",
+      "description": "CFD-ready domain representation: grid extents, resolution, mask, and boundary conditions.",
+      "additionalProperties": false,
+
+      "properties": {
+
+        "grid": {
+          "type": "object",
+          "description": "Structured grid extents and resolution for Navier–Stokes solver.",
+          "additionalProperties": false,
+          "properties": {
+            "x_min": { "type": "number" },
+            "x_max": { "type": "number" },
+            "y_min": { "type": "number" },
+            "y_max": { "type": "number" },
+            "z_min": { "type": "number" },
+            "z_max": { "type": "number" },
+            "nx": { "type": "integer", "minimum": 1 },
+            "ny": { "type": "integer", "minimum": 1 },
+            "nz": { "type": "integer", "minimum": 1 }
+          },
+          "required": [
+            "x_min", "x_max",
+            "y_min", "y_max",
+            "z_min", "z_max",
+            "nx", "ny", "nz"
+          ]
+        },
+
+        "mask": {
+          "type": "array",
+          "description": "Solid/fluid mask for Navier–Stokes solver. Canonical flattening: i + nx*(j + ny*k). Mapping: -1 = Wall (Boundary Condition), 0 = Solid, 1 = Fluid (Interior).",
+          "items": {
+            "type": "integer",
+            "enum": [
+              -1,
+              0,
+              1
+            ]
+          }
+        },
+
+        "boundary_conditions": {
+          "type": "array",
+          "description": "Boundary condition locations and types derived from geometry.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "location": {
+                "type": "string",
+                "enum": [
+                  "x_min", "x_max",
+                  "y_min", "y_max",
+                  "z_min", "z_max",
+                  "wall"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "no-slip",
+                  "free-slip",
+                  "inflow",
+                  "outflow",
+                  "pressure"
+                ]
+              },
+              "surface_id": {
+                "type": "string",
+                "description": "Identifier of the originating geometric surface."
+              }
+            },
+            "required": ["location", "type"]
+          }
+        }
+      },
+
+      "required": ["grid", "mask", "boundary_conditions"]
+    }
+  },
+
+  "required": ["inputs", "config", "results"]
+}========== END OF FILE: mesh_generator_output_schema.json ==========
+
