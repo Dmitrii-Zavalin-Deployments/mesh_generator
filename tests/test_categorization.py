@@ -3,6 +3,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
 from OCC.Core.IFSelect import IFSelect_RetDone
 from src.steps.categorization import CategorizationStep
 # FIXED: We align our import with the core production state contract
