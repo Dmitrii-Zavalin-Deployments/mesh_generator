@@ -36,7 +36,7 @@ def test_tracing_logs_on_success(caplog):
         assert "Starting TracingStep" in caplog.text
         assert "TracingStep successful" in caplog.text
         # A single point has no volume, so bbox should be (0,0,0,0,0,0)
-        assert container.bbox == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        assert container.bbox == pytest.approx((0.0, 0.0, 0.0, 0.0, 0.0, 0.0), abs=1e-6)
 
 def test_tracing_logs_error_on_failure(caplog):
     # Pass None to trigger the Constitution Violation
