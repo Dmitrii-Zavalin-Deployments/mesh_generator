@@ -1,3 +1,4 @@
+import logging
 import pytest
 from src.steps.ingestion import IngestionStep
 from src.state.mesh_generator_state import SovereignContainer
