@@ -65,6 +65,7 @@ def test_orchestrator_execution_flow():
         call.step_a(container),
         call.step_b(container)
     ]
+    assert manager.mock_calls == expected_calls
     
     # Verify both steps were executed
     step_a.execute.assert_called_once_with(container)
