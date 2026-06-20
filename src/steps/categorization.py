@@ -1,9 +1,13 @@
 # src/steps/categorization.py
+import logging
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
+
+# Configure module-level logger for visibility in CI pipelines
+logger = logging.getLogger(__name__)
 
 class CategorizationStep(StepInterface):
     """
@@ -14,7 +18,7 @@ class CategorizationStep(StepInterface):
     boundary features are captured without leaking or aliasing.
     """
     
-    __slots__ = () # Stateless: Logic only
+    __slots__ = () 
 
     def execute(self, container: SovereignContainer):
         """
@@ -27,8 +31,12 @@ class CategorizationStep(StepInterface):
         
         # GUARD CLAUSE: Ensure the spatial domain is defined.
         if container.grid is None:
-            raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep.")
+            error_msg = "CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
+        logger.info("Starting Conservative Spatial Categorization...")
+        
         # Initialize the geometry classifier for the CAD solid.
         classifier = BRepClass3d_SolidClassifier(container.cad_solid)
         grid = container.grid
@@ -41,6 +49,7 @@ class CategorizationStep(StepInterface):
         # Initialize the mask list.
         # Canonical flattening: index = i + nx * (j + ny * k)
         mask = [0] * (grid.nx * grid.ny * grid.nz)
+        stats = {"solid": 0, "fluid": 0, "wall": 0}
 
         # Iterate over every voxel in the computational domain.
         for i in range(grid.nx):
@@ -73,10 +82,14 @@ class CategorizationStep(StepInterface):
                     
                     if all(s == TopAbs_IN for s in states):
                         mask[idx] = 0   # Solid
+                        stats["solid"] += 1
                     elif all(s == TopAbs_OUT for s in states):
                         mask[idx] = 1   # Fluid
+                        stats["fluid"] += 1
                     else:
-                        mask[idx] = -1  # Wall (Interface)
+                        mask[idx] = -1  # Wall
+                        stats["wall"] += 1
 
         # Persistence to the Sovereign Container.
         container.mask = mask
+        logger.info(f"Categorization Complete: Solid={stats['solid']}, Fluid={stats['fluid']}, Wall={stats['wall']}")
