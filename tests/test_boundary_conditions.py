@@ -7,13 +7,16 @@ from src.state.mesh_generator_state import SovereignContainer, GridState
 
 def test_boundary_conditions_all_faces():
     """
-    [COVERAGE PATH]
-    To reach 100% coverage, we must trigger every 'elif' branch in the boundary 
-    detection logic. We use a 3x3x3 grid to isolate cells on specific faces 
-    (e.g., center cells for y/z faces, avoiding the x_min priority).
+    [COVERAGE PATH: THE BOUNDARY TRAVERSAL]
+    We aim for 100% path coverage by exercising the full if/elif chain of 
+    the spatial boundary detector.
+    
+    The domain is defined as a 3x3x3 grid (27 total cells). We use the 
+    flattening formula: idx = i + nx * (j + ny * k).
     """
     
-    # 1. Setup: Define a comprehensive BC map to cover all branches.
+    # 1. Setup: Define a mapping that covers every coordinate extreme.
+    # The solver expects these definitions to map spatial locations to BC types.
     bc_map = {
         "x_min": "inlet", "x_max": "outlet",
         "y_min": "wall_y", "y_max": "wall_y",
@@ -28,42 +31,41 @@ def test_boundary_conditions_all_faces():
         boundary_map=bc_map
     )
     
-    # Create a 3x3x3 grid. 
-    # Indices are i,j,k [0..2]. Total cells = 27.
+    # Create the grid: 3x3x3 spatial decomposition.
+    # Grid domain is [0, 3] on all axes.
     container.grid = GridState(0, 3, 0, 3, 0, 3, 3, 3, 3)
-    container.mask = [0] * 27 # Initialize all as Solid
+    container.mask = [0] * 27 # 27 cells (3^3), initially marked as SOLID (0).
     
-    # 2. Injection: Mark specific cells to trigger the elif chain.
-    # Logic priority: x_min -> x_max -> y_min -> y_max -> z_min -> z_max -> wall
+    # 2. Injection: Mark specific cells as INTERFACE (-1) to trigger logic branches.
+    # We strategically pick coordinates to ensure we hit every elif block.
     
-    # i=2 (last column) triggers x_max: (2, 1, 1)
-    # The x_min check (i=0) will fail, x_max check (i=2) will pass.
+    # Trigger x_max branch (i=2, j=1, k=1):
     container.mask[2 + 3*(1 + 3*1)] = -1 
     
-    # i=1, j=0 (middle col, bottom row) triggers y_min: (1, 0, 1)
+    # Trigger y_min branch (i=1, j=0, k=1):
     container.mask[1 + 3*(0 + 3*1)] = -1
     
-    # i=1, j=2 (middle col, top row) triggers y_max: (1, 2, 1)
+    # Trigger y_max branch (i=1, j=2, k=1):
     container.mask[1 + 3*(2 + 3*1)] = -1
     
-    # i=1, j=1, k=0 (middle col, middle row, front) triggers z_min: (1, 1, 0)
+    # Trigger z_min branch (i=1, j=1, k=0):
     container.mask[1 + 3*(1 + 3*0)] = -1
     
-    # i=1, j=1, k=2 (middle col, middle row, back) triggers z_max: (1, 1, 2)
+    # Trigger z_max branch (i=1, j=1, k=2):
     container.mask[1 + 3*(1 + 3*2)] = -1
     
-    # i=1, j=1, k=1 (center cell) triggers wall: (1, 1, 1)
+    # Trigger default 'wall' branch (Center cell: i=1, j=1, k=1):
     container.mask[1 + 3*(1 + 3*1)] = -1
 
-    # 3. Execution
+    # 3. Execution: Run the boundary mapping step.
     step = BoundaryConditionsStep()
     step.execute(container)
     
-    # 4. Verification: Ensure all boundary types were mapped correctly.
-    # We should have found 6 boundaries in total.
+    # 4. Verification:
+    # We computed 6 interfaces; we expect exactly 6 boundary conditions to be registered.
     assert len(container.boundary_conditions) == 6
     
-    # Check that we captured the 'wall' type for the center cell
+    # Validate that every branch was traversed by inspecting the resulting locations.
     locations = [bc.location for bc in container.boundary_conditions]
     assert "wall" in locations
     assert "x_max" in locations
@@ -75,15 +77,19 @@ def test_boundary_conditions_all_faces():
 def test_boundary_conditions_guard_clause():
     """
     [GUARD CLAUSE]
-    Verify that the system raises a RuntimeError if the grid or mask 
-    are not populated, preventing downstream null-pointer issues.
+    The pipeline constitution requires grid and mask to be present before 
+    boundary condition mapping.
+    
+    If these fields are None, we expect a RuntimeError to abort the process.
     """
+    # Initialize container with null state dependencies.
     container = SovereignContainer(
         step_file="dummy.step",
         max_element_size=0.5, solver_version="v1.0.0",
         tolerance=1e-6, min_element_size=0.1, boundary_map={}
     )
     
+    # Ensure execution results in a pipeline abort.
     step = BoundaryConditionsStep()
     with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
         step.execute(container)
@@ -91,20 +97,21 @@ def test_boundary_conditions_guard_clause():
 def test_boundary_conditions_config_error():
     """
     [CONFIG ERROR]
-    Verify that the system raises a KeyError if a boundary location 
-    is detected that is not provided in the bc_map.
+    Boundary mapping relies on an exhaustive 'bc_map'. If a cell is detected 
+    at a location not explicitly defined in the map, the system must 
+    fail explicitly to prevent ambiguous simulation states.
     """
-    # Grid is 1x1x1, which puts the cell at x_min AND x_max, y_min, etc.
-    # We define an empty map, so 'x_min' will trigger an error.
+    # Scenario: We define a grid with a boundary at x_min, but omit 'x_min' from bc_map.
     container = SovereignContainer(
         step_file="dummy.step",
         max_element_size=0.5, solver_version="v1.0.0",
         tolerance=1e-6, min_element_size=0.1,
-        boundary_map={} 
+        boundary_map={} # Explicitly empty
     )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
-    container.mask = [-1] 
+    container.mask = [-1] # Cell 0 is an interface
     
+    # Expect a KeyError when the step attempts to look up 'x_min'.
     step = BoundaryConditionsStep()
     with pytest.raises(KeyError, match="not defined in 'bc_map'"):
         step.execute(container)
