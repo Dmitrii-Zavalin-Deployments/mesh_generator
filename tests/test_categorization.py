@@ -80,9 +80,12 @@ def test_categorization_guard_clause():
     with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
         step.execute(container)
 
+# Assuming get_real_sphere_shape is defined in this file or imported
+# (e.g., from tests.test_categorization import get_real_sphere_shape)
+
 @patch("src.steps.categorization.BRepClass3d_SolidClassifier")
 def test_categorization_branch_solid(mock_classifier_class):
-    """Forces the 'Solid' branch (Lines 84-85) to reach 100% coverage."""
+    """Forces the 'Solid' branch (Lines 84-85) using valid geometry."""
     # 1. Setup Mock
     mock_classifier = MagicMock()
     mock_classifier.State.return_value = TopAbs_IN # Force ALL corners IN
@@ -98,7 +101,8 @@ def test_categorization_branch_solid(mock_classifier_class):
         min_element_size=0.1,
         boundary_map={"x_min": "inlet"}
     )
-    container.cad_solid = MagicMock() # Mock the shape
+    # FIX: Use real geometry to satisfy Constitution, not MagicMock()
+    container.cad_solid = get_real_sphere_shape() 
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1) # 1x1x1 grid
     
     # 3. Execute
@@ -111,7 +115,7 @@ def test_categorization_branch_solid(mock_classifier_class):
 
 @patch("src.steps.categorization.BRepClass3d_SolidClassifier")
 def test_categorization_branch_fluid(mock_classifier_class):
-    """Forces the 'Fluid' branch (Lines 86-88) to reach 100% coverage."""
+    """Forces the 'Fluid' branch (Lines 86-88) using valid geometry."""
     # 1. Setup Mock
     mock_classifier = MagicMock()
     mock_classifier.State.return_value = TopAbs_OUT # Force ALL corners OUT
@@ -126,7 +130,8 @@ def test_categorization_branch_fluid(mock_classifier_class):
         min_element_size=0.1,
         boundary_map={}
     )
-    container.cad_solid = MagicMock()
+    # FIX: Use real geometry to satisfy Constitution, not MagicMock()
+    container.cad_solid = get_real_sphere_shape()
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     # 3. Execute
