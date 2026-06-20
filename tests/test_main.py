@@ -1,6 +1,5 @@
 # tests/test_main.py
 import pytest
-import sys
 import json
 from unittest.mock import patch, mock_open, MagicMock
 from jsonschema import ValidationError
