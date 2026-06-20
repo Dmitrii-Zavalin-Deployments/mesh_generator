@@ -1,6 +1,7 @@
 import sys
 import json
 import os
+import logging
 from jsonschema import validate, ValidationError
 from src.state.mesh_generator_state import SovereignContainer
 from src.pipeline.orchestrator import Orchestrator
@@ -10,23 +11,31 @@ from src.steps.resolution import ResolutionStep
 from src.steps.categorization import CategorizationStep
 from src.steps.boundary_conditions import BoundaryConditionsStep
 
+# Configure logging for CI/CD and local observability
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+)
+logger = logging.getLogger("mesh_generator")
+
 def validate_json(data, schema_path):
     """Strictly validates data against a JSON schema. Raises ValidationError on failure."""
     with open(schema_path, 'r') as f:
         schema = json.load(f)
     try:
         validate(instance=data, schema=schema)
-        print(f"✅ Schema validation passed: {schema_path}")
+        logger.info(f"Schema validation passed: {schema_path}")
     except ValidationError as e:
-        print(f"❌ SCHEMA VIOLATION: {schema_path}")
+        logger.error(f"SCHEMA VIOLATION: {schema_path}")
         raise e
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python -m src.main <input_step_json> <output_json>")
+        logger.error("Usage: python -m src.main <input_step_json> <output_json>")
         sys.exit(1)
 
     input_path, output_path = sys.argv[1], sys.argv[2]
+    logger.info(f"Pipeline initialized. Input: {input_path}")
 
     # 1. Load & Validate Inputs
     with open(input_path, 'r') as f:
@@ -43,9 +52,9 @@ def main():
     # the contract is physically satisfied.
     step_file = input_data['inputs']['step_file']
     if not os.path.exists(step_file):
-        raise RuntimeError(
-            f"CONSTITUTION VIOLATION: STEP file not found at: {os.path.abspath(step_file)}"
-        )
+        error_msg = f"CONSTITUTION VIOLATION: STEP file not found at: {os.path.abspath(step_file)}"
+        logger.critical(error_msg)
+        raise RuntimeError(error_msg)
 
     # 3. Initialize Sovereign Container
     container = SovereignContainer(
@@ -58,6 +67,7 @@ def main():
     )
 
     # 4. Orchestrate Pipeline
+    logger.info("Starting pipeline execution.")
     pipeline = Orchestrator([
         IngestionStep(),
         TracingStep(),
@@ -66,6 +76,7 @@ def main():
         BoundaryConditionsStep()
     ])
     pipeline.run(container)
+    logger.info("Pipeline execution completed successfully.")
 
     # 5. Serialize Output
     output_data = {
@@ -94,6 +105,7 @@ def main():
 
     with open(output_path, 'w') as f:
         json.dump(output_data, f, indent=2)
+    logger.info(f"Results serialized to: {output_path}")
 
 if __name__ == "__main__":
     main()
