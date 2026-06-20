@@ -1,10 +1,10 @@
 # tests/test_resolution.py
 import logging
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from OCC.Core.TopoDS import TopoDS_Shape
 from src.steps.resolution import ResolutionStep, get_min_feature_size
-from src.state.mesh_generator_state import SovereignContainer, GridState
+from src.state.mesh_generator_state import SovereignContainer
 
 # --- UTILITY TEST SUITE: Feature Detection Logic ---
 
