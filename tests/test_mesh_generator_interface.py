@@ -1,5 +1,4 @@
 # tests/test_mesh_generator_interface.py
-import pytest
 from src.state.mesh_generator_state import GridState, BoundaryConditionState
 
 class TestMeshGeneratorInterfaces:
