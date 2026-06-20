@@ -19,7 +19,7 @@ def test_get_min_feature_size_edge_detection():
     # and the global C++ linear property calculator wrapper.
     with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
          patch("src.steps.resolution.GProp_GProps") as mock_props, \
-         patch("src.steps.resolution.brepgprop_LinearProperties") as mock_linear_engine:
+         patch("src.steps.resolution.brepgprop_LinearProperties"):
         
         # We simulate finding exactly two edges before terminating the iteration.
         mock_explorer.return_value.More.side_effect = [True, True, False]
@@ -44,7 +44,7 @@ def test_get_min_feature_size_bbox_fallback():
     # 1. Setup: We simulate a geometry lacking structural edge components.
     with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
          patch("src.steps.resolution.Bnd_Box") as mock_bbox, \
-         patch("src.steps.resolution.brepbndlib") as mock_bnd_engine:
+         patch("src.steps.resolution.brepbndlib"):
         
         # The explorer reports no edges instantly.
         mock_explorer.return_value.More.return_value = False
