@@ -1,4 +1,5 @@
 # src/steps/resolution.py
+import logging
 import numpy as np
 from OCC.Core.BRepBndLib import brepbndlib
 from interfaces.base_interface import StepInterface
@@ -10,6 +11,8 @@ from OCC.Core.TopAbs import TopAbs_EDGE
 from OCC.Core.BRepGProp import brepgprop_LinearProperties
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.Bnd import Bnd_Box
+
+logger = logging.getLogger(__name__)
 
 def get_min_feature_size(shape) -> float:
     """
@@ -58,7 +61,7 @@ class ResolutionStep(StepInterface):
     feature size to prevent aliasing of thin structural members.
     """
     
-    __slots__ = () # Stateless: Logic only
+    __slots__ = ()
 
     def execute(self, container: SovereignContainer):
         """
@@ -69,31 +72,31 @@ class ResolutionStep(StepInterface):
                        Requires a populated 'bbox' from TracingStep and 
                        a 'max_element_size' configuration.
         """
-        
+        logger.info("Starting ResolutionStep: calculating adaptive grid.")
         # GUARD CLAUSE: Pipeline Topology Validation.
         # We enforce that the TracingStep has already finished. If 'bbox' is None,
         # we have no physical extent to map to a grid, and the process must halt.
         if container.bbox is None:
-            raise RuntimeError(
-                "CONSTITUTION VIOLATION: 'bbox' is None. "
-                "TracingStep must be executed before ResolutionStep."
-            )
+            error_msg = "CONSTITUTION VIOLATION: 'bbox' is None. TracingStep must be executed before ResolutionStep."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
         # 1. INSPECTION: Determine the thinnest feature
         min_feature = get_min_feature_size(container.cad_solid)
+        logger.info(f"ResolutionStep: Minimum feature detected at {min_feature:.4f}")
         
         # 2. CONSTRAINED ADAPTATION:
         # Check against the container's resolution floor and ceiling.
         if min_feature < container.min_element_size:
-            raise RuntimeError(
-                f"GEOMETRY VIOLATION: Thinnest feature ({min_feature:.4f}) is smaller "
-                f"than the minimum allowed element size ({container.min_element_size:.4f})."
-            )
+            error_msg = f"GEOMETRY VIOLATION: Thinnest feature ({min_feature:.4f}) is smaller than minimum element size ({container.min_element_size:.4f})."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
         
         # Determine the effective resolution:
         # If the feature is smaller than the user-desired max, we use the feature size 
         # (to avoid aliasing). Otherwise, we cap it at the user-defined max.
         adaptive_el = min(container.max_element_size, max(container.min_element_size, min_feature))
+        logger.info(f"ResolutionStep: Adaptive element size set to {adaptive_el:.4f}")
         
         # 3. UNPACKING: Translate the tuple into readable spatial coordinates.
         # The Bnd_Box provides the precise physical limits of the CAD geometry.
@@ -123,3 +126,4 @@ class ResolutionStep(StepInterface):
             z_min=z_min, z_max=z_max,
             nx=nx, ny=ny, nz=nz
         )
+        logger.info(f"ResolutionStep successful: Grid initialized with dimensions {nx}x{ny}x{nz}.")
