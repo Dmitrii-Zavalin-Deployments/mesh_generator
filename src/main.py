@@ -2,6 +2,8 @@ import sys
 import json
 import os
 import logging
+import glob
+import argparse
 from jsonschema import validate, ValidationError
 from src.state.mesh_generator_state import SovereignContainer
 from src.pipeline.orchestrator import Orchestrator
@@ -30,31 +32,26 @@ def validate_json(data, schema_path):
         raise e
 
 def main():
-    if len(sys.argv) != 3:
-        logger.error("Usage: python -m src.main <input_step_json> <output_json>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Modular Workspace Mesh Generator")
+    parser.add_argument("--input_output_folder", required=True, help="Path to workspace directory")
+    args = parser.parse_args()
 
-    input_path, output_path = sys.argv[1], sys.argv[2]
-    logger.info(f"Pipeline initialized. Input: {input_path}")
+    workspace = args.input_output_folder
+    logger.info(f"Pipeline initialized. Workspace: {workspace}")
 
-    # 1. Load & Validate Inputs
-    with open(input_path, 'r') as f:
-        input_data = json.load(f)
-    validate_json(input_data, "schema/mesh_generator_input.schema.json")
+    # 1. Dynamic STEP File Discovery (Generality Principle)
+    # The module independently searches the workspace for its target geometry
+    step_files = glob.glob(os.path.join(workspace, "*.step"))
+    if not step_files:
+        error_msg = f"CONSTITUTION VIOLATION: STEP file not found in workspace: {os.path.abspath(workspace)}"
+        logger.critical(error_msg)
+        raise RuntimeError(error_msg)
+    step_file = step_files[0]
 
     # 2. Load & Validate Config
     with open("config/config.json", 'r') as f:
         config = json.load(f)
     validate_json(config, "schema/mesh_generator_config_schema.json")
-
-    # 2.5 Strict STEP File Verification
-    # We verify the path before initializing the container to ensure 
-    # the contract is physically satisfied.
-    step_file = input_data['inputs']['step_file']
-    if not os.path.exists(step_file):
-        error_msg = f"CONSTITUTION VIOLATION: STEP file not found at: {os.path.abspath(step_file)}"
-        logger.critical(error_msg)
-        raise RuntimeError(error_msg)
 
     # 3. Initialize Sovereign Container
     container = SovereignContainer(
@@ -103,6 +100,8 @@ def main():
         }
     }
 
+    # Automatically map output to the identical workspace folder target boundary
+    output_path = os.path.join(workspace, "mesh_generator_output.json")
     with open(output_path, 'w') as f:
         json.dump(output_data, f, indent=2)
     logger.info(f"Results serialized to: {output_path}")
