@@ -1,8 +1,14 @@
 import sys
-import json
 import os
+
+# --- BOOTSTRAP: Add repo root to sys.path ---
+# This ensures that 'import src...' works regardless of your current working directory.
+# We append the directory containing the 'src' folder.
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import logging
 import glob
+import json
 import argparse
 from jsonschema import validate, ValidationError
 from src.state.mesh_generator_state import SovereignContainer
