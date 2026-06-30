@@ -36,7 +36,7 @@ def test_get_min_feature_size_edge_detection():
     # we isolate the system by mocking the topology explorer and property calculator.
     with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
          patch("src.steps.resolution.GProp_GProps") as mock_props, \
-         patch("src.steps.resolution.brepgprop_LinearProperties"):
+         patch("src.steps.resolution.brepgprop.LinearProperties"):
         
         # We simulate finding exactly two edges before terminating the iteration.
         mock_explorer.return_value.More.side_effect = [True, True, False]

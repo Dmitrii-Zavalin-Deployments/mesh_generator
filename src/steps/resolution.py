@@ -8,7 +8,7 @@ from src.state.mesh_generator_state import SovereignContainer, GridState
 # OCC Imports for feature detection
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.TopAbs import TopAbs_EDGE
-from OCC.Core.BRepGProp import brepgprop_LinearProperties
+from OCC.Core.BRepGProp import brepgprop
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.Bnd import Bnd_Box
 
@@ -31,7 +31,7 @@ def get_min_feature_size(shape) -> float:
         props = GProp_GProps()
         
         # Calculate linear properties. For edges, Mass() returns the length.
-        brepgprop_LinearProperties(edge, props)
+        brepgprop.LinearProperties(edge, props)
         length = props.Mass()
         
         # Filter out degenerate/zero-length artifacts
