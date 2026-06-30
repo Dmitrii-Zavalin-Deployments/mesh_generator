@@ -1,66 +1,38 @@
 #!/bin/bash
-# src/debug/forensic_audit.sh
-
-# Disable exit-on-error to ensure a thorough diagnostic sweep completes
-set +e
-
-echo "========================================================================"
-echo "🔍 PHASE 1: GREP DIAGNOSTICS FOR CLI & I/O ROOT CAUSES"
-echo "========================================================================"
-echo "[TEST RUNNER] System Timestamp: $(date +'%Y-%m-%d %H:%M:%S')"
-
-TARGET_SRC="src/main.py"
-TARGET_TEST="tests/test_main.py"
-
-echo -e "\n🔍 Scanning for argument parsing configurations and custom exit calls:"
-grep -n -E "ArgumentParser|sys.exit|exit\(" "$TARGET_SRC" || echo "⚠️ No explicit argparse or exit symbols found."
-
-echo -e "\n🔍 Scanning for binary or write file handle allocations ('wb', 'rb'):"
-grep -n -E "open\(.*,.*b.*\)|.write\(|.read\(" "$TARGET_SRC" || echo "⚠️ No explicit binary file operations found."
-
-echo -e "\n🔍 Scanning test assertions for exit code expectations:"
-grep -n -A 3 -B 3 "SystemExit" "$TARGET_TEST" || echo "⚠️ No SystemExit hooks located in test suite."
+# ==============================================================================
+# FORENSIC AUDIT: src/debug/forensic_audit.sh
+# Purpose: Diagnose TypeError (Binary vs Text) and SystemExit(2) (CLI mismatch)
+# ==============================================================================
 
 echo "========================================================================"
-echo "🔬 PHASE 2: SMOKING-GUN SOURCE AUDITS (CAT -N MATRIX)"
+echo "🔍 PHASE 1: IDENTIFYING FILE-MODE AND ARGUMENT MISMATCHES"
 echo "========================================================================"
-if [ -f "$TARGET_SRC" ]; then
-    echo "📄 Line Audit: $TARGET_SRC (Main Entrypoint Engine Structure)"
-    cat -n "$TARGET_SRC" | head -n 120
-else
-    echo "❌ CRITICAL: Source file $TARGET_SRC not found."
-fi
 
-if [ -f "$TARGET_TEST" ]; then
-    echo -e "\n📄 Line Audit: $TARGET_TEST (Failing Assertion Target Windows)"
-    cat -n "$TARGET_TEST" | grep -n -C 5 -E "test_main_cli_argument_error|test_main_happy_path" || cat -n "$TARGET_TEST" | head -n 100
-else
-    echo "❌ CRITICAL: Test file $TARGET_TEST not found."
-fi
+echo "[DIAGNOSTIC] Searching for 'wb' (binary) open modes that clash with JSON dumps:"
+grep -rE "open\(.*,'wb'\)|open\(.*,\"wb\"\)" . || echo "✅ No binary open modes found."
 
+echo -e "\n[DIAGNOSTIC] Checking CLI argument definitions in source vs test calls:"
+grep -n "add_argument" src/pipeline/record_telemetry.py
+grep -n "sys.argv" tests/test_main.py
+
+echo -e "\n========================================================================"
+echo "🔬 PHASE 2: SMOKING-GUN SOURCE AUDITS (CAT -N)"
 echo "========================================================================"
-echo "🛠️ PHASE 3: AUTOMATED IN-ENVIRONMENT REPAIRS (SED INJECTIONS)"
+echo "📄 Auditing src/pipeline/record_telemetry.py (JSON Write block):"
+cat -n src/pipeline/record_telemetry.py | sed -n '65,75p'
+
+echo -e "\n📄 Auditing tests/test_main.py (CLI patch block):"
+cat -n tests/test_main.py | sed -n '1,30p'
+
+echo -e "\n========================================================================"
+echo "🛠️ PHASE 3: AUTOMATED REPAIR CANDIDATES (sed)"
 echo "========================================================================"
-echo "The following sed routines repair CLI structural exits and I/O typing issues."
-echo "Uncomment these steps within your GHA step execution context to clear the gate."
+echo "To fix TypeError (Binary/String mismatch), ensure files are opened as 'w' (text):"
+echo "# sed -i 's/open(path, \"wb\")/open(path, \"w\")/g' tests/test_main.py"
 
-# --- Repair Track A: Re-align Argparse Exit Status or Override Default Behavior ---
-# Force argparse to bubble up custom exit status code 1 or catch SystemExit(2) to normalize it
-# sed -i 's/sys.exit(2)/sys.exit(1)/g' "$TARGET_SRC"
-# If overriding standard argparse error handler is needed within src/main.py:
-# sed -i '/parser = argparse.ArgumentParser/a \    parser.error = lambda message: sys.exit(1)' "$TARGET_SRC"
+echo -e "\nTo fix SystemExit(2), update test arguments to match the 3 required flags:"
+echo "# sed -i 's/\[\"script\",/\[\"script\", \"--state-file\", \"dummy.json\", \"--exit-code\", \"0\", \"--log-file\", \"dummy.log\"\]/g' tests/test_main.py"
 
-# --- Repair Track B: Correct Test Expectations to Match Standard CLI Conventions ---
-# Adjust test assertions if the testing framework must adapt to standard argparse exit codes (2)
-# sed -i 's/assert e.value.code == 1/assert e.value.code == 2/g' "$TARGET_TEST"
-
-# --- Repair Track C: Resolve String-to-Bytes Conversion Failures ---
-# Option 1: Convert file handle generation mode from binary write ('wb') to text write ('w')
-# sed -i "s/open(\(.*\), *['\"]wb['\"])/open(\1, 'w', encoding='utf-8')/g" "$TARGET_SRC"
-
-# Option 2: Explicitly encode input string strings to bytes if binary streams are non-negotiable
-# sed -i 's/\.write(payload)/\.write(payload.encode("utf-8"))/g' "$TARGET_SRC"
-
-echo "========================================================================"
-echo "🎉 Forensic diagnostic audit process terminated cleanly."
-echo "========================================================================"
+echo -e "\n========================================================================"
+echo "🏁 Forensic audit complete."
+EOF
