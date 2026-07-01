@@ -1,7 +1,5 @@
 # tests/test_main.py
 import pytest
-import os
-import glob
 from unittest.mock import patch, mock_open
 from jsonschema import ValidationError
 from src.main import main
@@ -57,7 +55,7 @@ def test_main_file_not_found():
 #     S_o = O(S_i)
 def test_main_happy_path():
     """[SUCCESS PATH] Verify nominal execution flow with 100% coverage."""
-    input_data = dummy_in()
+    dummy_in()
     config_data = get_mock_config()
     stub_container = SerializableStubContainer()
     
@@ -80,7 +78,7 @@ def test_main_happy_path():
 #     ValidationResult = (I ⊈ S) ? ValidationError : Pass
 def test_main_validation_failure():
     """[ERROR PATH: SCHEMA VIOLATION] Verify validation failure logic in validate_json."""
-    mock_input_data = dummy_in()
+    dummy_in()
     config_data = get_mock_config()
     
     with patch("sys.argv", ["main.py", "--input_output_folder", "valid_workspace"]), \
