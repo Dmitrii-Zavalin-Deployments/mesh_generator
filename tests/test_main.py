@@ -1,5 +1,7 @@
 # tests/test_main.py
 import pytest
+import os
+import glob
 from unittest.mock import patch, mock_open
 from jsonschema import ValidationError
 from src.main import main
@@ -33,7 +35,7 @@ class SerializableStubContainer:
 #     ExitCode = (N != 2) ? 1 : 0
 def test_main_cli_argument_error():
     """[ERROR PATH: CLI ARGS] Verify system exits on bad args."""
-    with patch("sys.argv", ["main.py", "only_one_arg"]):
+    with patch("sys.argv", ["main.py", "--invalid-flag"]):
         with pytest.raises(SystemExit) as exc:
             main()
         # Assertion: Validate the exit signal (argparse exits with 2, custom loops exit with 1)
@@ -44,11 +46,11 @@ def test_main_cli_argument_error():
 #     Error = (P ∉ F) ? RuntimeError : Success
 def test_main_file_not_found():
     """[ERROR PATH: FILE NOT FOUND] Verify system exits when input assets don't exist."""
-    with patch("sys.argv", ["main.py", "non_existent.json", "out.json"]), \
-         patch("os.path.exists", return_value=False):
-        with pytest.raises(SystemExit) as exc:
+    with patch("sys.argv", ["main.py", "--input_output_folder", "non_existent_workspace"]), \
+         patch("glob.glob", return_value=[]):
+        with pytest.raises(RuntimeError) as exc:
             main()
-        assert exc.value.code in [1, 2]
+        assert "CONSTITUTION VIOLATION" in str(exc.value)
 
 # 3. Nominal Path (Successful State Transition)
 # Formula: Input S_i passes through Orchestrator O, resulting in Output S_o.
@@ -59,14 +61,12 @@ def test_main_happy_path():
     config_data = get_mock_config()
     stub_container = SerializableStubContainer()
     
-    # Persistent file object handle tracking text mode modifications
-    m = mock_open(read_data='{}')
-    
-    with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
-         patch("builtins.open", m), \
-         patch("json.load", side_effect=[input_data, {}, config_data, {}]), \
+    # Isolated fresh mock factory prevents text/binary stream collision during serialization
+    with patch("sys.argv", ["main.py", "--input_output_folder", "valid_workspace"]), \
+         patch("glob.glob", return_value=["valid_workspace/geometry.step"]), \
+         patch("builtins.open", mock_open(read_data='{}')), \
+         patch("json.load", side_effect=[config_data, {}]), \
          patch("jsonschema.validate"), \
-         patch("os.path.exists", return_value=True), \
          patch("src.main.SovereignContainer", return_value=stub_container), \
          patch("src.main.Orchestrator") as mock_orch:
         
@@ -81,13 +81,13 @@ def test_main_happy_path():
 def test_main_validation_failure():
     """[ERROR PATH: SCHEMA VIOLATION] Verify validation failure logic in validate_json."""
     mock_input_data = dummy_in()
-    m = mock_open(read_data='{}')
+    config_data = get_mock_config()
     
-    with patch("sys.argv", ["main.py", "in.json", "out.json"]), \
-         patch("builtins.open", m), \
-         patch("json.load", side_effect=[mock_input_data, {}, get_mock_config(), {}]), \
-         patch("src.main.validate", side_effect=ValidationError("Invalid Schema")), \
-         patch("os.path.exists", return_value=True):
+    with patch("sys.argv", ["main.py", "--input_output_folder", "valid_workspace"]), \
+         patch("glob.glob", return_value=["valid_workspace/geometry.step"]), \
+         patch("builtins.open", mock_open(read_data='{}')), \
+         patch("json.load", side_effect=[config_data, {}]), \
+         patch("src.main.validate", side_effect=ValidationError("Invalid Schema")):
         
         # Assertion: Ensure the gatekeeper blocks invalid state
         with pytest.raises(ValidationError):
