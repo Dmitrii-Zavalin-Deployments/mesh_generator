@@ -225,8 +225,7 @@ jobs:
       - name: 🚀 Execute mesh generator
         run: |
           # Use $GITHUB_WORKSPACE to ensure we are always pointing to the project root
-          python -m src.main "${GITHUB_WORKSPACE}/data/testing-input-output/mesh_generator_input.json" \
-                            "${GITHUB_WORKSPACE}/data/testing-input-output/mesh_generator_output.json"
+          python -m src.main --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/"
 
       - name: 📤 Synchronize Results (Dropbox)
         if: success()
@@ -266,7 +265,7 @@ jobs:
           EOF
           )
 
-          HEADER="# 🌊 Mesh Generator Performance Audit"
+          HEADER="# 📐 Mesh Generator Performance Audit"
           if [ -f "performance_audit.md" ]; then
               tail -n +2 performance_audit.md > old_body.tmp
               echo "$HEADER" > performance_audit.md
