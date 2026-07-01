@@ -38,7 +38,7 @@ def test_main_cli_argument_error():
         with pytest.raises(SystemExit) as e:
             main()
         # Assertion: Validate the exit signal
-        assert e.value.code == 1
+        assert exc.value.code == 2
 
 # 2. Constitutional Violation (Physical File Integrity)
 # Formula: If file path P does not exist in filesystem F, operation must fail.
