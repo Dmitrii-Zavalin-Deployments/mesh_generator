@@ -10,7 +10,7 @@ on:
 
 jobs:
   pre_flight_tests:
-    name: "🧪 Pre-Flight: Logic & Hygiene"
+    name: "📋 Pre-Flight Tests: Logic & Hygiene"
     runs-on: ubuntu-latest
     defaults:
       run:
