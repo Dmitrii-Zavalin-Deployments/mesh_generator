@@ -3,7 +3,7 @@
   "title": "Mesh Generator Configuration Schema",
   "type": "object",
   "description": "External configuration parameters used by the Mesh Generator to produce the CFD-ready grid, mask, and boundary conditions.",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "solver_version": {
       "type": "string",
