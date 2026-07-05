@@ -4,55 +4,50 @@
 # Location: src/debug/forensic_audit.sh
 # ==============================================================================
 
-echo "🚨 [FORENSIC AUDIT INITIATED] Diagnosing test collection failure..."
+echo "🚨 [FORENSIC AUDIT] Analyzing test environment and binding anomalies..."
 
-# 1. Environment & Path Diagnostics
-echo "=== 🌐 System Environment Analysis ==="
-echo "Active Python Binary: $(which python)"
+# 1. Root Cause & Binary Presence Diagnostics
+echo "=== 🌐 Environment Diagnostics ==="
+echo "Active Python: $(which python)"
 echo "Python Version: $(python --version)"
-echo "Environment Variable PATH: $PATH"
-echo "Environment Variable PYTHONPATH: $PYTHONPATH"
 
-echo "=== 📦 Conda Environment Architecture ==="
+echo "=== 📦 Conda Matrix Architecture Inspection ==="
 if command -v conda &> /dev/null; then
-    conda env list
-    echo "--- Target Environment Package Matrix ---"
-    conda list -n test | grep -E "gmsh|pythonocc|pytest|pip" || conda list | grep -E "gmsh|pythonocc|pytest|pip"
+    echo "Checking for binary vs wrapper packages..."
+    conda list | grep -E "gmsh|pythonocc"
 else
-    echo "❌ CRITICAL: 'conda' executable not found in active path."
+    echo "❌ Conda command not accessible in this subshell context."
 fi
 
-echo "=== 📁 File System Layout Search ==="
-echo "Searching for compiled gmsh libraries and wrappers in environment path:"
-find /usr/share/miniconda/envs/test/ -type f \( -name "*gmsh*" -o -name "gmsh.py" \) -maxdepth 5 2>/dev/null || echo "No gmsh components located."
+echo "=== 📁 Shared Library Linkage Diagnostics ==="
+echo "Verifying if C++ Shared Objects exist without Python Wrappers:"
+find /usr/share/miniconda/envs/test/ -type f \( -name "libgmsh.so*" -o -name "gmsh.py" -o -name "__init__.py" \) 2>/dev/null | grep -E "gmsh" || echo "No matching Gmsh files found."
 
-# 2. Smoking-Gun Source Audits
+# 2. Smoking-Gun Source Audits (Pinpointing the exact failing lines)
 echo "=== 🚬 Smoking-Gun Source Audit: src/steps/categorization.py ==="
-cat -n src/steps/categorization.py | head -n 25
-
-echo "=== 🚬 Smoking-Gun Source Audit: src/main.py ==="
-cat -n src/main.py | head -n 25
+cat -n src/steps/categorization.py | grep -A 5 -B 5 "import gmsh"
 
 echo "=== 🚬 Smoking-Gun Source Audit: tests/test_categorization.py ==="
 cat -n tests/test_categorization.py | head -n 15
 
-# 3. Live Interpreter Probes
-echo "=== 🧪 Live Interpreter Probe ==="
-python -c "import sys; print('Python sys.path configuration:'); [print(f' - {p}') for p in sys.path]"
-echo "Attempting programmatic native import:"
-python -c "import gmsh; print('✅ Runtime Verification: gmsh successfully mapped. Version:', gmsh.__version__)" 2>&1
+# 3. Interpreter Binding Probe
+echo "=== 🧪 Live Path Mapping Probe ==="
+python -c "import sys; print('Active sys.path Search Locations:'); [print(f' - {p}') for p in sys.path]"
 
 # 4. Automated Repair Injections via Sed
-# If the root cause is environment encapsulation or path scoping, uncomment the relevant repair step 
-# inside your CI file or runner execution sequence to force a code-level patch.
+# These commands are commented out with '#' per your instructions. 
+# Depending on your strategy, uncomment the desired command to execute automated repairs in your workflow.
 
-# Mutation Strategy A: Force include the target Conda environment's package matrix site-packages directly via sys.path injection
-# # sed -i '1i import sys; sys.path.append("/usr/share/miniconda/envs/test/lib/python3.10/site-packages")' src/steps/categorization.py
+# Strategy A: Use sed to automatically patch your GitHub Actions YAML workflow files, 
+# appending a pip force-install step directly underneath the conda install instruction.
+# # sed -i '/conda install -y/a \          python -m pip install --no-cache-dir gmsh' .github/workflows/*.yml
 
-# Mutation Strategy B: Gracefully downgrade the hard 'gmsh' module import into a flexible test collection mock wrapper
-# # sed -i '/import gmsh/c\try:\n    import gmsh\nexcept ImportError:\n    import unittest.mock as mock\n    gmsh = mock.MagicMock()\n    print("⚠️ MOCK APPLIED: gmsh binding bypassed for collection context")' src/steps/categorization.py
+# Strategy B: Use sed to inject a graceful runtime mock fallback into the step module,
+# allowing test collection to pass natively even if the underlying binary bindings are missing.
+# # sed -i '/import gmsh/c\try:\n    import gmsh\nexcept ImportError:\n    import unittest.mock as mock; gmsh = mock.MagicMock(); print("⚠️ MOCK APPLIED: gmsh binding bypassed for collection context")' src/steps/categorization.py
 
-# Mutation Strategy C: Strip structural imports from the test file to isolate test fixture scanning
+# Strategy C: Use sed to completely comment out the offending import lines in the test execution loop
+# to isolate non-physics test routines.
 # # sed -i 's/from src.steps.categorization import CategorizationStep/# from src.steps.categorization import CategorizationStep/g' tests/test_categorization.py
 
 echo "=== 🛑 Forensic Audit Execution Completed ==="
