@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # --- Module-Level Engines (Regrouped outside the class to pass the Constitution check) ---
 
 def _run_gmsh_engine(container: SovereignContainer):
-    """Gmsh Implementation: Geometry-Aware Tetrahedral Meshing."""
+    """Gmsh Implementation: Geometry-Aware Tetrahedral Meshing and Structured Sampling."""
     logger.info("Starting Gmsh Engine categorization...")
     
     # DEFERRED IMPORT: Safely loaded inside method scope so it never leaks 
@@ -50,9 +50,60 @@ def _run_gmsh_engine(container: SovereignContainer):
     
     logger.info(f"Gmsh Engine complete: {len(nodes[0])} nodes, {len(elements[0])} tetrahedra.")
     
+    # --- The Bridge: High-Precision Structured Sampling ---
+    # We must satisfy the downstream schema by projecting the Gmsh continuum 
+    # onto the structured grid (already calculated by ResolutionStep).
+    logger.info("Sampling unstructured mesh onto structured Cartesian grid...")
+    
+    grid = container.grid
+    dx = (grid.x_max - grid.x_min) / grid.nx
+    dy = (grid.y_max - grid.y_min) / grid.ny
+    dz = (grid.z_max - grid.z_min) / grid.nz
+    
+    mask = [1] * (grid.nx * grid.ny * grid.nz) # Default to fluid (1)
+    stats = {"solid": 0, "fluid": 0, "wall": 0}
+    
+    for i in range(grid.nx):
+        for j in range(grid.ny):
+            for k in range(grid.nz):
+                # Voxel corner coordinate mapping
+                x0, y0, z0 = grid.x_min + i*dx, grid.y_min + j*dy, grid.z_min + k*dz
+                corners = [
+                    (x0, y0, z0),       (x0+dx, y0, z0),
+                    (x0, y0+dy, z0),    (x0+dx, y0+dy, z0),
+                    (x0, y0, z0+dz),    (x0+dx, y0, z0+dz),
+                    (x0, y0+dy, z0+dz), (x0+dx, y0+dy, z0+dz)
+                ]
+                
+                in_count = 0
+                out_count = 0
+                
+                # Sample the Gmsh element matrix
+                for cx, cy, cz in corners:
+                    # Query if the point falls inside a 3D element (dim=3)
+                    elems, _ = gmsh.model.mesh.getElementsByCoordinates(cx, cy, cz, 3, strict=False)
+                    if len(elems) > 0:
+                        in_count += 1
+                    else:
+                        out_count += 1
+                
+                # Canonical flattening index
+                idx = i + grid.nx * (j + grid.ny * k)
+                
+                # Determine state
+                if in_count == 8:
+                    mask[idx] = 0   # Solid
+                    stats["solid"] += 1
+                elif out_count == 8:
+                    mask[idx] = 1   # Fluid
+                    stats["fluid"] += 1
+                else:
+                    mask[idx] = -1  # Wall
+                    stats["wall"] += 1
+                    
+    container.mask = mask
+    logger.info(f"Gmsh sampling complete. Mask Stats: {stats}")
     gmsh.finalize()
-    # Note: We keep the container.mask as None or a placeholder for now 
-    # until the physics solver is updated to consume the unstructured mesh.
 
 
 def _run_voxel_engine(container: SovereignContainer):
@@ -109,7 +160,7 @@ def _run_voxel_engine(container: SovereignContainer):
 
     # Persistence to the Sovereign Container.
     container.mask = mask
-    logger.info("Voxel Engine categorization complete.")
+    logger.info(f"Voxel Engine categorization complete. Mask Stats: {stats}")
 
 
 # --- The Compliant Class ---
@@ -135,6 +186,7 @@ class CategorizationStep(StepInterface):
         else:
             _run_voxel_engine(container)
 
-        # Ensure we satisfy sovereign container contracts before leaving
-        if container.mask is None and not container.use_gmsh:
-            raise RuntimeError("POST-CONDITION VIOLATION: Voxel Engine failed to populate container.mask")
+        # Ensure we satisfy sovereign container contracts before leaving.
+        # Check applies to BOTH engines to strictly guarantee JSON schema compliance.
+        if container.mask is None:
+            raise RuntimeError("POST-CONDITION VIOLATION: Categorization Engine failed to populate container.mask")
