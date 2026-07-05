@@ -267,8 +267,7 @@ jobs:
               echo "$NEW_ENTRY" >> performance_audit.md
           fi
 
-          git add performance_audit.md
-          git add data/testing-input-output/
+          git add performance_audit.md data/testing-input-output/
 
           if [ -n "$(git status --porcelain performance_audit.md)" ]; then
             git commit -m "🤖 robot: audit ledger update [${{ job.status }}]"
