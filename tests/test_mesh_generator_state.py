@@ -53,7 +53,7 @@ def test_sovereign_container_setters_happy_path():
     Verify that valid types are accepted by the container setters.
     This demonstrates the successful state transition for each attribute.
     """
-    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {})
+    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {}, True)
     
     # Transition: Set valid data structures
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
@@ -76,7 +76,7 @@ def test_sovereign_container_type_violations():
     This triggers the explicit TypeError blocks (Lines 78, 87, 96, 107, 116),
     ensuring 100% path coverage.
     """
-    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {})
+    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {}, True)
     
     # 1. Grid Check: Expect TypeError when passing a string instead of GridState.
     with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'grid' must be an instance of GridState"):
