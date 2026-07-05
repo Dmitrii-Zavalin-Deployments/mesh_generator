@@ -70,7 +70,6 @@ def main():
     # 4. Orchestrate Pipeline
     # No-Default Policy: config['engine_type'] must exist.
     engine_type = config['engine_type']
-    use_gmsh = (engine_type == "gmsh")
     
     logger.info(f"Starting pipeline execution. Engine: {engine_type}")
     
