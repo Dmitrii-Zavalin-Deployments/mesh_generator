@@ -202,8 +202,15 @@ jobs:
 
       - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
-          # Install heavy binary physics stack, Gmsh engine, and pip cleanly
+          # 1. Install heavy binary physics stack
           conda install -y -c conda-forge -c defaults pythonocc-core gmsh numpy pip
+          
+          # 2. CRITICAL: Force-install the Python bindings via pip 
+          # This ensures the gmsh.py wrapper is linked to the conda-installed binaries
+          python -m pip install --no-cache-dir gmsh
+          
+          # 3. Verification check (Fail fast if install failed)
+          python -c "import gmsh; print('Gmsh version:', gmsh.__version__)"
 
       - name: 📥 Install Python Utility Dependencies
         run: |
