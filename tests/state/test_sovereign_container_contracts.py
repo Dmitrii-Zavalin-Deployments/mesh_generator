@@ -36,8 +36,8 @@ def instantiated_container(valid_config):
         solver_version=valid_config["solver_version"],
         tolerance=valid_config["tolerance"],
         min_element_size=valid_config["min_element_size"],
-        boundary_map=valid_config["boundary_map"]
-        use_gmsh=True,
+        boundary_map=valid_config["boundary_map"],
+        use_gmsh=True
     )
 
 # -------------------------------------------------------------------------
