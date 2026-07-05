@@ -81,7 +81,7 @@ def _run_gmsh_engine(container: SovereignContainer):
                 # Sample the Gmsh element matrix
                 for cx, cy, cz in corners:
                     # Query if the point falls inside a 3D element (dim=3)
-                    elems, _ = gmsh.model.mesh.getElementsByCoordinates(cx, cy, cz, 3, strict=False)
+                    elems = gmsh.model.mesh.getElementsByCoordinates(cx, cy, cz, 3, strict=False)
                     if len(elems) > 0:
                         in_count += 1
                     else:
