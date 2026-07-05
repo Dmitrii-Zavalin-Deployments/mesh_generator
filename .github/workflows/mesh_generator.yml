@@ -10,7 +10,7 @@ on:
 
 jobs:
   pre_flight_tests:
-    name: "📋 Pre-Flight Tests: Logic & Hygiene"
+    name: "📋 Pre-Flight Tests"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -163,7 +163,7 @@ jobs:
           fi
 
   integration_validation:
-    name: "🚀 Integration: End-to-End Pipeline Verification"
+    name: "🔬 Integration Tests"
     needs: pre_flight_tests
     runs-on: ubuntu-latest
     defaults:
