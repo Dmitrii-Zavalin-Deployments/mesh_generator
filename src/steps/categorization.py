@@ -122,21 +122,19 @@ class CategorizationStep(StepInterface):
     or the new Geometry-Aware Gmsh engine.
     """
     
-    __slots__ = ('use_gmsh',)
-
-    def __init__(self, use_gmsh: bool = True):
-        self.use_gmsh = use_gmsh
+    __slots__ = () # Stateless: Logic only
 
     def execute(self, container: SovereignContainer):
         """Dispatches logic to the appropriate engine."""
         if container.grid is None:
             raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep.")
 
-        if self.use_gmsh:
+        # Evaluates strategy flags out of the centralized, typed container properties
+        if container.use_gmsh:
             _run_gmsh_engine(container)
         else:
             _run_voxel_engine(container)
 
         # Ensure we satisfy sovereign container contracts before leaving
-        if container.mask is None and not self.use_gmsh:
+        if container.mask is None and not container.use_gmsh:
             raise RuntimeError("POST-CONDITION VIOLATION: Voxel Engine failed to populate container.mask")

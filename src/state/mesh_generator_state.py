@@ -38,7 +38,7 @@ class SovereignContainer:
     """
     __slots__ = (
         'step_file', 'solver_version', 'tolerance', 'max_element_size', 'min_element_size',
-        'bc_map', '_grid', '_mask', '_boundary_conditions', '_cad_solid', '_bbox'
+        'bc_map', '_grid', '_mask', '_boundary_conditions', '_cad_solid', '_bbox', '_use_gmsh'
     )
 
     def __init__(
@@ -48,7 +48,8 @@ class SovereignContainer:
         solver_version: str, 
         tolerance: float, 
         min_element_size: float,
-        boundary_map: dict
+        boundary_map: dict,
+        use_gmsh: bool
     ):
         """
         Explicit Initialization: No defaults permitted. 
@@ -60,6 +61,7 @@ class SovereignContainer:
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)
         self.bc_map = dict(boundary_map)
+        self._use_gmsh = bool(use_gmsh)
         
         # --- Computed Fields (Initialized as None) ---
         self._grid = None
@@ -114,3 +116,12 @@ class SovereignContainer:
         if value is not None and not isinstance(value, tuple):
             raise TypeError("CONSTITUTION VIOLATION: 'bbox' must be a tuple.")
         self._bbox = value
+
+    @property
+    def use_gmsh(self) -> bool: return self._use_gmsh
+
+    @use_gmsh.setter
+    def use_gmsh(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError("CONSTITUTION VIOLATION: 'use_gmsh' must be a boolean.")
+        self._use_gmsh = value
