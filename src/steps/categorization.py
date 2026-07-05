@@ -1,6 +1,6 @@
 import logging
 from interfaces.base_interface import StepInterface
-from src.state.mesh_generator_state import SovereignContainer, GridState
+from src.state.mesh_generator_state import SovereignContainer
 # Legacy Imports
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt

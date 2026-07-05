@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional
 from OCC.Core.TopoDS import TopoDS_Shape
 
 class BoundaryConditionState:
