@@ -50,12 +50,13 @@ def main():
         raise RuntimeError(error_msg)
     step_file = step_files[0]
 
-    # 2. Load Config
+    # 2. Load and Validate Config
     with open("config/config.json", 'r') as f:
         config = json.load(f)
     validate_json(config, "schema/mesh_generator_config_schema.json")
 
     # 3. Initialize Sovereign Container
+    # Strictly accessing keys; if missing, KeyError forces process termination (No Defaults).
     container = SovereignContainer(
         step_file=step_file,
         max_element_size=config['max_element_size'],
@@ -66,16 +67,18 @@ def main():
     )
 
     # 4. Orchestrate Pipeline
-    # We retrieve the 'use_gmsh' flag from config, defaulting to True for our transition
-    use_gmsh = config.get('use_gmsh', True)
+    # No-Default Policy: config['engine_type'] must exist.
+    engine_type = config['engine_type']
+    use_gmsh = (engine_type == "gmsh")
     
-    logger.info(f"Starting pipeline execution (Gmsh Mode: {use_gmsh}).")
+    logger.info(f"Starting pipeline execution. Engine: {engine_type}")
+    
     pipeline = Orchestrator([
         IngestionStep(),
         TracingStep(),
         ResolutionStep(),
         CategorizationStep(use_gmsh=use_gmsh),
-        BoundaryConditionsStep() # Note: This will be skipped in logic if Gmsh is used
+        BoundaryConditionsStep()
     ])
     pipeline.run(container)
     
@@ -83,6 +86,7 @@ def main():
     output_data = {
         "inputs": {"step_model": {"path": container.step_file}},
         "config": {
+            "engine_type": engine_type,
             "solver_version": container.solver_version,
             "tolerance": container.tolerance,
             "max_element_size": container.max_element_size,
