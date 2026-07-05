@@ -1,4 +1,3 @@
-# src/pipeline/orchestrator.py
 from typing import List
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer

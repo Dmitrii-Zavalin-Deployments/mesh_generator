@@ -1,4 +1,4 @@
-# src/state/mesh_generator_state.py
+from typing import List, Optional, Any
 from OCC.Core.TopoDS import TopoDS_Shape
 
 class BoundaryConditionState:
@@ -16,9 +16,10 @@ class BoundaryConditionState:
 class GridState:
     """
     State container for the Grid Extents and Resolution.
-    Preserves the nested structure defined in mesh_generator_results_schema.json.
+    Compatible with both Cartesian Voxel grids and 'Virtual Grids' from Gmsh.
     """
     __slots__ = ('x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max', 'nx', 'ny', 'nz')
+    
     def __init__(self, x_min: float, x_max: float, y_min: float, y_max: float, z_min: float, z_max: float, nx: int, ny: int, nz: int):
         self.x_min, self.x_max = float(x_min), float(x_max)
         self.y_min, self.y_max = float(y_min), float(y_max)
@@ -47,7 +48,7 @@ class SovereignContainer:
         solver_version: str, 
         tolerance: float, 
         min_element_size: float,
-        boundary_map: dict  # Added explicitly
+        boundary_map: dict
     ):
         """
         Explicit Initialization: No defaults permitted. 
@@ -58,60 +59,58 @@ class SovereignContainer:
         self.tolerance = float(tolerance)
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)
-        self.bc_map = dict(boundary_map) # Enforced map
+        self.bc_map = dict(boundary_map)
         
         # --- Computed Fields (Initialized as None) ---
         self._grid = None
         self._mask = None
         self._boundary_conditions = None
-        self.cad_solid = None
-        self._bbox = None # Initialized as empty
+        self._cad_solid = None
+        self._bbox = None
 
     # --- Properties with Constitution Enforcement ---
 
     @property
-    def grid(self): return self._grid
+    def grid(self) -> Optional[GridState]: return self._grid
 
     @grid.setter
-    def grid(self, value):
+    def grid(self, value: Optional[GridState]):
         if value is not None and not isinstance(value, GridState):
             raise TypeError("CONSTITUTION VIOLATION: 'grid' must be an instance of GridState.")
         self._grid = value
 
     @property
-    def mask(self): return self._mask
+    def mask(self) -> Optional[List[int]]: return self._mask
 
     @mask.setter
-    def mask(self, value):
+    def mask(self, value: Optional[List[int]]):
         if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'mask' must be a List.")
         self._mask = value
 
     @property
-    def boundary_conditions(self): return self._boundary_conditions
+    def boundary_conditions(self) -> Optional[List[BoundaryConditionState]]: return self._boundary_conditions
 
     @boundary_conditions.setter
-    def boundary_conditions(self, value):
+    def boundary_conditions(self, value: Optional[List[BoundaryConditionState]]):
         if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'boundary_conditions' must be a List.")
         self._boundary_conditions = value
     
     @property
-    def cad_solid(self): 
-        return self._cad_solid
+    def cad_solid(self) -> Optional[TopoDS_Shape]: return self._cad_solid
 
     @cad_solid.setter
-    def cad_solid(self, value):
-        # We allow None (the "unloaded" state) or a TopoDS_Shape
+    def cad_solid(self, value: Optional[TopoDS_Shape]):
         if value is not None and not isinstance(value, TopoDS_Shape):
             raise TypeError(f"CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape, not {type(value)}.")
         self._cad_solid = value
     
     @property
-    def bbox(self): return self._bbox
+    def bbox(self) -> Optional[tuple]: return self._bbox
 
     @bbox.setter
-    def bbox(self, value):
+    def bbox(self, value: Optional[tuple]):
         if value is not None and not isinstance(value, tuple):
             raise TypeError("CONSTITUTION VIOLATION: 'bbox' must be a tuple.")
         self._bbox = value

@@ -1,53 +1,77 @@
-# src/steps/categorization.py
 import logging
 from interfaces.base_interface import StepInterface
-from src.state.mesh_generator_state import SovereignContainer
+from src.state.mesh_generator_state import SovereignContainer, GridState
+# Legacy Imports
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
+# New Gmsh Imports
+import gmsh
 
-# Configure module-level logger for visibility in CI pipelines
 logger = logging.getLogger(__name__)
 
 class CategorizationStep(StepInterface):
     """
-    S11: Conservative Spatial Categorization.
+    S11: Spatial Categorization Controller.
     
-    Transforms the continuous CAD boundary into a discrete computational mask.
-    This step employs an 8-corner sampling strategy per voxel to ensure that
-    boundary features are captured without leaking or aliasing.
+    Delegates the categorization strategy to either the legacy Voxelizer 
+    or the new Geometry-Aware Gmsh engine.
     """
     
-    __slots__ = () 
+    __slots__ = ('use_gmsh',)
+
+    def __init__(self, use_gmsh: bool = True):
+        self.use_gmsh = use_gmsh
 
     def execute(self, container: SovereignContainer):
-        """
-        Performs conservative voxelization.
-        
-        Args:
-            container: The SovereignContainer instance. Requires a valid 'grid' 
-                       and 'cad_solid' (OpenCascade TopoDS_Shape).
-        """
-        
-        # GUARD CLAUSE: Ensure the spatial domain is defined.
+        """Dispatches logic to the appropriate engine."""
         if container.grid is None:
-            error_msg = "CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep."
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep.")
 
-        logger.info("Starting Conservative Spatial Categorization...")
+        if self.use_gmsh:
+            self._run_gmsh_engine(container)
+        else:
+            self._run_voxel_engine(container)
+
+    def _run_gmsh_engine(self, container: SovereignContainer):
+        """Gmsh Implementation: Geometry-Aware Tetrahedral Meshing."""
+        logger.info("Starting Gmsh Engine categorization...")
         
-        # Initialize the geometry classifier for the CAD solid.
+        gmsh.initialize()
+        gmsh.model.add("nozzle_model")
+        
+        # Import the STEP file
+        gmsh.model.occ.importShapes(container.step_file)
+        gmsh.model.occ.synchronize()
+        
+        # Define Mesh Size Field (Adaptive)
+        # Using the logic derived in ResolutionStep
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
+        
+        # Generate 3D Mesh
+        gmsh.model.mesh.generate(3)
+        
+        # Extract Mesh Data
+        nodes = gmsh.model.mesh.getNodes()
+        elements = gmsh.model.mesh.getElementsByType(4) # 4 = Tetrahedron
+        
+        logger.info(f"Gmsh Engine complete: {len(nodes[0])} nodes, {len(elements[0])} tetrahedra.")
+        
+        gmsh.finalize()
+        # Note: We keep the container.mask as None or a placeholder for now 
+        # until the physics solver is updated to consume the unstructured mesh.
+
+    def _run_voxel_engine(self, container: SovereignContainer):
+        """Legacy Voxelizer Implementation."""
+        logger.info("Starting Legacy Voxel Engine categorization...")
         classifier = BRepClass3d_SolidClassifier(container.cad_solid)
         grid = container.grid
         
-        # Calculate voxel dimensions based on the total bounding box span.
         dx = (grid.x_max - grid.x_min) / grid.nx
         dy = (grid.y_max - grid.y_min) / grid.ny
         dz = (grid.z_max - grid.z_min) / grid.nz
-
-        # Initialize the mask list.
-        # Canonical flattening: index = i + nx * (j + ny * k)
+        
         mask = [0] * (grid.nx * grid.ny * grid.nz)
         stats = {"solid": 0, "fluid": 0, "wall": 0}
 
@@ -92,4 +116,4 @@ class CategorizationStep(StepInterface):
 
         # Persistence to the Sovereign Container.
         container.mask = mask
-        logger.info(f"Categorization Complete: Solid={stats['solid']}, Fluid={stats['fluid']}, Wall={stats['wall']}")
+        logger.info("Voxel Engine categorization complete.")

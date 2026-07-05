@@ -1,4 +1,3 @@
-# src/steps/resolution.py
 import logging
 import numpy as np
 from OCC.Core.BRepBndLib import brepbndlib
@@ -18,7 +17,7 @@ def get_min_feature_size(shape) -> float:
     """
     Utility function to analyze the geometry for adaptive fidelity.
     
-    It traverses the topology of the shape to find the shortest edge,
+    Traverses the topology of the shape to find the shortest edge,
     which typically represents the thinnest feature (e.g., plate thickness).
     Falls back to the overall bounding box minimum dimension if no valid edges exist.
     """
@@ -44,8 +43,7 @@ def get_min_feature_size(shape) -> float:
     if min_length != float('inf'):
         return float(min_length)
         
-    # 3. Fallback: If no edges exist (e.g., pure mathematical spheres), 
-    # use the smallest bounding box dimension.
+    # 3. Fallback: If no edges exist, use the smallest bounding box dimension.
     bbox = Bnd_Box()
     brepbndlib.Add(shape, bbox)
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
@@ -57,27 +55,26 @@ class ResolutionStep(StepInterface):
     """
     Refactored S8-S10: Grid Resolution with Adaptive Fidelity.
     
-    Dynamically adjusts grid resolution based on the minimum geometric 
-    feature size to prevent aliasing of thin structural members.
+    Dynamically adjusts target resolution based on the minimum geometric 
+    feature size. This value will serve as the mesh size guide for the 
+    subsequent GmshCategorizer.
     """
     
     __slots__ = ()
 
     def execute(self, container: SovereignContainer):
         """
-        Executes the grid resolution calculation with adaptive constraints.
+        Executes the resolution calculation.
         
         Args:
             container: The SovereignContainer instance. 
-                       Requires a populated 'bbox' from TracingStep and 
-                       a 'max_element_size' configuration.
+                       Requires a populated 'bbox' and 'cad_solid'.
         """
-        logger.info("Starting ResolutionStep: calculating adaptive grid.")
+        logger.info("Starting ResolutionStep: calculating adaptive resolution.")
+        
         # GUARD CLAUSE: Pipeline Topology Validation.
-        # We enforce that the TracingStep has already finished. If 'bbox' is None,
-        # we have no physical extent to map to a grid, and the process must halt.
-        if container.bbox is None:
-            error_msg = "CONSTITUTION VIOLATION: 'bbox' is None. TracingStep must be executed before ResolutionStep."
+        if container.bbox is None or container.cad_solid is None:
+            error_msg = "CONSTITUTION VIOLATION: Pipeline incomplete. Tracing/Ingestion steps must run before ResolutionStep."
             logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -86,44 +83,31 @@ class ResolutionStep(StepInterface):
         logger.info(f"ResolutionStep: Minimum feature detected at {min_feature:.4f}")
         
         # 2. CONSTRAINED ADAPTATION:
-        # Check against the container's resolution floor and ceiling.
+        # Check against resolution floor and ceiling.
         if min_feature < container.min_element_size:
             error_msg = f"GEOMETRY VIOLATION: Thinnest feature ({min_feature:.4f}) is smaller than minimum element size ({container.min_element_size:.4f})."
             logger.error(error_msg)
             raise RuntimeError(error_msg)
         
-        # Determine the effective resolution:
-        # If the feature is smaller than the user-desired max, we use the feature size 
-        # (to avoid aliasing). Otherwise, we cap it at the user-defined max.
+        # Determine the effective element size (to be passed to Gmsh)
         adaptive_el = min(container.max_element_size, max(container.min_element_size, min_feature))
-        logger.info(f"ResolutionStep: Adaptive element size set to {adaptive_el:.4f}")
+        logger.info(f"ResolutionStep: Target element size (adaptive_el) set to {adaptive_el:.4f}")
         
         # 3. UNPACKING: Translate the tuple into readable spatial coordinates.
-        # The Bnd_Box provides the precise physical limits of the CAD geometry.
         x_min, y_min, z_min, x_max, y_max, z_max = container.bbox
         
-        # 4. DISCRETIZATION LOGIC
-        # We use the 'adaptive_el' instead of the global 'max_element_size'.
-        # 1. Calculation: (Span / adaptive_el) gives the number of intervals.
-        # 2. np.ceil: We always round up. It is better to have a slightly finer 
-        #    grid that fully encapsulates the geometry than to truncate a cell 
-        #    and lose physical boundary information.
-        # 3. max(1, ...): The "Singularity Shield." Regardless of how small the 
-        #    geometry is, we enforce at least 1 cell to prevent a zero-width grid 
-        #    (which would cause the solver to crash).
+        # 4. VIRTUAL DISCRETIZATION:
+        # We calculate these for legacy compatibility and solver memory estimation.
+        # Note: These now represent 'Virtual Resolution' rather than voxel counts.
         nx = max(1, int(np.ceil((x_max - x_min) / adaptive_el)))
         ny = max(1, int(np.ceil((y_max - y_min) / adaptive_el)))
         nz = max(1, int(np.ceil((z_max - z_min) / adaptive_el)))
         
         # 5. STATE PERSISTENCE:
-        # We wrap the results in a 'GridState' object. This acts as an immutable
-        # contract for the next steps (Categorization, BCs). By injecting this 
-        # into 'container.grid', we trigger the SovereignContainer's setter 
-        # validation to ensure the data is properly typed.
         container.grid = GridState(
             x_min=x_min, x_max=x_max,
             y_min=y_min, y_max=y_max,
             z_min=z_min, z_max=z_max,
             nx=nx, ny=ny, nz=nz
         )
-        logger.info(f"ResolutionStep successful: Grid initialized with dimensions {nx}x{ny}x{nz}.")
+        logger.info(f"ResolutionStep successful: Virtual Grid initialized with dimensions {nx}x{ny}x{nz}.")

@@ -1,4 +1,3 @@
-# src/steps/ingestion.py
 import logging
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
