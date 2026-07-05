@@ -5,8 +5,9 @@ from src.state.mesh_generator_state import SovereignContainer
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
-# New Gmsh Imports
-import gmsh
+
+# CRITICAL FIX: 'import gmsh' removed from global scope to prevent 
+# test collection aborts in environments missing the Python wrapper.
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,24 @@ class CategorizationStep(StepInterface):
         else:
             self._run_voxel_engine(container)
 
+        # Ensure we satisfy sovereign container contracts before leaving
+        if container.mask is None and not self.use_gmsh:
+            raise RuntimeError("POST-CONDITION VIOLATION: Voxel Engine failed to populate container.mask")
+
     def _run_gmsh_engine(self, container: SovereignContainer):
         """Gmsh Implementation: Geometry-Aware Tetrahedral Meshing."""
         logger.info("Starting Gmsh Engine categorization...")
+        
+        # DEFERRED IMPORT: Safely loaded inside method scope so it never leaks 
+        # into global collection routines.
+        try:
+            import gmsh
+        except ImportError as e:
+            logger.error("CRITICAL: Gmsh engine selected but Python bindings are not accessible.")
+            raise RuntimeError(
+                "Gmsh Python bindings missing. If you intended to use this engine, "
+                "ensure 'pip install gmsh' has been executed successfully."
+            ) from e
         
         gmsh.initialize()
         gmsh.model.add("nozzle_model")
