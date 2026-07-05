@@ -122,11 +122,8 @@ class CategorizationStep(StepInterface):
     or the new Geometry-Aware Gmsh engine.
     """
     
-    __slots__ = ('use_gmsh',) # Stateless: Logic only
+    __slots__ = () # Stateless: Logic only
     
-    def __init__(self, use_gmsh: bool):
-        self.use_gmsh = use_gmsh
-
     def execute(self, container: SovereignContainer):
         """Dispatches logic to the appropriate engine."""
         if container.grid is None:

@@ -78,7 +78,7 @@ def main():
         IngestionStep(),
         TracingStep(),
         ResolutionStep(),
-        CategorizationStep(use_gmsh=use_gmsh),
+        CategorizationStep(),
         BoundaryConditionsStep()
     ])
     pipeline.run(container)
