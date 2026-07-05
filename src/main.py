@@ -63,7 +63,8 @@ def main():
         solver_version=config['solver_version'],
         tolerance=config['tolerance'],
         min_element_size=config['min_element_size'],
-        boundary_map=config['boundary_map']
+        boundary_map=config['boundary_map'],
+        use_gmsh=(config.get('engine_type') == 'gmsh')
     )
 
     # 4. Orchestrate Pipeline
