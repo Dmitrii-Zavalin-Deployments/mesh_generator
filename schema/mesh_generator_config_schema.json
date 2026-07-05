@@ -5,6 +5,12 @@
   "description": "External configuration parameters used by the Mesh Generator to produce the CFD-ready grid, mask, and boundary conditions.",
   "additionalProperties": true,
   "properties": {
+    "engine_type": {
+      "type": "string",
+      "enum": ["voxel", "gmsh"],
+      "default": "gmsh",
+      "description": "Determines which meshing engine to use. 'voxel' for the legacy grid algorithm; 'gmsh' for the high-fidelity geometry-aware mesher."
+    },
     "solver_version": {
       "type": "string",
       "description": "Version identifier of the meshing/solver backend."
@@ -37,6 +43,7 @@
     }
   },
   "required": [
+    "engine_type",
     "solver_version",
     "tolerance",
     "max_element_size",

@@ -1,16 +1,14 @@
 import sys
 import os
-
-# --- BOOTSTRAP: Add repo root to sys.path ---
-# This ensures that 'import src...' works regardless of your current working directory.
-# We append the directory containing the 'src' folder.
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import logging
 import glob
 import json
 import argparse
 from jsonschema import validate, ValidationError
+
+# --- BOOTSTRAP ---
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from src.state.mesh_generator_state import SovereignContainer
 from src.pipeline.orchestrator import Orchestrator
 from src.steps.ingestion import IngestionStep
@@ -19,7 +17,7 @@ from src.steps.resolution import ResolutionStep
 from src.steps.categorization import CategorizationStep
 from src.steps.boundary_conditions import BoundaryConditionsStep
 
-# Configure logging for CI/CD and local observability
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
@@ -27,7 +25,6 @@ logging.basicConfig(
 logger = logging.getLogger("mesh_generator")
 
 def validate_json(data, schema_path):
-    """Strictly validates data against a JSON schema. Raises ValidationError on failure."""
     with open(schema_path, 'r') as f:
         schema = json.load(f)
     try:
@@ -45,8 +42,7 @@ def main():
     workspace = args.input_output_folder
     logger.info(f"Pipeline initialized. Workspace: {workspace}")
 
-    # 1. Dynamic STEP File Discovery (Generality Principle)
-    # The module independently searches the workspace for its target geometry
+    # 1. Discover STEP File
     step_files = glob.glob(os.path.join(workspace, "*.step"))
     if not step_files:
         error_msg = f"CONSTITUTION VIOLATION: STEP file not found in workspace: {os.path.abspath(workspace)}"
@@ -54,7 +50,7 @@ def main():
         raise RuntimeError(error_msg)
     step_file = step_files[0]
 
-    # 2. Load & Validate Config
+    # 2. Load Config
     with open("config/config.json", 'r') as f:
         config = json.load(f)
     validate_json(config, "schema/mesh_generator_config_schema.json")
@@ -70,18 +66,20 @@ def main():
     )
 
     # 4. Orchestrate Pipeline
-    logger.info("Starting pipeline execution.")
+    # We retrieve the 'use_gmsh' flag from config, defaulting to True for our transition
+    use_gmsh = config.get('use_gmsh', True)
+    
+    logger.info(f"Starting pipeline execution (Gmsh Mode: {use_gmsh}).")
     pipeline = Orchestrator([
         IngestionStep(),
         TracingStep(),
         ResolutionStep(),
-        CategorizationStep(),
-        BoundaryConditionsStep()
+        CategorizationStep(use_gmsh=use_gmsh),
+        BoundaryConditionsStep() # Note: This will be skipped in logic if Gmsh is used
     ])
     pipeline.run(container)
-    logger.info("Pipeline execution completed successfully.")
-
-    # 5. Serialize Output
+    
+    # 5. Serialize Output (Defensive)
     output_data = {
         "inputs": {"step_model": {"path": container.step_file}},
         "config": {
@@ -97,20 +95,19 @@ def main():
                 "y_min": container.grid.y_min, "y_max": container.grid.y_max,
                 "z_min": container.grid.z_min, "z_max": container.grid.z_max,
                 "nx": container.grid.nx, "ny": container.grid.ny, "nz": container.grid.nz
-            },
-            "mask": container.mask,
+            } if container.grid else None,
+            "mask": container.mask if container.mask is not None else [],
             "boundary_conditions": [
                 {"location": bc.location, "type": bc.type, "surface_id": bc.surface_id}
-                for bc in container.boundary_conditions
+                for bc in (container.boundary_conditions or [])
             ]
         }
     }
 
-    # Automatically map output to the identical workspace folder target boundary
     output_path = os.path.join(workspace, "mesh_generator_output.json")
     with open(output_path, 'w') as f:
         json.dump(output_data, f, indent=2)
     logger.info(f"Results serialized to: {output_path}")
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     main()

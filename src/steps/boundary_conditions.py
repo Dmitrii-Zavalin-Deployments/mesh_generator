@@ -1,4 +1,3 @@
-# src/steps/boundary_conditions.py
 import logging
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer, BoundaryConditionState
@@ -49,7 +48,6 @@ class BoundaryConditionsStep(StepInterface):
         dz = (grid.z_max - grid.z_min) / grid.nz
 
         # --- Domain Traversal ---
-        # Iterate over every voxel index (i, j, k) to inspect classification status.
         for i in range(grid.nx):
             for j in range(grid.ny):
                 for k in range(grid.nz):
@@ -57,21 +55,17 @@ class BoundaryConditionsStep(StepInterface):
                     
                     # --- Conservative Voxel Filtering ---
                     # We only care about interface cells (mask == -1) where the
-                    # geometry boundary resides. Fluid (1) and Solid (0) are ignored.
+                    # geometry boundary resides.
                     if mask[idx] != -1:
                         continue
                     
                     # --- Voxel Extent Calculation ---
-                    # Calculate the physical bounds of the current voxel to accurately 
-                    # check for alignment with domain boundaries.
                     vx_min, vx_max = grid.x_min + i * dx, grid.x_min + (i + 1) * dx
                     vy_min, vy_max = grid.y_min + j * dy, grid.y_min + (j + 1) * dy
                     vz_min, vz_max = grid.z_min + k * dz, grid.z_min + (k + 1) * dz
                     
                     # --- Boundary Intersection Detection ---
-                    # Check if the voxel's faces coincide with the grid domain boundaries
-                    # within the permitted geometric tolerance (tol).
-                    location = "wall" # Default classification for interior interfaces
+                    location = "wall" 
                     if abs(vx_min - grid.x_min) < tol:
                         location = "x_min"
                     elif abs(vx_max - grid.x_max) < tol:
@@ -86,9 +80,6 @@ class BoundaryConditionsStep(StepInterface):
                         location = "z_max"
                     
                     # --- Physical Condition Assignment ---
-                    # Enforce explicit configuration: Every detected location must 
-                    # be defined in the bc_map. If a location is missing, we raise 
-                    # a configuration error to prevent silent simulation failure.
                     if location not in bc_map:
                         error_msg = f"CONSTITUTION VIOLATION: Boundary location '{location}' detected but not defined in 'bc_map'."
                         logger.error(error_msg)
@@ -97,8 +88,6 @@ class BoundaryConditionsStep(StepInterface):
                     bc_type = bc_map[location]
                     
                     # --- State Registration ---
-                    # Assign the cell index as the unique identifier to ensure 
-                    # solver-side lookup consistency.
                     bcs.append(BoundaryConditionState(
                         location=location,
                         type=bc_type,
