@@ -250,6 +250,7 @@
       0,
       0
     ],
+    "mesh_snapshot_path": "/home/runner/work/mesh_generator/mesh_generator/data/testing-input-output/mesh_snapshot.png",
     "boundary_conditions": []
   }
 }
