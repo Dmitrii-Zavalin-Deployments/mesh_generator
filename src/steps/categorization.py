@@ -40,7 +40,7 @@ def _run_gmsh_engine(container: SovereignContainer):
     gmsh.initialize()
     
     try:
-        gmsh.model.add("nozzle_model")
+        gmsh.model.add("geometry_model")
         
         # Import the STEP file
         gmsh.model.occ.importShapes(container.step_file)
