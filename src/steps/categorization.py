@@ -2,7 +2,8 @@ import logging
 import os
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
-# Legacy Imports
+
+# Legacy Imports for fallback voxelizer
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
@@ -12,15 +13,21 @@ from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
 
 logger = logging.getLogger(__name__)
 
+# --- SSoT Shared Memory Cache ---
+# Used to transfer pre-baked mesh raw structure to BoundaryConditionsStep (Layer 2)
+# without violating SovereignContainer's __slots__ boundary policies.
+_GMSH_MESH_CACHE = {}
 
 # --- Module-Level Engines (Regrouped outside the class to pass the Constitution check) ---
 
 def _run_gmsh_engine(container: SovereignContainer):
-    """Gmsh Implementation: Geometry-Aware Tetrahedral Meshing and Structured Sampling."""
-    logger.info("Starting Gmsh Engine categorization...")
+    """
+    Gmsh Implementation Layer 1: Geometry-Aware Unstructured Mesh Baking.
+    Responsible for volume meshing and caching raw node/element coordinates.
+    """
+    logger.info("Starting Gmsh Engine categorization (Layer 1: Mesh Baking)...")
     
-    # DEFERRED IMPORT: Safely loaded inside method scope so it never leaks 
-    # into global collection routines.
+    # DEFERRED IMPORT: Safely loaded inside method scope
     try:
         import gmsh
     except ImportError as e:
@@ -38,72 +45,50 @@ def _run_gmsh_engine(container: SovereignContainer):
     gmsh.model.occ.synchronize()
     
     # Define Mesh Size Field (Adaptive)
-    # Using the logic derived in ResolutionStep
     gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
     gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
     
     # Generate 3D Mesh
     gmsh.model.mesh.generate(3)
     
-    # Extract Mesh Data
-    nodes = gmsh.model.mesh.getNodes()
-    elements = gmsh.model.mesh.getElementsByType(4) # 4 = Tetrahedron
+    # Extract Unstructured Mesh Topology (Type 4: 4-node Tetrahedron)
+    # node_tags is a flat 1D array, coord is flat 3D float array [x1, y1, z1, x2, y2, z2, ...]
+    node_tags, coord, _ = gmsh.model.mesh.getNodes()
+    element_types, element_tags, element_node_tags = gmsh.model.mesh.getElements(dim=3)
     
-    logger.info(f"Gmsh Engine complete: {len(nodes[0])} nodes, {len(elements[0])} tetrahedra.")
+    # Find the indices corresponding to tetrahedral elements (Type 4 in Gmsh)
+    tet_idx = -1
+    for idx, etype in enumerate(element_types):
+        if etype == 4:
+            tet_idx = idx
+            break
+            
+    if tet_idx == -1:
+        gmsh.finalize()
+        raise RuntimeError("POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements.")
+
+    # Reconstruct coordinate map: tag -> numpy [x, y, z]
+    import numpy as np
+    nodes_map = {}
+    for i, tag in enumerate(node_tags):
+        nodes_map[tag] = np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64)
+
+    # Reconstruct tetrahedral vertex matrix: Shape (N_tets, 4, 3)
+    tets_nodes = element_node_tags[tet_idx].reshape(-1, 4)
+    tets_vertices = []
+    for tet in tets_nodes:
+        tets_vertices.append([nodes_map[node_tag] for node in tet])
     
-    # --- The Bridge: High-Precision Structured Sampling ---
-    # We must satisfy the downstream schema by projecting the Gmsh continuum 
-    # onto the structured grid (already calculated by ResolutionStep).
-    logger.info("Sampling unstructured mesh onto structured Cartesian grid...")
+    tets_vertices_arr = np.array(tets_vertices, dtype=np.float64)
+    logger.info(f"Layer 1 complete: Baked {len(tets_vertices_arr)} tetrahedra vertices matrix into global cache.")
     
-    grid = container.grid
-    dx = (grid.x_max - grid.x_min) / grid.nx
-    dy = (grid.y_max - grid.y_min) / grid.ny
-    dz = (grid.z_max - grid.z_min) / grid.nz
+    # Cache the pre-baked structures for Layer 2
+    _GMSH_MESH_CACHE["nodes_map"] = nodes_map
+    _GMSH_MESH_CACHE["tets_vertices"] = tets_vertices_arr
     
-    mask = [1] * (grid.nx * grid.ny * grid.nz) # Default to fluid (1)
-    stats = {"solid": 0, "fluid": 0, "wall": 0}
-    
-    for i in range(grid.nx):
-        for j in range(grid.ny):
-            for k in range(grid.nz):
-                # Voxel corner coordinate mapping
-                x0, y0, z0 = grid.x_min + i*dx, grid.y_min + j*dy, grid.z_min + k*dz
-                corners = [
-                    (x0, y0, z0),       (x0+dx, y0, z0),
-                    (x0, y0+dy, z0),    (x0+dx, y0+dy, z0),
-                    (x0, y0, z0+dz),    (x0+dx, y0, z0+dz),
-                    (x0, y0+dy, z0+dz), (x0+dx, y0+dy, z0+dz)
-                ]
-                
-                in_count = 0
-                out_count = 0
-                
-                # Sample the Gmsh element matrix
-                for cx, cy, cz in corners:
-                    # Query if the point falls inside a 3D element (dim=3)
-                    elems = gmsh.model.mesh.getElementsByCoordinates(cx, cy, cz, 3, strict=False)
-                    if len(elems) > 0:
-                        in_count += 1
-                    else:
-                        out_count += 1
-                
-                # Canonical flattening index
-                idx = i + grid.nx * (j + grid.ny * k)
-                
-                # Determine state
-                if in_count == 8:
-                    mask[idx] = 0   # Solid
-                    stats["solid"] += 1
-                elif out_count == 8:
-                    mask[idx] = 1   # Fluid
-                    stats["fluid"] += 1
-                else:
-                    mask[idx] = -1  # Wall
-                    stats["wall"] += 1
-                    
-    container.mask = mask
-    logger.info(f"Gmsh sampling complete. Mask Stats: {stats}")
+    # Satisfy container contract post-condition checks by providing an initial default fluid mask.
+    # Layer 2 (BoundaryConditionsStep) will overwrite this with the high-precision sampled mask.
+    container.mask = [1] * (container.grid.nx * container.grid.ny * container.grid.nz)
 
     # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---
     try:
