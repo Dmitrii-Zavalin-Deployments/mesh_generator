@@ -231,6 +231,36 @@ jobs:
           # Print output summary for logs tracing
           head -n 30 data/testing-input-output/mesh_generator_output.json
 
+      - name: 💾 Sync Testing Assets to Repository
+        if: always()
+        run: |
+
+          # 1. Stash local changes to keep the workspace safe
+          # This saves any uncommitted files currently in the runner
+          git stash
+
+          # 2. Pull latest changes with rebase
+          # This ensures we don't have push conflicts with other CI runs
+          git pull origin HEAD --rebase
+
+          # 3. Restore stashed changes
+          # '|| true' ensures we continue even if there was no stash to pop
+          git stash pop || true
+
+          # 4. Add specifically the test data
+          git add data/testing-input-output/
+
+          # 5. Check for changes and commit/push if content exists
+          if [ -n "$(git status --porcelain data/testing-input-output/)" ]; then
+            git commit -m "🤖 robot: sync testing assets [${{ job.status }}]"
+            
+            # Final rebase before pushing to avoid race conditions
+            git pull origin HEAD --rebase
+            git push origin HEAD
+          else
+            echo "No testing asset changes detected. Sync skipped."
+          fi
+
       - name: 📊 Audit Performance Ledger & Sync
         if: always()
         run: |
