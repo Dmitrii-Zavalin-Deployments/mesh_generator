@@ -98,8 +98,8 @@ class BoundaryConditionsStep(StepInterface):
                             
                             # Solve for barycentric coordinates
                             # l = inv_Mat * (P - D)
-                            l = inv_Mat.dot(P - D)
-                            l1, l2, l3 = l[0], l[1], l[2]
+                            bary_coords = inv_Mat.dot(P - D)
+                            l1, l2, l3 = bary_coords[0], bary_coords[1], bary_coords[2]
                             l4 = 1.0 - l1 - l2 - l3
                             
                             # Point is inside if all barycentric coordinates are positive (within tolerance)

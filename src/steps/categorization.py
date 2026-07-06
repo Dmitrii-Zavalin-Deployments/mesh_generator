@@ -77,7 +77,7 @@ def _run_gmsh_engine(container: SovereignContainer):
     tets_nodes = element_node_tags[tet_idx].reshape(-1, 4)
     tets_vertices = []
     for tet in tets_nodes:
-        tets_vertices.append([nodes_map[node_tag] for node in tet])
+        tets_vertices.append([nodes_map[node] for node in tet])
     
     tets_vertices_arr = np.array(tets_vertices, dtype=np.float64)
     logger.info(f"Layer 1 complete: Baked {len(tets_vertices_arr)} tetrahedra vertices matrix into global cache.")
