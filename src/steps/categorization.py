@@ -94,34 +94,37 @@ def _run_gmsh_engine(container: SovereignContainer):
 
         # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---
         try:
-            # 1. Wake up the FLTK interface context first to establish the window base
-            gmsh.fltk.initialize()
+            # Offscreen rendering resolution dimensions
+            gmsh.option.setNumber("General.GraphicsWidth", 1200)
+            gmsh.option.setNumber("General.GraphicsHeight", 900)
 
-            # 2. Visual visibility configurations
+            # Set structural visibility configurations
             gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
             gmsh.option.setNumber("Mesh.Lines", 1)
             gmsh.option.setNumber("Mesh.Tetrahedra", 1)
             
-            # Offscreen rendering resolution dimensions
-            gmsh.option.setNumber("General.GraphicsWidth", 1200)
-            gmsh.option.setNumber("General.GraphicsHeight", 900)
-            
             # --- 3D ISOMETRIC VIEW ORIENTATION ---
-            gmsh.option.setNumber("General.Trackball", 0)     # Freeze manual trackball centering
+            gmsh.option.setNumber("General.Trackball", 0)     # Freeze automatic bounding updates
             gmsh.option.setNumber("General.RotationX", -35)   # Pitch
             gmsh.option.setNumber("General.RotationY", 0)     # Roll
             gmsh.option.setNumber("General.RotationZ", 45)    # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
-            # Set after initialization to override default bounding boxes.
-            # 0.7 scales the mesh down to 70% of the window size, leaving a 15% safety margin on all sides.
-            gmsh.option.setNumber("General.ZoomFactor", 0.7)
+            # 0.60 downscales the rendering context safely to leave a clean safety perimeter on all sides
+            gmsh.option.setNumber("General.ZoomFactor", 0.60)
             
             # Resolve destination path using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
             snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
             
-            # 3. Write pixels to disk now that the viewport has been adjusted
+            # Wake up the FLTK interface context inside Xvfb
+            gmsh.fltk.initialize()
+            
+            # CRITICAL MATRIX REBUILD: Force system to recalculate viewport and clear stale dimensions
+            gmsh.graphics.draw()
+            gmsh.fltk.update()
+            
+            # Write the recalculated frame buffer pixels to disk
             gmsh.write(snapshot_path)
             gmsh.fltk.finalize()
             
