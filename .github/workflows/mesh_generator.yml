@@ -54,9 +54,15 @@ jobs:
           # Install heavy binary physics stack, Gmsh engine, AND pip safely
           conda install -y -c conda-forge -c defaults pythonocc-core gmsh numpy pip
 
+      - name: 🌐 Install Headless Rendering Dependencies
+        run: |
+          # Establish virtual display device infrastructure and OpenGL bindings
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx xvfb libglu1-mesa
+
       - name: 📥 Install Python Utility Dependencies
         run: |
-          # Use the local pip engine to resolve remaining utility layers
+          # Use the local pip engine to resolve remaining pure-python utility layers
           python -m pip install --no-cache-dir -r requirements.txt
 
       - name: 🧹 Auto-Clean (Autoflake)
@@ -104,8 +110,8 @@ jobs:
        
       - name: 🧪 Run Logic & Scientific Verification
         run: |
-          echo "🚀 Initiating: $TEST_COMMAND"
-          $TEST_COMMAND
+          echo "🚀 Initiating: $TEST_COMMAND inside virtual frame buffer"
+          xvfb-run --auto-servernum $TEST_COMMAND
       
       - name: 🔍 Forensic Audit
         if: always()
@@ -134,7 +140,7 @@ jobs:
             fi
             echo "============================================================"
             echo "📉 RE-RUNNING FAILED TEST FOR FINAL SIGNAL"
-            $TEST_COMMAND || true
+            xvfb-run --auto-servernum $TEST_COMMAND || true
             exit 1
           fi
       
@@ -202,25 +208,30 @@ jobs:
 
       - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
-          # 1. Install heavy binary physics stack
+          # 1. Install heavy binary physics stack via Conda
           conda install -y -c conda-forge -c defaults pythonocc-core gmsh numpy pip
           
-          # 2. CRITICAL: Force-install the Python bindings via pip 
-          # This ensures the gmsh.py wrapper is linked to the conda-installed binaries
+          # 2. Force-install Python bindings via pip to bind to conda binaries
           python -m pip install --no-cache-dir gmsh
           
           # 3. Verification check (Fail fast if install failed)
           python -c "import gmsh; print('Gmsh version:', gmsh.__version__)"
 
+      - name: 🌐 Install Headless Rendering Dependencies
+        run: |
+          # Establish virtual display device infrastructure and OpenGL bindings
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx xvfb libglu1-mesa
+
       - name: 📥 Install Python Utility Dependencies
         run: |
-          # Use local pip engine to handle utility layers
+          # Use local pip engine to handle pure python utility layers
           python -m pip install --no-cache-dir -r requirements.txt
 
       - name: 🚀 Execute Mesh Generator Engine
         run: |
-          # Run the standard execution module targeting the pre-placed asset folder
-          python src/main.py --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/"
+          # Run execution module targeted inside a virtual display frame server allocation loop
+          xvfb-run --auto-servernum python src/main.py --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/"
 
       - name: 🔍 Post-Execution Artifact Verification
         run: |
@@ -228,26 +239,26 @@ jobs:
           echo "--- Verifying Generated Output Structure ---"
           ls -l data/testing-input-output/mesh_generator_output.json
           
+          # Verify that the universal png asset file has been successfully dumped
+          echo "--- Verifying Universal Mesh Snapshot Asset ---"
+          ls -l data/testing-input-output/mesh_snapshot.png
+          
           # Print output summary for logs tracing
           head -n 30 data/testing-input-output/mesh_generator_output.json
 
       - name: 💾 Sync Testing Assets to Repository
         if: always()
         run: |
-
           # 1. Stash local changes to keep the workspace safe
-          # This saves any uncommitted files currently in the runner
           git stash
 
           # 2. Pull latest changes with rebase
-          # This ensures we don't have push conflicts with other CI runs
           git pull origin HEAD --rebase
 
           # 3. Restore stashed changes
-          # '|| true' ensures we continue even if there was no stash to pop
           git stash pop || true
 
-          # 4. Add specifically the test data
+          # 4. Add the specific test folder tracking data (this captures the new png snapshot)
           git add data/testing-input-output/
 
           # 5. Check for changes and commit/push if content exists
