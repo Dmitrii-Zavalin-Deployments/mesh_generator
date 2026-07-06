@@ -222,7 +222,8 @@ jobs:
         run: |
           # Establish virtual display device infrastructure and OpenGL bindings
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx xvfb libglu1-mesa
+          # libgl1 replaces the deprecated libgl1-mesa-glx on Ubuntu 24.04+
+          sudo apt-get install -y libgl1 xvfb libglu1-mesa
 
       - name: 📥 Install Python Utility Dependencies
         run: |
