@@ -108,8 +108,8 @@ def _run_gmsh_engine(container: SovereignContainer):
             
             # Using Trimetric-style angles (softer than -35, 45)
             # This orientation is often easier to fit within a 4:3 or 16:9 aspect ratio
-            gmsh.option.setNumber("General.RotationX", -10)   # Pitch
-            gmsh.option.setNumber("General.RotationY", 0)     # Roll
+            gmsh.option.setNumber("General.RotationX", 10)   # Pitch
+            gmsh.option.setNumber("General.RotationY", 10)     # Roll
             gmsh.option.setNumber("General.RotationZ", 10)    # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
