@@ -1,5 +1,6 @@
 import logging
 import os
+import numpy as np
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
 
@@ -40,6 +41,7 @@ def _run_gmsh_engine(container: SovereignContainer):
     gmsh.initialize()
     
     try:
+        # Abstract model initialization to accept any geometry variation smoothly
         gmsh.model.add("geometry_model")
         
         # Import the STEP file
@@ -69,7 +71,6 @@ def _run_gmsh_engine(container: SovereignContainer):
             raise RuntimeError("POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements.")
 
         # Reconstruct coordinate map: tag -> numpy [x, y, z]
-        import numpy as np
         nodes_map = {}
         for i, tag in enumerate(node_tags):
             nodes_map[tag] = np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64)
@@ -102,11 +103,17 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.GraphicsWidth", 1200)
             gmsh.option.setNumber("General.GraphicsHeight", 900)
             
+            # --- 3D ISOMETRIC VIEW ORIENTATION ---
+            gmsh.option.setNumber("General.Trackball", 0)     # Disable trackball to lock explicit orientation
+            gmsh.option.setNumber("General.RotationX", -35)   # Pitch rotation
+            gmsh.option.setNumber("General.RotationY", 0)     # Roll rotation
+            gmsh.option.setNumber("General.RotationZ", 45)    # Yaw rotation
+            
             # Resolve destination path using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
             snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
             
-            # CRITICAL FIX: Wake up the FLTK interface context inside Xvfb before writing pixels
+            # Wake up the FLTK interface context inside Xvfb before writing pixels
             gmsh.fltk.initialize()
             gmsh.write(snapshot_path)
             gmsh.fltk.finalize()
