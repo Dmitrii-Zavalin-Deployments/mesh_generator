@@ -16,6 +16,7 @@ from src.steps.tracing import TracingStep
 from src.steps.resolution import ResolutionStep
 from src.steps.categorization import CategorizationStep
 from src.steps.boundary_conditions import BoundaryConditionsStep
+from src.utils.mask_visualizer import generate_mask_snapshot
 
 # Configure logging
 logging.basicConfig(
@@ -82,7 +83,7 @@ def main():
     ])
     pipeline.run(container)
     
-    # 5. Serialize Output (Defensive)
+    # 5. Serialize Output
     output_path = os.path.join(workspace, "mesh_generator_output.json")
     snapshot_file = os.path.join(workspace, "mesh_snapshot.png")
 
@@ -112,6 +113,14 @@ def main():
         }
     }
 
+    # --- VISUAL MASK VERIFICATION GATE ---
+    # Generates a PNG representation of the voxel grid (Fluid/Solid/Wall)
+    try:
+        generate_mask_snapshot(output_data)
+    except Exception as viz_err:
+        logger.error(f"Voxel verification snapshot engine faulted: {str(viz_err)}")
+
+    # --- SERIALIZATION LAYER ---
     with open(output_path, 'w') as f:
         json.dump(output_data, f, indent=2)
     logger.info(f"Results serialized to: {output_path}")
