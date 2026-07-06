@@ -104,12 +104,17 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.GraphicsHeight", 900)
             
             # --- 3D ISOMETRIC VIEW ORIENTATION ---
-            gmsh.option.setNumber("General.Trackball", 0)     # Disable trackball to lock explicit orientation
+            gmsh.option.setNumber("General.Trackball", 0)     # Disable auto-scaling/fitting
             gmsh.option.setNumber("General.RotationX", -35)   # Pitch rotation
             gmsh.option.setNumber("General.RotationY", 0)     # Roll rotation
             gmsh.option.setNumber("General.RotationZ", 45)    # Yaw rotation
             
-            # Resolve destination path using the directory context of the input model
+            # --- VIEWPORT PADDING ---
+            # 1.0 is fit-to-edge. Reducing this zooms out, adding padding to the edges.
+            # 0.8 is usually perfect for isometric views to prevent clipping.
+            gmsh.option.setNumber("General.ZoomFactor", 0.8)
+            
+            # Resolve destination path
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
             snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
             
