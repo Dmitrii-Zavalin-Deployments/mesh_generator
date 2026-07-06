@@ -103,15 +103,20 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("Mesh.Lines", 1)
             gmsh.option.setNumber("Mesh.Tetrahedra", 1)
             
-            # --- 3D ISOMETRIC VIEW ORIENTATION ---
+            # --- 3D ISOMETRIC / TRIMETRIC VIEW ORIENTATION ---
             gmsh.option.setNumber("General.Trackball", 0)     # Freeze automatic bounding updates
-            gmsh.option.setNumber("General.RotationX", -35)   # Pitch
+            
+            # Using Trimetric-style angles (slightly softer than -35, 45)
+            # This orientation is often easier to fit within a 4:3 or 16:9 aspect ratio
+            gmsh.option.setNumber("General.RotationX", -30)   # Pitch
             gmsh.option.setNumber("General.RotationY", 0)     # Roll
-            gmsh.option.setNumber("General.RotationZ", 45)    # Yaw
+            gmsh.option.setNumber("General.RotationZ", 30)    # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
-            # 0.60 downscales the rendering context safely to leave a clean safety perimeter on all sides
-            gmsh.option.setNumber("General.ZoomFactor", 0.60)
+            # Lowering this to 0.45 ensures that even with rotation, the object 
+            # is rendered at less than half its "fit-to-frame" size, 
+            # guaranteeing no edges are cut.
+            gmsh.option.setNumber("General.ZoomFactor", 0.45)
             
             # Resolve destination path using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
