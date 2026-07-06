@@ -1,7 +1,7 @@
 {
   "inputs": {
     "step_model": {
-      "path": "/home/runner/work/mesh_generator/mesh_generator/data/testing-input-output/test.step"
+      "path": "/home/runner/work/mesh_generator/mesh_generator/data/testing-input-output/cube_with_a_hole.step"
     }
   },
   "config": {
@@ -24,8 +24,8 @@
     "grid": {
       "x_min": -2500.0000001,
       "x_max": 2500.0000001,
-      "y_min": -2500.0000001,
-      "y_max": 2500.0000001,
+      "y_min": -2500.0000001000003,
+      "y_max": 2500.0000001000003,
       "z_min": -1e-07,
       "z_max": 5000.0000001,
       "nx": 6,
@@ -70,148 +70,148 @@
       0,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      1,
+      1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
+      -1,
+      -1,
+      -1,
+      -1,
       0,
       0,
       0,
@@ -251,6 +251,367 @@
       0
     ],
     "mesh_snapshot_path": "/home/runner/work/mesh_generator/mesh_generator/data/testing-input-output/mesh_snapshot.png",
-    "boundary_conditions": []
+    "boundary_conditions": [
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_37"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_73"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_109"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_145"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_43"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_79"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_115"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_151"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_49"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_85"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_121"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_157"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_55"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_91"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_127"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_163"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_61"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_97"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_133"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_169"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_67"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_103"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_139"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_175"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_38"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_146"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_44"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_152"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_50"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_158"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_56"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_164"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_62"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_170"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_68"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_176"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_39"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_147"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_45"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_153"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_51"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_159"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_57"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_165"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_63"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_171"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_69"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_177"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_40"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_76"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_112"
+      },
+      {
+        "location": "y_min",
+        "type": "no-slip",
+        "surface_id": "cell_148"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_46"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_82"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_118"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_154"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_52"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_88"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_124"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_160"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_58"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_94"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_130"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_166"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_64"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_100"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_136"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_172"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_70"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_106"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_142"
+      },
+      {
+        "location": "y_max",
+        "type": "no-slip",
+        "surface_id": "cell_178"
+      }
+    ]
   }
 }
