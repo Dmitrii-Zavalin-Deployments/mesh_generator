@@ -112,8 +112,9 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.15, 1))
 
         # 7. Flush Framebuffer and write directly to destination directory context
+        # Added pad_inches=0.3 to ensure labels on the left/bottom are not clipped
         destination_path = os.path.join(save_dir, "voxel_mask_verification.png")
-        plt.savefig(destination_path, bbox_inches='tight', dpi=150)
+        plt.savefig(destination_path, bbox_inches='tight', pad_inches=0.3, dpi=150)
         plt.close(fig)
         
         logger.info(f"Voxel mask visual verification chart successfully saved: {destination_path}")
