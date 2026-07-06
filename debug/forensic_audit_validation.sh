@@ -1,26 +1,29 @@
 #!/bin/bash
-# forensic_audit_validation.sh - Snapshot Generation Diagnostic
+# debug/forensic_audit_validation.sh - Visualization Layer Audit
 # =================================================================
 
-echo "--- [1/3] Hunting for Snapshot/Write Logic ---"
-# Check if any write or fltk calls exist in the suspect file
-grep -rnE "fltk|write|snapshot" src/steps/categorization.py || echo "No Gmsh write/fltk calls found in categorization.py"
+echo "--- [1/3] Log Diagnostic: Extracting Silent Warnings ---"
+# Check if your main application execution caught a non-fatal rendering exception
+if [ -f "data/testing-input-output/mesh_generator_output.json" ]; then
+    echo "Output JSON exists, scanning system logs for hidden graphics anomalies..."
+    # If you pipe your logs to a file or stdout, we can check for the exception string here
+fi
 
-echo -e "\n--- [2/3] Smoking Gun Audit: categorization.py ---"
-# Show the code block surrounding mesh generation to see where a snapshot SHOULD be
-cat -n src/steps/categorization.py | grep -C 15 "gmsh.model.mesh.generate"
+echo -e "\n--- [2/3] Smoking Gun Source Audit: End-of-Function Pipeline ---"
+# Audit the final 30 lines of the categorization engine to see the state of the try/except block
+cat -n src/steps/categorization.py | tail -n 45
 
-echo -e "\n--- [3/3] Repair Injection Templates ---"
-echo "Instructions: Review the grep output above."
-echo "If missing, uncomment the lines below to inject the snapshot logic."
+echo -e "\n--- [3/3] Automated Repair Injections ---"
+echo "Instructions: Run the following sed commands to strip out the broken mid-function patch"
+echo "and fully initialize the FLTK frame server context at the bottom of the loop."
 
-# Repair Template: Ensure directory exists and take snapshot
-# sed -i '/gmsh.model.mesh.generate(3)/a \
-#     import os\
-#     os.makedirs("data/testing-input-output", exist_ok=True)\
-#     import gmsh\
-#     gmsh.fltk.initialize()\
-#     gmsh.fltk.takeScreenshot("data/testing-input-output/mesh_snapshot.png")\
-#     gmsh.fltk.finalize()' src/steps/categorization.py
+# Step A: Clean out the broken mid-function snippet if it exists near the tet_idx loop
+# # sed -i '/snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")/d' src/steps/categorization.py
+# # sed -i '/gmsh.write(snapshot_path)/d' src/steps/categorization.py
+# # sed -i '/Universal mesh snapshot saved:/d' src/steps/categorization.py
 
-echo -e "\nAudit Complete. If the file is still missing, the logic is likely not hitting the execution path."
+# Step B: Inject the explicit FLTK graphic initializers right before gmsh.write() at the bottom
+# # sed -i '/workspace_dir = os.path.dirname/i \        gmsh.fltk.initialize()' src/steps/categorization.py
+# # sed -i '/logger.info(f"Universal mesh snapshot saved successfully/a \        gmsh.fltk.finalize()' src/steps/categorization.py
+
+echo -e "\nAudit Complete."
