@@ -94,7 +94,10 @@ def _run_gmsh_engine(container: SovereignContainer):
 
         # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---
         try:
-            # Visual visibility configurations
+            # 1. Wake up the FLTK interface context first to establish the window base
+            gmsh.fltk.initialize()
+
+            # 2. Visual visibility configurations
             gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
             gmsh.option.setNumber("Mesh.Lines", 1)
             gmsh.option.setNumber("Mesh.Tetrahedra", 1)
@@ -104,22 +107,21 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.GraphicsHeight", 900)
             
             # --- 3D ISOMETRIC VIEW ORIENTATION ---
-            gmsh.option.setNumber("General.Trackball", 0)     # Disable auto-scaling/fitting
-            gmsh.option.setNumber("General.RotationX", -35)   # Pitch rotation
-            gmsh.option.setNumber("General.RotationY", 0)     # Roll rotation
-            gmsh.option.setNumber("General.RotationZ", 45)    # Yaw rotation
+            gmsh.option.setNumber("General.Trackball", 0)     # Freeze manual trackball centering
+            gmsh.option.setNumber("General.RotationX", -35)   # Pitch
+            gmsh.option.setNumber("General.RotationY", 0)     # Roll
+            gmsh.option.setNumber("General.RotationZ", 45)    # Yaw
             
-            # --- VIEWPORT PADDING ---
-            # 1.0 is fit-to-edge. Reducing this zooms out, adding padding to the edges.
-            # 0.8 is usually perfect for isometric views to prevent clipping.
-            gmsh.option.setNumber("General.ZoomFactor", 0.8)
+            # --- VIEWPORT PADDING & ZOOM FIX ---
+            # Set after initialization to override default bounding boxes.
+            # 0.7 scales the mesh down to 70% of the window size, leaving a 15% safety margin on all sides.
+            gmsh.option.setNumber("General.ZoomFactor", 0.7)
             
-            # Resolve destination path
+            # Resolve destination path using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
             snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
             
-            # Wake up the FLTK interface context inside Xvfb before writing pixels
-            gmsh.fltk.initialize()
+            # 3. Write pixels to disk now that the viewport has been adjusted
             gmsh.write(snapshot_path)
             gmsh.fltk.finalize()
             
