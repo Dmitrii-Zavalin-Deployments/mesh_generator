@@ -75,8 +75,9 @@ class TestBaseInterface:
         """
         
         # 1. Setup: We construct a pristine production container. 
-        # This is a real system structure, not a mock.
+        # use_gmsh=False: We do not need the graphical engine for state logic tests.
         container = SovereignContainer(
+            use_gmsh=False,
             step_file="test_geometry.step",
             max_element_size=1.5,
             solver_version="1.0.0",
@@ -115,9 +116,15 @@ class TestBaseInterface:
         """
         
         # We define a container for the invocation attempt.
+        # use_gmsh=False: We do not need the graphical engine for security gate tests.
         container = SovereignContainer(
-            step_file="test.step", max_element_size=1.0, solver_version="1.0",
-            tolerance=1e-5, min_element_size=0.1, boundary_map={}
+            use_gmsh=False,
+            step_file="test.step", 
+            max_element_size=1.0, 
+            solver_version="1.0",
+            tolerance=1e-5, 
+            min_element_size=0.1, 
+            boundary_map={}
         )
         
         # Attempting to execute the base interface itself is forbidden.
