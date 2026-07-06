@@ -83,6 +83,9 @@ def main():
     pipeline.run(container)
     
     # 5. Serialize Output (Defensive)
+    output_path = os.path.join(workspace, "mesh_generator_output.json")
+    snapshot_file = os.path.join(workspace, "mesh_snapshot.png")
+
     output_data = {
         "inputs": {"step_model": {"path": container.step_file}},
         "config": {
@@ -101,6 +104,7 @@ def main():
                 "nx": container.grid.nx, "ny": container.grid.ny, "nz": container.grid.nz
             } if container.grid else None,
             "mask": container.mask if container.mask is not None else [],
+            "mesh_snapshot_path": os.path.abspath(snapshot_file) if engine_type == 'gmsh' else None,
             "boundary_conditions": [
                 {"location": bc.location, "type": bc.type, "surface_id": bc.surface_id}
                 for bc in (container.boundary_conditions or [])
@@ -108,7 +112,6 @@ def main():
         }
     }
 
-    output_path = os.path.join(workspace, "mesh_generator_output.json")
     with open(output_path, 'w') as f:
         json.dump(output_data, f, indent=2)
     logger.info(f"Results serialized to: {output_path}")

@@ -1,4 +1,5 @@
 import logging
+import os
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
 # Legacy Imports
@@ -103,6 +104,28 @@ def _run_gmsh_engine(container: SovereignContainer):
                     
     container.mask = mask
     logger.info(f"Gmsh sampling complete. Mask Stats: {stats}")
+
+    # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---
+    try:
+        # Visual visibility configurations
+        gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
+        gmsh.option.setNumber("Mesh.Lines", 1)
+        gmsh.option.setNumber("Mesh.Tetrahedra", 1)
+        
+        # Offscreen rendering resolution dimensions
+        gmsh.option.setNumber("General.GraphicsWidth", 1200)
+        gmsh.option.setNumber("General.GraphicsHeight", 900)
+        
+        # Resolve destination path using the directory context of the input model
+        workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
+        snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
+        
+        # Write image buffer directly out via Gmsh Open GL context hooks
+        gmsh.write(snapshot_path)
+        logger.info(f"Universal mesh snapshot saved successfully: {snapshot_path}")
+    except Exception as ex:
+        logger.warning(f"Non-fatal rendering anomaly detected during visual generation: {str(ex)}")
+
     gmsh.finalize()
 
 
