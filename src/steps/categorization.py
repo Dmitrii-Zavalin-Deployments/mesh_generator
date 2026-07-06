@@ -106,11 +106,11 @@ def _run_gmsh_engine(container: SovereignContainer):
             # --- 3D ISOMETRIC / TRIMETRIC VIEW ORIENTATION ---
             gmsh.option.setNumber("General.Trackball", 0)     # Freeze automatic bounding updates
             
-            # Using Trimetric-style angles (slightly softer than -35, 45)
+            # Using Trimetric-style angles (softer than -35, 45)
             # This orientation is often easier to fit within a 4:3 or 16:9 aspect ratio
-            gmsh.option.setNumber("General.RotationX", -30)   # Pitch
+            gmsh.option.setNumber("General.RotationX", -10)   # Pitch
             gmsh.option.setNumber("General.RotationY", 0)     # Roll
-            gmsh.option.setNumber("General.RotationZ", 30)    # Yaw
+            gmsh.option.setNumber("General.RotationZ", 10)    # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
             # Lowering this to 0.45 ensures that even with rotation, the object 
