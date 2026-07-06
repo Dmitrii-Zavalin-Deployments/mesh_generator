@@ -38,80 +38,87 @@ def _run_gmsh_engine(container: SovereignContainer):
         ) from e
     
     gmsh.initialize()
-    gmsh.model.add("nozzle_model")
     
-    # Import the STEP file
-    gmsh.model.occ.importShapes(container.step_file)
-    gmsh.model.occ.synchronize()
-    
-    # Define Mesh Size Field (Adaptive)
-    gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
-    gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
-    
-    # Generate 3D Mesh
-    gmsh.model.mesh.generate(3)
-    
-    # Extract Unstructured Mesh Topology (Type 4: 4-node Tetrahedron)
-    # node_tags is a flat 1D array, coord is flat 3D float array [x1, y1, z1, x2, y2, z2, ...]
-    node_tags, coord, _ = gmsh.model.mesh.getNodes()
-    element_types, element_tags, element_node_tags = gmsh.model.mesh.getElements(dim=3)
-    
-    # Find the indices corresponding to tetrahedral elements (Type 4 in Gmsh)
-    tet_idx = -1
-    for idx, etype in enumerate(element_types):
-        if etype == 4:
-            tet_idx = idx
-            break
-            
-    if tet_idx == -1:
-        gmsh.finalize()
-        raise RuntimeError("POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements.")
-
-    # Reconstruct coordinate map: tag -> numpy [x, y, z]
-    import numpy as np
-    nodes_map = {}
-    for i, tag in enumerate(node_tags):
-        nodes_map[tag] = np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64)
-
-    # Reconstruct tetrahedral vertex matrix: Shape (N_tets, 4, 3)
-    tets_nodes = element_node_tags[tet_idx].reshape(-1, 4)
-    tets_vertices = []
-    for tet in tets_nodes:
-        tets_vertices.append([nodes_map[node] for node in tet])
-    
-    tets_vertices_arr = np.array(tets_vertices, dtype=np.float64)
-    logger.info(f"Layer 1 complete: Baked {len(tets_vertices_arr)} tetrahedra vertices matrix into global cache.")
-    
-    # Cache the pre-baked structures for Layer 2
-    _GMSH_MESH_CACHE["nodes_map"] = nodes_map
-    _GMSH_MESH_CACHE["tets_vertices"] = tets_vertices_arr
-    
-    # Satisfy container contract post-condition checks by providing an initial default fluid mask.
-    # Layer 2 (BoundaryConditionsStep) will overwrite this with the high-precision sampled mask.
-    container.mask = [1] * (container.grid.nx * container.grid.ny * container.grid.nz)
-
-    # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---
     try:
-        # Visual visibility configurations
-        gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
-        gmsh.option.setNumber("Mesh.Lines", 1)
-        gmsh.option.setNumber("Mesh.Tetrahedra", 1)
+        gmsh.model.add("nozzle_model")
         
-        # Offscreen rendering resolution dimensions
-        gmsh.option.setNumber("General.GraphicsWidth", 1200)
-        gmsh.option.setNumber("General.GraphicsHeight", 900)
+        # Import the STEP file
+        gmsh.model.occ.importShapes(container.step_file)
+        gmsh.model.occ.synchronize()
         
-        # Resolve destination path using the directory context of the input model
-        workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
-        snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
+        # Define Mesh Size Field (Adaptive)
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
         
-        # Write image buffer directly out via Gmsh Open GL context hooks
-        gmsh.write(snapshot_path)
-        logger.info(f"Universal mesh snapshot saved successfully: {snapshot_path}")
-    except Exception as ex:
-        logger.warning(f"Non-fatal rendering anomaly detected during visual generation: {str(ex)}")
+        # Generate 3D Mesh
+        gmsh.model.mesh.generate(3)
+        
+        # Extract Unstructured Mesh Topology (Type 4: 4-node Tetrahedron)
+        # node_tags is a flat 1D array, coord is flat 3D float array [x1, y1, z1, x2, y2, z2, ...]
+        node_tags, coord, _ = gmsh.model.mesh.getNodes()
+        element_types, element_tags, element_node_tags = gmsh.model.mesh.getElements(dim=3)
+        
+        # Find the indices corresponding to tetrahedral elements (Type 4 in Gmsh)
+        tet_idx = -1
+        for idx, etype in enumerate(element_types):
+            if etype == 4:
+                tet_idx = idx
+                break
+                
+        if tet_idx == -1:
+            raise RuntimeError("POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements.")
 
-    gmsh.finalize()
+        # Reconstruct coordinate map: tag -> numpy [x, y, z]
+        import numpy as np
+        nodes_map = {}
+        for i, tag in enumerate(node_tags):
+            nodes_map[tag] = np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64)
+
+        # Reconstruct tetrahedral vertex matrix: Shape (N_tets, 4, 3)
+        tets_nodes = element_node_tags[tet_idx].reshape(-1, 4)
+        tets_vertices = []
+        for tet in tets_nodes:
+            tets_vertices.append([nodes_map[node] for node in tet])
+        
+        tets_vertices_arr = np.array(tets_vertices, dtype=np.float64)
+        logger.info(f"Layer 1 complete: Baked {len(tets_vertices_arr)} tetrahedra vertices matrix into global cache.")
+        
+        # Cache the pre-baked structures for Layer 2
+        _GMSH_MESH_CACHE["nodes_map"] = nodes_map
+        _GMSH_MESH_CACHE["tets_vertices"] = tets_vertices_arr
+        
+        # Satisfy container contract post-condition checks by providing an initial default fluid mask.
+        # Layer 2 (BoundaryConditionsStep) will overwrite this with the high-precision sampled mask.
+        container.mask = [1] * (container.grid.nx * container.grid.ny * container.grid.nz)
+
+        # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---
+        try:
+            # Visual visibility configurations
+            gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
+            gmsh.option.setNumber("Mesh.Lines", 1)
+            gmsh.option.setNumber("Mesh.Tetrahedra", 1)
+            
+            # Offscreen rendering resolution dimensions
+            gmsh.option.setNumber("General.GraphicsWidth", 1200)
+            gmsh.option.setNumber("General.GraphicsHeight", 900)
+            
+            # Resolve destination path using the directory context of the input model
+            workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
+            snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
+            
+            # CRITICAL FIX: Wake up the FLTK interface context inside Xvfb before writing pixels
+            gmsh.fltk.initialize()
+            gmsh.write(snapshot_path)
+            gmsh.fltk.finalize()
+            
+            logger.info(f"Universal mesh snapshot saved successfully: {snapshot_path}")
+        except Exception as ex:
+            logger.error(f"CRITICAL VISUALIZATION FAILURE: {str(ex)}")
+            raise ex
+
+    finally:
+        # Guarantee memory unbinding even on runtime geometry contract failures
+        gmsh.finalize()
 
 
 def _run_voxel_engine(container: SovereignContainer):
@@ -137,9 +144,9 @@ def _run_voxel_engine(container: SovereignContainer):
                 x0, y0, z0 = grid.x_min + i*dx, grid.y_min + j*dy, grid.z_min + k*dz
                 corners = [
                     gp_Pnt(x0, y0, z0),       gp_Pnt(x0+dx, y0, z0),
-                    gp_Pnt(x0, y0+dy, z0),    gp_Pnt(x0+dx, y0+dy, z0),
+                    gp_Pnt(x0+dy, y0, z0),    gp_Pnt(x0+dx, y0+dy, z0),
                     gp_Pnt(x0, y0, z0+dz),    gp_Pnt(x0+dx, y0, z0+dz),
-                    gp_Pnt(x0, y0+dy, z0+dz), gp_Pnt(x0+dx, y0+dy, z0+dz)
+                    gp_Pnt(x0+dy, y0+dz), gp_Pnt(x0+dx, y0+dy, z0+dz)
                 ]
                 
                 # Collect the spatial state for each corner vertex.
