@@ -5,7 +5,6 @@ import matplotlib
 # Force headless rendering backend to prevent X11 display connection errors
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 logger = logging.getLogger(__name__)
 
