@@ -12,6 +12,7 @@ def get_dummy_container(step_path: str) -> SovereignContainer:
     SovereignContainer contract before ingestion.
     """
     return SovereignContainer(
+        use_gmsh=False,
         step_file=step_path,
         max_element_size=2.0,
         solver_version="v1.0.0",
