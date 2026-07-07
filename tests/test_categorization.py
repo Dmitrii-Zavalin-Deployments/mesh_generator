@@ -9,7 +9,7 @@ from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone
 
-from src.steps.categorization import CategorizationStep
+from src.steps.categorization import CategorizationStep, _run_voxel_engine
 from src.state.mesh_generator_state import SovereignContainer, GridState
 import src.steps.categorization as categorization_module
 
@@ -286,3 +286,41 @@ def test_gmsh_engine_visualization_failure_escalation():
             
     # CRITICAL VERIFICATION: Ensure resource cleanup run even on rendering crash loops
     assert mock_gmsh.finalize.called
+
+def test_voxel_engine_wall_classification():
+    """
+    [COVERAGE PATH: LEGACY VOXELIZER WALL]
+    Forces the voxel engine to classify a cell as a 'Wall' (-1) by mocking the 
+    classifier to return a mix of IN and OUT states for the 8 corners of a single voxel.
+    This hits lines 195-196.
+    """
+    # 1. Setup minimal container and grid
+    container = SovereignContainer(
+        step_file="dummy.step",
+        max_element_size=1.0,
+        solver_version="v1.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={},
+        use_gmsh=False
+    )
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.cad_solid = MagicMock() # Placeholder object
+    
+    # 2. Mock the classifier behavior
+    with patch("src.steps.categorization.BRepClass3d_SolidClassifier") as MockClassifier:
+        mock_instance = MockClassifier.return_value
+        
+        # We need 8 corners for the voxel. 
+        # Side effect: 4 IN, 4 OUT -> Forces 'else' branch (Wall)
+        mock_instance.State.side_effect = [
+            TopAbs_IN, TopAbs_IN, TopAbs_IN, TopAbs_IN, 
+            TopAbs_OUT, TopAbs_OUT, TopAbs_OUT, TopAbs_OUT
+        ]
+        
+        # 3. Execute
+        _run_voxel_engine(container)
+        
+        # 4. Verify
+        # The mask for the only cell in a 1x1x1 grid should be -1 (Wall)
+        assert container.mask[0] == -1
