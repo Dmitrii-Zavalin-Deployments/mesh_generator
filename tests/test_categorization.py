@@ -226,8 +226,7 @@ def test_gmsh_engine_full_execution_flow_success():
     mock_gmsh.model.mesh.getNodes.return_value = (node_tags, coord, [])
     mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
     
-    # Clear the global cache dictionary to establish clear baseline assertions
-    global _GMSH_MESH_CACHE
+    # Safely clear the shared memory dictionary directly
     _GMSH_MESH_CACHE.clear()
     
     step = CategorizationStep()

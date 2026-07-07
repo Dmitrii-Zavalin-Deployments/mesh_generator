@@ -165,10 +165,10 @@ def _run_voxel_engine(container: SovereignContainer):
                 # Defines the 8 vertices of the cell cube for spatial sampling.
                 x0, y0, z0 = grid.x_min + i*dx, grid.y_min + j*dy, grid.z_min + k*dz
                 corners = [
-                    gp_Pnt(x0, y0, z0),       gp_Pnt(x0+dx, y0, z0),
-                    gp_Pnt(x0+dy, y0, z0),    gp_Pnt(x0+dx, y0+dy, z0),
-                    gp_Pnt(x0, y0, z0+dz),    gp_Pnt(x0+dx, y0, z0+dz),
-                    gp_Pnt(x0+dy, y0+dz), gp_Pnt(x0+dx, y0+dy, z0+dz)
+                    gp_Pnt(x0,      y0,      z0),      gp_Pnt(x0+dx, y0,      z0),
+                    gp_Pnt(x0,      y0+dy,   z0),      gp_Pnt(x0+dx, y0+dy,   z0),
+                    gp_Pnt(x0,      y0,      z0+dz),   gp_Pnt(x0+dx, y0,      z0+dz),
+                    gp_Pnt(x0,      y0+dy,   z0+dz),   gp_Pnt(x0+dx, y0+dy,   z0+dz)
                 ]
                 
                 # Collect the spatial state for each corner vertex.
