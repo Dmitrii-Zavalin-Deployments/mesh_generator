@@ -9,8 +9,9 @@ from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone
 
-from src.steps.categorization import CategorizationStep, _GMSH_MESH_CACHE
+from src.steps.categorization import CategorizationStep
 from src.state.mesh_generator_state import SovereignContainer, GridState
+import src.steps.categorization as categorization_module
 
 # --- HELPER DATA LOADER ---
 
@@ -223,30 +224,30 @@ def test_gmsh_engine_full_execution_flow_success():
     element_node_tags = [np.array([1, 2, 3, 4])]
     
     mock_gmsh = MagicMock()
-    mock_gmsh.model.mesh.getNodes.return_value = (node_tags, coord, [])
-    mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
+    mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0]), [])
+    mock_gmsh.model.mesh.getElements.return_value = ([4], [np.array([101])], [np.array([1, 2, 3, 4])])
     
-    # Safely clear the shared memory dictionary directly
-    _GMSH_MESH_CACHE.clear()
+    # 2. Use the module reference to clear the cache
+    categorization_module._GMSH_MESH_CACHE.clear()
     
     step = CategorizationStep()
     with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
         step.execute(container)
         
-    # 1. Verify standard initialization and lifecycle teardown blocks
+    # 3. Access the cache dynamically via the module reference
+    cache = categorization_module._GMSH_MESH_CACHE
+    
     assert mock_gmsh.initialize.called
     assert mock_gmsh.finalize.called
     
-    # 2. Check the raw mesh matrix structures were extracted and cached for Layer 2
-    assert "nodes_map" in _GMSH_MESH_CACHE
-    assert "tets_vertices" in _GMSH_MESH_CACHE
-    assert _GMSH_MESH_CACHE["tets_vertices"].shape == (1, 4, 3)
+    # Assertions now use the 'live' cache reference
+    assert "nodes_map" in cache
+    assert "tets_vertices" in cache
+    assert cache["tets_vertices"].shape == (1, 4, 3)
     
-    # 3. Check baseline schema mask fulfillment (8 fluid elements allocated)
     assert len(container.mask) == 8
     assert all(cell == 1 for cell in container.mask)
     
-    # 4. Verify visualizer hooks are invoked with strict viewport padding guidelines
     assert mock_gmsh.fltk.initialize.called
     assert mock_gmsh.write.called
 
