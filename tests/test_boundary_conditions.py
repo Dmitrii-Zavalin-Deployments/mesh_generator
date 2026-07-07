@@ -1,7 +1,9 @@
 # tests/test_boundary_conditions.py
 import pytest
 import numpy as np
+import logging
 import src.steps.categorization
+from unittest.mock import patch, MagicMock
 from src.steps.boundary_conditions import BoundaryConditionsStep
 from src.state.mesh_generator_state import SovereignContainer, GridState
 
@@ -255,3 +257,93 @@ def test_gmsh_voxelization_full_classification():
     
     # 0 corners enclosed -> cell state maps to 1 (Fluid)
     assert container.mask == [1]
+
+def test_boundary_conditions_constitution_violation():
+    """
+    [ERROR PATH: CONSTITUTION VIOLATION]
+    Verify that the system halts immediately if the required pre-requisites 
+    (grid state or voxel mask) are missing from the SovereignContainer.
+    """
+    step = BoundaryConditionsStep()
+    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, False)
+    
+    # State setup: Grid is missing.
+    # Logic: if container.grid is None or container.mask is None:
+    with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
+        step.execute(container)
+
+def test_boundary_conditions_gmsh_missing_cache():
+    """
+    [ERROR PATH: POST-CONDITION VIOLATION]
+    Verify that if the Gmsh engine is enabled, the pipeline enforces the existence
+    of the global mesh vertex cache.
+    """
+    step = BoundaryConditionsStep()
+    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, True)
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.mask = [1]
+    
+    # We patch the cache to be empty.
+    # Logic: if "tets_vertices" not in _GMSH_MESH_CACHE:
+    with patch("src.steps.boundary_conditions._GMSH_MESH_CACHE", {}):
+        with pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION"):
+            step.execute(container)
+
+def test_boundary_conditions_degenerate_tetrahedron_skip():
+    """
+    [ROBUSTNESS PATH: DEGENERATE GEOMETRY]
+    Verify that the voxelizer gracefully skips degenerate tetrahedra (volume = 0)
+    that cause singular matrix inversion failures rather than crashing the pipeline.
+    """
+    step = BoundaryConditionsStep()
+    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, True)
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.mask = [1]
+    
+    # Create a flat (singular) tetrahedron where all vertices lie on a line.
+    degenerate_tet = np.array([[[0,0,0], [1,0,0], [2,0,0], [3,0,0]]])
+    
+    with patch("src.steps.boundary_conditions._GMSH_MESH_CACHE", {"tets_vertices": degenerate_tet}):
+        # This execution should not raise LinAlgError because of the try/except block.
+        step.execute(container)
+        # Assertion: The process completed execution, skipping the degenerate element.
+        assert container.mask is not None
+
+def test_boundary_conditions_missing_map_key():
+    """
+    [ERROR PATH: MAPPING INTEGRITY]
+    Verify that if a boundary surface is identified but not defined in the configuration 
+    (bc_map), the system raises a KeyError to prevent undefined physical behavior.
+    """
+    step = BoundaryConditionsStep()
+    # No boundary map provided
+    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, False)
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    
+    # We force a mask that creates an interface at x_min
+    # mask = [1] is all fluid, so we manually force mask to -1
+    container.mask = [-1]
+    
+    # Logic: if location not in bc_map: raise KeyError
+    with pytest.raises(KeyError, match="CONSTITUTION VIOLATION"):
+        step.execute(container)
+
+def test_boundary_conditions_legacy_path():
+    """
+    [SUCCESS PATH: LEGACY FALLBACK]
+    Verify that when use_gmsh is False, the pipeline skips the complex voxelization
+    loop and proceeds directly to mapping existing mask data.
+    """
+    step = BoundaryConditionsStep()
+    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {"x_min": "inlet"}, False)
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    
+    # Force a wall interface at x_min
+    container.mask = [-1]
+    
+    # Execution should bypass the GMSH cache and go straight to mapping.
+    step.execute(container)
+    
+    # Assertion: One boundary condition must be registered.
+    assert len(container.boundary_conditions) == 1
+    assert container.boundary_conditions[0].location == "x_min"
