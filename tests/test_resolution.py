@@ -71,6 +71,7 @@ def test_get_min_feature_size_bbox_fallback():
 def get_dummy_container(bbox=None, cad_solid=None) -> SovereignContainer:
     """Standardized setup for testing pipeline state containers."""
     container = SovereignContainer(
+        use_gmsh=False,
         step_file="dummy.step",
         max_element_size=2.0,
         solver_version="v1.0.0",

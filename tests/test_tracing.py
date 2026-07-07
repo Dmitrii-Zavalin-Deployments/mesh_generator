@@ -14,6 +14,7 @@ def get_dummy_container(step_path: str, cad_solid: TopoDS_Shape = None) -> Sover
     We inject the necessary parameters to prevent pipeline initialization errors.
     """
     container = SovereignContainer(
+        use_gmsh=False,
         step_file=step_path,
         max_element_size=2.0,
         solver_version="v1.0.0",
