@@ -1,9 +1,8 @@
 # tests/test_boundary_conditions.py
 import pytest
 import numpy as np
-import logging
 import src.steps.categorization
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from src.steps.boundary_conditions import BoundaryConditionsStep
 from src.state.mesh_generator_state import SovereignContainer, GridState
 
