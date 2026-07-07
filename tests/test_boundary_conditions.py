@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 import src.steps.categorization
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from src.steps.boundary_conditions import BoundaryConditionsStep
 from src.state.mesh_generator_state import SovereignContainer, GridState
 import src.steps.categorization as categorization_module
@@ -353,19 +353,28 @@ def test_invalid_tolerance_raises_error():
     [COVERAGE PATH: INVALID TOLERANCE HANDLING]
     We verify that the step raises a ValueError when a negative tolerance 
     is provided in the container configuration (Lines 55-57).
+    
+    To satisfy the pipeline's Constitution Check (Lines 27-30), we must
+    inject a valid grid and mask into the container before execution.
     """
+
+    # We initialize the container with an invalid tolerance (-0.5)
     container = SovereignContainer(
         use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
         solver_version="v1.0.0",
-        tolerance=-0.5,  # Invalid tolerance < 0
+        tolerance=-0.5,  # The trigger for the ValueError
         min_element_size=0.1,
         boundary_map={}
     )
-    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
-    # Mock the mesh cache to pass initial checks
+    # --- Pipeline Satisfaction (Constitution Compliance) ---
+    # We must provide a grid and mask to pass the safety check on line 27.
+    container.grid = MagicMock(spec=GridState)
+    container.mask = [1] # Dummy mask
+    
+    # Mock the mesh cache to bypass the GMSh check
     categorization_module._GMSH_MESH_CACHE["tets_vertices"] = np.zeros((1, 4, 3))
     
     step = BoundaryConditionsStep()
