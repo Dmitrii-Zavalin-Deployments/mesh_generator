@@ -98,3 +98,53 @@ def test_sovereign_container_type_violations():
     # 5. BBox Check: Expect TypeError when passing non-tuple types.
     with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'bbox' must be a tuple"):
         container.bbox = [0.0, 1.0] # Passing a List instead of a Tuple
+
+def test_sovereign_container_use_gmsh_type_error():
+    """
+    [ERROR PATH: CONSTITUTION VIOLATION]
+    Verify that the use_gmsh property setter explicitly rejects non-boolean values 
+    by enforcing strict runtime type checking to block state corruption.
+    """
+    # We initialize a sovereign container with clean, validated baseline entries.
+    container = SovereignContainer(
+        step_file="tests/dummies/sample_geometry.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={},
+        use_gmsh=True
+    )
+    
+    # We attempt to assign an integer value (1) to the use_gmsh property.
+    # While 1 evaluates to truthy in raw Python, the type checker requires an explicit bool.
+    # The evaluation criterion inside the state gate checks:
+    #     isinstance(1, bool) -> False
+    # This must intercept execution and bubble up a designated TypeError.
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'use_gmsh' must be a boolean."):
+        container.use_gmsh = 1
+
+
+def test_sovereign_container_use_gmsh_nominal_toggle():
+    """
+    [SUCCESS PATH: NOMINAL STATE MUTATION]
+    Verify that the use_gmsh property setter cleanly modifies the structural flag 
+    when provided with a clean and authentic boolean variable.
+    """
+    # We instantiate the baseline container state initially configured with use_gmsh as True.
+    container = SovereignContainer(
+        step_file="tests/dummies/sample_geometry.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={},
+        use_gmsh=True
+    )
+    
+    # We alter the execution route by mutating the state flag to a legitimate boolean:
+    #     New Target Value = False
+    container.use_gmsh = False
+    
+    # Assertion: The value must be stored internally without throwing errors.
+    assert container.use_gmsh is False
