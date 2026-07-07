@@ -49,6 +49,15 @@ class BoundaryConditionsStep(StepInterface):
                 
             tets_vertices = _GMSH_MESH_CACHE["tets_vertices"]  # Shape (N_tets, 4, 3)
             
+            # Resolve and validate barycentric tolerance from core configuration policy.
+            # Strict enforcement: tolerance must be defined and >= 0.
+            if tol is None or tol < 0:
+                error_msg = f"CONSTITUTION VIOLATION: Invalid tolerance '{tol}' provided in config. Tolerance must be >= 0."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            eps = tol
+            logger.info(f"Barycentric constraint envelope initialized with epsilon: {eps}")
+
             # 1. Initialize corner inside-mask array of shape (nx+1, ny+1, nz+1)
             # True indicates that the vertex point lies inside the solid domain geometry.
             corner_inside = np.zeros((grid.nx + 1, grid.ny + 1, grid.nz + 1), dtype=bool)
@@ -102,8 +111,7 @@ class BoundaryConditionsStep(StepInterface):
                             l1, l2, l3 = bary_coords[0], bary_coords[1], bary_coords[2]
                             l4 = 1.0 - l1 - l2 - l3
                             
-                            # Point is inside if all barycentric coordinates are positive (within tolerance)
-                            eps = 1e-7
+                            # Point is inside if all barycentric coordinates match the validated policy boundary
                             if l1 >= -eps and l2 >= -eps and l3 >= -eps and l4 >= -eps:
                                 corner_inside[i, j, k] = True
 
