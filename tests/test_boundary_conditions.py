@@ -2,9 +2,10 @@
 import pytest
 import numpy as np
 import src.steps.categorization
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from src.steps.boundary_conditions import BoundaryConditionsStep
 from src.state.mesh_generator_state import SovereignContainer, GridState
+import src.steps.categorization as categorization_module
 
 # --- LITERATE TEST SUITE ---
 
@@ -346,3 +347,70 @@ def test_boundary_conditions_legacy_path():
     # Assertion: One boundary condition must be registered.
     assert len(container.boundary_conditions) == 1
     assert container.boundary_conditions[0].location == "x_min"
+
+def test_invalid_tolerance_raises_error():
+    """
+    [COVERAGE PATH: INVALID TOLERANCE HANDLING]
+    We verify that the step raises a ValueError when a negative tolerance 
+    is provided in the container configuration (Lines 55-57).
+    """
+    container = SovereignContainer(
+        use_gmsh=True,
+        step_file="dummy.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=-0.5,  # Invalid tolerance < 0
+        min_element_size=0.1,
+        boundary_map={}
+    )
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    
+    # Mock the mesh cache to pass initial checks
+    categorization_module._GMSH_MESH_CACHE["tets_vertices"] = np.zeros((1, 4, 3))
+    
+    step = BoundaryConditionsStep()
+    
+    # The logic enforces tolerance >= 0. Expect ValueError.
+    with pytest.raises(ValueError, match="CONSTITUTION VIOLATION: Invalid tolerance"):
+        step.execute(container)
+
+def test_optimization_branch_coverage():
+    """
+    [COVERAGE PATH: SKIP OPTIMIZATION]
+    We ensure that the loop optimization (Line 103) is triggered. 
+    By passing two identical tetrahedra, the second iteration will encounter 
+    grid corners already marked 'True' in the 'corner_inside' array, 
+    triggering the 'continue' statement.
+    """
+    # Setup a container with a 2x2x2 grid.
+    container = SovereignContainer(
+        use_gmsh=True,
+        step_file="dummy.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={"x_min": "inlet", "x_max": "outlet"}
+    )
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.mask = [1] * 1 # Dummy mask to satisfy pipeline
+    
+    # Define a simple tetrahedron that covers the grid origin
+    tet = np.array([
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0]
+    ])
+    
+    # Inject two identical tetrahedra into the cache to force re-evaluation of same points
+    categorization_module._GMSH_MESH_CACHE["tets_vertices"] = np.array([tet, tet])
+    
+    step = BoundaryConditionsStep()
+    
+    # Execution should run without error, hitting line 103 on the second iteration
+    step.execute(container)
+    
+    # Verify the classification occurred
+    assert container.mask is not None
+    assert len(container.boundary_conditions) > 0
