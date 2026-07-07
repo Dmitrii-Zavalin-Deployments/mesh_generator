@@ -1,10 +1,7 @@
 # tests/test_mask_visualizer.py
 import os
 import logging
-import pytest
-import numpy as np
-import matplotlib.pyplot as plt
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from src.utils.mask_visualizer import generate_mask_snapshot
 
 # --- LITERATE TEST SUITE ---
