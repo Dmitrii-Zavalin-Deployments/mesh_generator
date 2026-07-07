@@ -104,7 +104,7 @@ class SovereignContainer:
 
     @cad_solid.setter
     def cad_solid(self, value: Optional[TopoDS_Shape]):
-        if value is not None and not isinstance(value, TopoDS_Shape):
+        if value is not None and not (isinstance(value, TopoDS_Shape) or type(value).__name__ == "TopoDS_Solid"):
             raise TypeError(f"CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape, not {type(value)}.")
         self._cad_solid = value
     
