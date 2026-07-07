@@ -32,6 +32,7 @@ def test_sovereign_container_setup():
     as required by the constitution.
     """
     container = SovereignContainer(
+        use_gmsh=False,
         step_file="test.step",
         max_element_size=0.5,
         solver_version="v1.0.0",
