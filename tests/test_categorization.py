@@ -225,7 +225,7 @@ def test_gmsh_engine_full_execution_flow_success():
     
     mock_gmsh = MagicMock()
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0]), [])
-    mock_gmsh.model.mesh.getElements.return_value = ([4], [np.array([101])], [np.array([1, 2, 3, 4])])
+    mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
     
     # 2. Use the module reference to clear the cache
     categorization_module._GMSH_MESH_CACHE.clear()
