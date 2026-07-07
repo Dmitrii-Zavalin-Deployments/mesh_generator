@@ -33,6 +33,7 @@ def test_orchestrator_execution_flow():
     
     # 1. Setup: Define the SovereignContainer and two mock steps.
     container = SovereignContainer(
+        use_gmsh=False,
         step_file="test.step",
         max_element_size=0.5,
         solver_version="v1.0.0",
