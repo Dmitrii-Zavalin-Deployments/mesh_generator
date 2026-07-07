@@ -217,11 +217,11 @@ def test_gmsh_engine_full_execution_flow_success():
     container.grid = GridState(0, 2, 0, 2, 0, 2, 2, 2, 2) # 2x2x2 = 8 cells
     
     # Mocking standard arrays returned by GMSH C API
-    node_tags = np.array([1, 2, 3, 4])
-    coord = np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0])
+    np.array([1, 2, 3, 4])
+    np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0])
     element_types = [4] # Explicitly provide Type 4 Tetrahedrons
-    element_tags = [np.array([101])]
-    element_node_tags = [np.array([1, 2, 3, 4])]
+    [np.array([101])]
+    [np.array([1, 2, 3, 4])]
     
     mock_gmsh = MagicMock()
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0]), [])
