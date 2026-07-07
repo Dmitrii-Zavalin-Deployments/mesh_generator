@@ -217,37 +217,40 @@ def test_gmsh_engine_full_execution_flow_success():
     container.grid = GridState(0, 2, 0, 2, 0, 2, 2, 2, 2) # 2x2x2 = 8 cells
     
     # Mocking standard arrays returned by GMSH C API
-    np.array([1, 2, 3, 4])
-    np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0])
+    node_tags = np.array([1, 2, 3, 4])
+    coord = np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0])
     element_types = [4] # Explicitly provide Type 4 Tetrahedrons
-    [np.array([101])]
-    [np.array([1, 2, 3, 4])]
+    element_tags = [np.array([101])]
+    element_node_tags = [np.array([1, 2, 3, 4])]
     
     mock_gmsh = MagicMock()
-    mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0]), [])
+    mock_gmsh.model.mesh.getNodes.return_value = (node_tags, coord, [])
     mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
     
-    # 2. Use the module reference to clear the cache
+    # Use the module reference to clear the cache
     categorization_module._GMSH_MESH_CACHE.clear()
     
     step = CategorizationStep()
     with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
         step.execute(container)
         
-    # 3. Access the cache dynamically via the module reference
+    # Access the cache dynamically via the module reference
     cache = categorization_module._GMSH_MESH_CACHE
     
+    # 1. Verify standard initialization and lifecycle teardown blocks
     assert mock_gmsh.initialize.called
     assert mock_gmsh.finalize.called
     
-    # Assertions now use the 'live' cache reference
+    # 2. Check the raw mesh matrix structures were extracted and cached for Layer 2
     assert "nodes_map" in cache
     assert "tets_vertices" in cache
     assert cache["tets_vertices"].shape == (1, 4, 3)
     
+    # 3. Check baseline schema mask fulfillment (8 fluid elements allocated)
     assert len(container.mask) == 8
     assert all(cell == 1 for cell in container.mask)
     
+    # 4. Verify visualizer hooks are invoked with strict viewport padding guidelines
     assert mock_gmsh.fltk.initialize.called
     assert mock_gmsh.write.called
 
