@@ -284,7 +284,7 @@ def test_boundary_conditions_gmsh_missing_cache():
     
     # We patch the cache to be empty.
     # Logic: if "tets_vertices" not in _GMSH_MESH_CACHE:
-    with patch("src.steps.boundary_conditions._GMSH_MESH_CACHE", {}):
+    with patch("src.steps.categorization._GMSH_MESH_CACHE", {}):
         with pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION"):
             step.execute(container)
 
@@ -302,7 +302,7 @@ def test_boundary_conditions_degenerate_tetrahedron_skip():
     # Create a flat (singular) tetrahedron where all vertices lie on a line.
     degenerate_tet = np.array([[[0,0,0], [1,0,0], [2,0,0], [3,0,0]]])
     
-    with patch("src.steps.boundary_conditions._GMSH_MESH_CACHE", {"tets_vertices": degenerate_tet}):
+    with patch("src.steps.categorization._GMSH_MESH_CACHE", {"tets_vertices": degenerate_tet}):
         # This execution should not raise LinAlgError because of the try/except block.
         step.execute(container)
         # Assertion: The process completed execution, skipping the degenerate element.
