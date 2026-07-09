@@ -77,8 +77,13 @@ def main():
     # --- GMSH PARALLELIZATION & TOPOLOGY REMEDIATION LAYER ---
     if engine_type == 'gmsh':
         import gmsh
-        logger.info("Initializing Gmsh runtime engine context...")
-        gmsh.initialize()
+        
+        # Guard against double initialization loops
+        if not gmsh.isInitialized():
+            logger.info("Initializing Gmsh runtime engine context...")
+            gmsh.initialize()
+        else:
+            logger.warning("Gmsh engine already active in global state context. Skipping initialization.")
         
         # Optimize compute allocations for virtualized CI runners (2 vCPUs)
         cores = multiprocessing.cpu_count()
@@ -153,8 +158,12 @@ def main():
         # Guarantee memory teardown of binary objects regardless of run-time failures
         if engine_type == 'gmsh':
             import gmsh
-            logger.info("Executing final environment cleanup. Purging Gmsh memory structures...")
-            gmsh.finalize()
+            # Guard against tearing down an already finalized or closed singleton session
+            if gmsh.isInitialized():
+                logger.info("Executing final environment cleanup. Purging Gmsh memory structures...")
+                gmsh.finalize()
+            else:
+                logger.warning("Gmsh finalization bypassed: Engine was already uninitialized by an internal pipeline step.")
 
 if __name__ == "__main__":  # pragma: no cover
     main()
