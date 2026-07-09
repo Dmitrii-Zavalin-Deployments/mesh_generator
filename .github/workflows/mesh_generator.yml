@@ -209,14 +209,19 @@ jobs:
 
       - name: 📦 Setup Environment & Install Binary Dependencies
         run: |
-          # 1. Install heavy binary physics stack via Conda
-          conda install -y -c conda-forge -c defaults pythonocc-core gmsh numpy pip
+          # 1. Install heavy binary physics stack and graphics engine via Conda
+          conda install -y -c conda-forge -c defaults pythonocc-core gmsh numpy pip matplotlib
           
           # 2. Force-install Python bindings via pip to bind to conda binaries
           python -m pip install --no-cache-dir gmsh
           
           # 3. Verification check (Fail fast if install failed)
-          python -c "import gmsh; print('Gmsh version:', gmsh.__version__)"
+          python -c "
+          import gmsh
+          import matplotlib
+          print('Gmsh version:', gmsh.__version__)
+          print('Matplotlib version:', matplotlib.__version__)
+          "
 
       - name: 🌐 Install Headless Rendering Dependencies
         run: |
