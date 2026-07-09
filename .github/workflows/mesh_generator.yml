@@ -46,7 +46,8 @@ jobs:
         with:
           auto-update-conda: true
           python-version: "3.10"
-          channels: conda-forge
+          # Add 'defaults' here to match the channel usage in your requirements.sh
+          channels: conda-forge,defaults
           channel-priority: strict
 
       - name: 📦 Provision Environment Layers (Conda + Pip)
@@ -199,7 +200,8 @@ jobs:
         with:
           auto-update-conda: true
           python-version: "3.10"
-          channels: conda-forge
+          # Add 'defaults' here to match the channel usage in your requirements.sh
+          channels: conda-forge,defaults
           channel-priority: strict
 
       - name: 📦 Provision Environment Layers (Conda + Pip)
