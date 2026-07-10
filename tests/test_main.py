@@ -154,52 +154,62 @@ def test_main_strict_configuration_key_policy():
         with pytest.raises(KeyError):
             main()
 
-# We mock dependencies to prevent the actual pipeline from running during these tests
-@patch("src.main.Orchestrator")
-@patch("src.main.SovereignContainer")
-@patch("src.main.validate_json")
-@patch("src.main.glob.glob")
-@patch("src.main.open")
-@patch("src.main.json.load")
+
 class TestMainCoverage:
 
-    def test_gmsh_already_initialized(self, mock_json, mock_open, mock_glob, mock_validate, mock_container, mock_orchestrator):
+    def test_gmsh_already_initialized(self):
         """Forces line 86: GMSH engine already active."""
-        # Setup mocks
-        mock_glob.return_value = ["test.step"]
-        mock_json.return_value = {"engine_type": "gmsh"}
+        mock_gmsh = MagicMock()
+        mock_gmsh.isInitialized.return_value = True
         
-        # Patch gmsh to return 'True' for isInitialized immediately
-        with patch("gmsh.isInitialized") as mock_init:
-            mock_init.return_value = True 
+        # Use localized patch.dict to clean up runtime environment safely
+        with patch.dict(sys.modules, {'gmsh': mock_gmsh}), \
+             patch("src.main.glob.glob", return_value=["test.step"]), \
+             patch("builtins.open", mock_open(read_data='{}')), \
+             patch("src.main.json.load", return_value={
+                 "engine_type": "gmsh", 
+                 "tolerance": 1e-6, 
+                 "max_element_size": 0.5, 
+                 "min_element_size": 0.1, 
+                 "solver_version": "1.0", 
+                 "boundary_map": {}
+             }), \
+             patch("src.main.validate_json"), \
+             patch("src.main.Orchestrator"), \
+             patch("src.main.SovereignContainer"), \
+             patch("sys.argv", ['main.py', '--input_output_folder', 'test_data']):
             
-            # Setup sys.argv to avoid argparse errors
-            with patch.object(sys, 'argv', ['main.py', '--input_output_folder', 'test_data']):
-                # Run main (we expect an error after initialization because other mocks aren't fully set up,
-                # but we only care that it hits the 'else' block)
-                try:
-                    main.main()
-                except Exception:
-                    pass
-                
-                # Assert that we actually checked if initialized
-                assert mock_init.called
+            try:
+                main()
+            except Exception:
+                pass
+            
+            assert mock_gmsh.isInitialized.called
 
-    def test_gmsh_already_finalized_teardown(self, mock_json, mock_open, mock_glob, mock_validate, mock_container, mock_orchestrator):
+    def test_gmsh_already_finalized_teardown(self):
         """Forces line 166: GMSH finalization bypassed."""
-        mock_glob.return_value = ["test.step"]
-        mock_json.return_value = {"engine_type": "gmsh"}
+        mock_gmsh = MagicMock()
+        mock_gmsh.isInitialized.return_value = False
         
-        # Patch gmsh
-        with patch("gmsh.isInitialized") as mock_init:
-            # Return False so that line 166 is triggered in the finally block
-            mock_init.return_value = False
+        with patch.dict(sys.modules, {'gmsh': mock_gmsh}), \
+             patch("src.main.glob.glob", return_value=["test.step"]), \
+             patch("builtins.open", mock_open(read_data='{}')), \
+             patch("src.main.json.load", return_value={
+                 "engine_type": "gmsh", 
+                 "tolerance": 1e-6, 
+                 "max_element_size": 0.5, 
+                 "min_element_size": 0.1, 
+                 "solver_version": "1.0", 
+                 "boundary_map": {}
+             }), \
+             patch("src.main.validate_json"), \
+             patch("src.main.Orchestrator"), \
+             patch("src.main.SovereignContainer"), \
+             patch("sys.argv", ['main.py', '--input_output_folder', 'test_data']):
             
-            with patch.object(sys, 'argv', ['main.py', '--input_output_folder', 'test_data']):
-                try:
-                    main.main()
-                except Exception:
-                    pass
-                
-                # Check that finalization check was called
-                assert mock_init.called
+            try:
+                main()
+            except Exception:
+                pass
+            
+            assert mock_gmsh.isInitialized.called
