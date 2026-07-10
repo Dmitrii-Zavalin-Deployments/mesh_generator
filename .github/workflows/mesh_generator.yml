@@ -219,7 +219,7 @@ jobs:
       - name: 🚀 Execute Mesh Generator Engine (with Live Profiling)
         run: |
           # Initialize background performance tracker to capture accurate trends
-          rm -f /tmp/cpu_track.log
+          rm -f /tmp/cpu_track.log /tmp/memory_profile.log
           
           echo "Starting asynchronous background compute metrics sampler..."
           while true; do
@@ -229,8 +229,8 @@ jobs:
           done &
           SAMPLER_PID=$!
           
-          # Run core execution module targeted inside virtual display frame server allocation loop
-          xvfb-run --auto-servernum python src/main.py --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/"
+          # Run core execution module under verbose tool monitoring to record Peak Resident Set Size (RSS)
+          /usr/bin/time -v xvfb-run --auto-servernum python src/main.py --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/" 2> /tmp/memory_profile.log
           
           # Unwind profile monitoring immediately post-execution 
           kill $SAMPLER_PID
@@ -239,9 +239,19 @@ jobs:
           PEAK_CPU=$(sort -n /tmp/cpu_track.log | tail -n 1)
           if [ -z "$PEAK_CPU" ]; then PEAK_CPU="0.0"; fi
           
-          # Inject peak threshold directly into environment runtime variables context
+          # Parse Peak Memory footprint values from verbose execution dump
+          MAX_RSS_KB=$(grep "Maximum resident set size" /tmp/memory_profile.log | awk '{print $6}')
+          if [ -z "$MAX_RSS_KB" ]; then
+            MAX_RSS_MB=$(free -m | awk '/Mem:/ { print $3 }')
+          else
+            MAX_RSS_MB=$((MAX_RSS_KB / 1024))
+          fi
+          TOTAL_MEM_MB=$(free -m | awk '/Mem:/ { print $2 }')
+          
+          # Inject peak thresholds directly into environment runtime variables context
           echo "PEAK_COMPUTE_LOAD=${PEAK_CPU}%" >> $GITHUB_ENV
-          echo "✅ Profiler teardown clean. Peak execution compute registered: ${PEAK_CPU}%"
+          echo "PEAK_MEM_USAGE=${MAX_RSS_MB}/${TOTAL_MEM_MB}MB" >> $GITHUB_ENV
+          echo "✅ Profiler teardown clean. Peak CPU: ${PEAK_CPU}%, Peak Memory: ${MAX_RSS_MB}/${TOTAL_MEM_MB}MB"
 
       - name: 🔍 Post-Execution Artifact Verification
         run: |
@@ -295,7 +305,7 @@ jobs:
           
           # Parse high-fidelity metrics populated during live engine load, fallback to idle if missing
           CPU_LOAD="${PEAK_COMPUTE_LOAD:-$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4 "%"}')}"
-          MEM_USAGE=$(free -m | awk '/Mem:/ { print $3 "/" $2 "MB" }')
+          MEM_USAGE="${PEAK_MEM_USAGE:-$(free -m | awk '/Mem:/ { print $3 "/" $2 "MB" }')}"
 
           # New log entry
           NEW_ENTRY=$(cat <<EOF
