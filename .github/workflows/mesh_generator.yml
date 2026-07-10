@@ -286,7 +286,7 @@ jobs:
 
           HEADER="# 📐 Mesh Generator Performance Audit"
           TUTORIAL="### 📚 Resources & Documentation
-          - **Tutorial/Book:** <currently in development>
+          - **Tutorial/Book:** ***currently in development***
           ---"
 
           if [ -f "README.md" ]; then
