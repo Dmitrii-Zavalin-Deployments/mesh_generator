@@ -216,10 +216,32 @@ jobs:
           # libgl1 replaces the deprecated libgl1-mesa-glx on Ubuntu 24.04+
           sudo apt-get install -y libgl1 xvfb libglu1-mesa
 
-      - name: 🚀 Execute Mesh Generator Engine
+      - name: 🚀 Execute Mesh Generator Engine (with Live Profiling)
         run: |
-          # Run execution module targeted inside a virtual display frame server allocation loop
+          # Initialize background performance tracker to capture accurate trends
+          rm -f /tmp/cpu_track.log
+          
+          echo "Starting asynchronous background compute metrics sampler..."
+          while true; do
+            # Evaluates active utilization delta (user + system space) every second
+            top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}' >> /tmp/cpu_track.log 2>/dev/null || true
+            sleep 1
+          done &
+          SAMPLER_PID=$!
+          
+          # Run core execution module targeted inside virtual display frame server allocation loop
           xvfb-run --auto-servernum python src/main.py --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/"
+          
+          # Unwind profile monitoring immediately post-execution 
+          kill $SAMPLER_PID
+          
+          # Standardize and isolate peak payload metric thresholds
+          PEAK_CPU=$(sort -n /tmp/cpu_track.log | tail -n 1)
+          if [ -z "$PEAK_CPU" ]; then PEAK_CPU="0.0"; fi
+          
+          # Inject peak threshold directly into environment runtime variables context
+          echo "PEAK_COMPUTE_LOAD=${PEAK_CPU}%" >> $GITHUB_ENV
+          echo "✅ Profiler teardown clean. Peak execution compute registered: ${PEAK_CPU}%"
 
       - name: 🔍 Post-Execution Artifact Verification
         run: |
@@ -270,7 +292,9 @@ jobs:
           RUN_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           STATUS="${{ job.status }}"
           CURRENT_BRANCH=${GITHUB_REF##*/}
-          CPU_LOAD=$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4 "%"}')
+          
+          # Parse high-fidelity metrics populated during live engine load, fallback to idle if missing
+          CPU_LOAD="${PEAK_COMPUTE_LOAD:-$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4 "%"}')}"
           MEM_USAGE=$(free -m | awk '/Mem:/ { print $3 "/" $2 "MB" }')
 
           # New log entry
@@ -347,7 +371,7 @@ jobs:
             if [ -f "debug/forensic_audit_validation.sh" ]; then
               bash debug/forensic_audit_validation.sh
             else
-              echo "❌ Critical: Diagnostic script 'debug/forensic_audit_validation.sh' not found."
+              echo "❌ Critical: Diagnostic script 'debug/forensic_audit_verification.sh' not found."
             fi
             exit 1
           fi
