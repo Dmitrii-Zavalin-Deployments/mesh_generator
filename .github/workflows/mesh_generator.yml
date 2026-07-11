@@ -229,8 +229,18 @@ jobs:
           done &
           SAMPLER_PID=$!
           
+          # Deterministically locate the baseline STEP file target within workspace parameters context
+          STEP_FILE=$(basename $(ls data/testing-input-output/*.step 2>/dev/null | head -n 1))
+          if [ -z "$STEP_FILE" ]; then
+            echo "❌ CRITICAL ERROR: Explicit parameter contract violation. No input .step file located in data/testing-input-output/."
+            exit 1
+          fi
+          
           # Run core execution module under verbose tool monitoring to record Peak Resident Set Size (RSS)
-          /usr/bin/time -v xvfb-run --auto-servernum python src/main.py --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/" 2> /tmp/memory_profile.log
+          /usr/bin/time -v xvfb-run --auto-servernum python src/main.py \
+            --input_output_folder "${GITHUB_WORKSPACE}/data/testing-input-output/" \
+            --input_file_name "$STEP_FILE" \
+            --output_file_name "mesh_generator_output.json" 2> /tmp/memory_profile.log
           
           # Unwind profile monitoring immediately post-execution 
           kill $SAMPLER_PID
