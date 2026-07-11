@@ -1,7 +1,6 @@
 import sys
 import os
 import logging
-import glob
 import json
 import argparse
 import multiprocessing
@@ -39,18 +38,32 @@ def validate_json(data, schema_path):
 def main():
     parser = argparse.ArgumentParser(description="Modular Workspace Mesh Generator")
     parser.add_argument("--input_output_folder", required=True, help="Path to workspace directory")
+    parser.add_argument("--input_file_name", required=True, help="Name or relative path of the input STEP file")
+    parser.add_argument("--output_file_name", required=True, help="Name or relative path of the output JSON file")
     args = parser.parse_args()
 
     workspace = args.input_output_folder
     logger.info(f"Pipeline initialized. Workspace: {workspace}")
 
-    # 1. Discover STEP File
-    step_files = glob.glob(os.path.join(workspace, "*.step"))
-    if not step_files:
-        error_msg = f"CONSTITUTION VIOLATION: STEP file not found in workspace: {os.path.abspath(workspace)}"
+    # 1. Resolve and Validate Input STEP File Location Explicitly
+    if os.path.isabs(args.input_file_name):
+        step_file = args.input_file_name
+    else:
+        step_file = os.path.join(workspace, args.input_file_name)
+
+    if not os.path.isfile(step_file):
+        error_msg = f"CONSTITUTION VIOLATION: STEP file not found at location: {os.path.abspath(step_file)}"
         logger.critical(error_msg)
-        raise RuntimeError(error_msg)
-    step_file = step_files[0]
+        raise FileNotFoundError(error_msg)
+
+    # Resolve Explicit Output Target Path Structure
+    if os.path.isabs(args.output_file_name):
+        output_path = args.output_file_name
+    else:
+        output_path = os.path.join(workspace, args.output_file_name)
+
+    snapshot_file = os.path.join(os.path.dirname(output_path), "mesh_snapshot.png")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # 2. Load and Validate Config
     with open("config/config.json", 'r') as f:
@@ -58,7 +71,6 @@ def main():
     validate_json(config, "schema/mesh_generator_config_schema.json")
 
     # 3. Extract Core Context (No-Default Policy Enforcement)
-    # Direct bracket lookup guarantees failure and process death if a key is absent.
     engine_type = config['engine_type']
 
     # 4. Initialize Sovereign Container
@@ -114,9 +126,6 @@ def main():
         pipeline.run(container)
         
         # 6. Serialize Output Payload
-        output_path = os.path.join(workspace, "mesh_generator_output.json")
-        snapshot_file = os.path.join(workspace, "mesh_snapshot.png")
-
         output_data = {
             "inputs": {"step_model": {"path": container.step_file}},
             "config": {
