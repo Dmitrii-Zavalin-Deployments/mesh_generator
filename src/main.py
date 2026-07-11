@@ -71,6 +71,7 @@ def main():
     validate_json(config, "schema/mesh_generator_config_schema.json")
 
     # 3. Extract Core Context (No-Default Policy Enforcement)
+    # Direct bracket lookup guarantees failure and process death if a key is absent.
     engine_type = config['engine_type']
 
     # 4. Initialize Sovereign Container
