@@ -113,6 +113,62 @@ def test_main_happy_path():
         mock_json_dump.assert_called_once()
         mock_viz.assert_called_once()
 
+def test_main_absolute_input_path():
+    """
+    [COVERAGE PATH: LINE 50]
+    Forces line 50 coverage by feeding an absolute input file path to the system,
+    bypassing relative workplace joining mechanics.
+    """
+    dummy_in()
+    config_data = get_mock_config()
+    stub_container = SerializableStubContainer()
+    
+    with patch("sys.argv", [
+        "main.py", 
+        "--input_output_folder", "valid_workspace",
+        "--input_file_name", "/absolute/path/to/geometry.step",
+        "--output_file_name", "mesh_generator_output.json"
+    ]), \
+         patch("os.path.isfile", return_value=True), \
+         patch("os.makedirs"), \
+         patch("builtins.open", mock_open(read_data='{}')), \
+         patch("json.load", side_effect=[config_data, {}]), \
+         patch("json.dump"), \
+         patch("src.main.validate"), \
+         patch("src.main.SovereignContainer", return_value=stub_container), \
+         patch("src.main.generate_mask_snapshot"), \
+         patch("src.main.Orchestrator"):
+        
+        main()
+
+def test_main_absolute_output_path():
+    """
+    [COVERAGE PATH: LINE 61]
+    Forces line 61 coverage by feeding an absolute output file path to the system,
+    ensuring directory paths are processed without workspace structural alteration.
+    """
+    dummy_in()
+    config_data = get_mock_config()
+    stub_container = SerializableStubContainer()
+    
+    with patch("sys.argv", [
+        "main.py", 
+        "--input_output_folder", "valid_workspace",
+        "--input_file_name", "geometry.step",
+        "--output_file_name", "/absolute/path/to/mesh_generator_output.json"
+    ]), \
+         patch("os.path.isfile", return_value=True), \
+         patch("os.makedirs"), \
+         patch("builtins.open", mock_open(read_data='{}')), \
+         patch("json.load", side_effect=[config_data, {}]), \
+         patch("json.dump"), \
+         patch("src.main.validate"), \
+         patch("src.main.SovereignContainer", return_value=stub_container), \
+         patch("src.main.generate_mask_snapshot"), \
+         patch("src.main.Orchestrator"):
+        
+        main()
+
 def test_main_validation_failure():
     """
     [CONTRACTUAL ENFORCEMENT: SCHEMA VIOLATION]
