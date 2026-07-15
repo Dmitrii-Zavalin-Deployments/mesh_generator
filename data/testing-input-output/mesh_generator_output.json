@@ -119,12 +119,6 @@
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
       -1,
       -1,
       0,
@@ -155,8 +149,14 @@
       0,
       0,
       0,
+      -1,
+      -1,
       0,
       0,
+      0,
+      0,
+      -1,
+      -1,
       0,
       0,
       0,
@@ -275,6 +275,16 @@
       {
         "location": "wall",
         "type": "no-slip",
+        "surface_id": "cell_86"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_122"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
         "surface_id": "cell_92"
       },
       {
@@ -321,6 +331,16 @@
         "location": "wall",
         "type": "no-slip",
         "surface_id": "cell_117"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_87"
+      },
+      {
+        "location": "wall",
+        "type": "no-slip",
+        "surface_id": "cell_123"
       },
       {
         "location": "wall",
