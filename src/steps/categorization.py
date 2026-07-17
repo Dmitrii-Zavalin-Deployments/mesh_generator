@@ -39,6 +39,7 @@ def _run_gmsh_engine(container: SovereignContainer):
         ) from e
     
     gmsh.initialize()
+    gmsh.option.setNumber("General.Terminal", 0)  # Mutes terminal output
     
     try:
         # Abstract model initialization to accept any geometry variation smoothly
