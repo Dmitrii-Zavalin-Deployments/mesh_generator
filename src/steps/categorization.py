@@ -38,8 +38,15 @@ def _run_gmsh_engine(container: SovereignContainer):
             "ensure 'pip install gmsh' has been executed successfully."
         ) from e
     
-    gmsh.initialize()
-    gmsh.option.setNumber("General.Terminal", 0)  # Mutes terminal output
+    # Defensive Initialization Guard against Sig 139 / double initialization collisions
+    initialized_here = False
+    if not gmsh.is_initialized():
+        gmsh.initialize()
+        initialized_here = True
+        gmsh.option.setNumber("General.Terminal", 0)  # Mutes terminal output
+    else:
+        logger.info("Gmsh context already active. Reusing existing runtime session and clearing active models.")
+        gmsh.clear()
     
     try:
         # Abstract model initialization to accept any geometry variation smoothly
@@ -110,8 +117,8 @@ def _run_gmsh_engine(container: SovereignContainer):
             # Using Trimetric-style angles (softer than -35, 45)
             # This orientation is often easier to fit within a 4:3 or 16:9 aspect ratio
             gmsh.option.setNumber("General.RotationX", 10)   # Pitch
-            gmsh.option.setNumber("General.RotationY", 10)     # Roll
-            gmsh.option.setNumber("General.RotationZ", 10)    # Yaw
+            gmsh.option.setNumber("General.RotationY", 10)   # Roll
+            gmsh.option.setNumber("General.RotationZ", 10)   # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
             # Lowering this to 0.45 ensures that even with rotation, the object 
@@ -140,8 +147,9 @@ def _run_gmsh_engine(container: SovereignContainer):
             raise ex
 
     finally:
-        # Guarantee memory unbinding even on runtime geometry contract failures
-        gmsh.finalize()
+        # Guarantee memory unbinding only if the context was spun up within this frame execution
+        if initialized_here and gmsh.is_initialized():
+            gmsh.finalize()
 
 
 def _run_voxel_engine(container: SovereignContainer):
