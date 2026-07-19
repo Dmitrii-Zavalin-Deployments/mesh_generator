@@ -221,6 +221,39 @@ def test_gmsh_engine_topology_violation_error():
         with pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements"):
             step.execute(container)
 
+def test_gmsh_engine_reused_session():
+    """
+    [GMSH ENGINE PATH: REUSED SESSION]
+    Verifies that if Gmsh is already initialized, the engine reuses the 
+    existing context, clears the model, and skips the finalize lifecycle.
+    This hits lines 48-49 (coverage 100%).
+    """
+    container = SovereignContainer(
+        use_gmsh=True,
+        step_file="tests/dummies/sample_geometry.step",
+        max_element_size=0.5,
+        solver_version="v1.0.0",
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={}
+    )
+    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    
+    mock_gmsh = MagicMock()
+    mock_gmsh.is_initialized.return_value = True # PRE-INITIALIZED STATE
+    
+    mock_gmsh.model.mesh.getNodes.return_value = (np.array([1]), np.array([0.0, 0.0, 0.0]), [])
+    mock_gmsh.model.mesh.getElements.return_value = ([4], [np.array([1])], [np.array([1, 2, 3, 4])])
+    
+    step = CategorizationStep()
+    with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
+        step.execute(container)
+        
+    # Verify reuse path: clear called, init/finalize skipped
+    assert mock_gmsh.clear.called
+    assert not mock_gmsh.initialize.called
+    assert not mock_gmsh.finalize.called
+
 def test_gmsh_engine_full_execution_flow_success():
     """
     [GMSH ENGINE PATH: NOMINAL INTEGRATION FLOW]
