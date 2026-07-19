@@ -43,10 +43,11 @@ def _run_gmsh_engine(container: SovereignContainer):
     if not gmsh.is_initialized():
         gmsh.initialize()
         initialized_here = True
-        gmsh.option.setNumber("General.Terminal", 0)  # Mutes terminal output
     else:
         logger.info("Gmsh context already active. Reusing existing runtime session and clearing active models.")
         gmsh.clear()
+    
+    gmsh.option.setNumber("General.Terminal", 0)  # Mutes terminal output
     
     try:
         # Abstract model initialization to accept any geometry variation smoothly
