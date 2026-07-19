@@ -242,7 +242,8 @@ def test_gmsh_engine_reused_session():
     mock_gmsh = MagicMock()
     mock_gmsh.is_initialized.return_value = True # PRE-INITIALIZED STATE
     
-    mock_gmsh.model.mesh.getNodes.return_value = (np.array([1]), np.array([0.0, 0.0, 0.0]), [])
+    # Fixed: Return 4 nodes to match the indices referenced inside the tetrahedra array mappings
+    mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.zeros(12), [])
     mock_gmsh.model.mesh.getElements.return_value = ([4], [np.array([1])], [np.array([1, 2, 3, 4])])
     
     step = CategorizationStep()
