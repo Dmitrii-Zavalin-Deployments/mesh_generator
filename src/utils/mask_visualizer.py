@@ -1,3 +1,4 @@
+# src/utils/mask_visualizer.py
 import os
 import logging
 import numpy as np
@@ -102,4 +103,10 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         logger.info(f"Voxel verification chart saved: {destination_path}")
         
     except Exception as e:
-        logger.error(f"Visualization failure: {str(e)}")
+        error_msg = str(e)
+        if "reshape" in error_msg:
+            logger.error(f"Lattice dimension mismatch: {error_msg}")
+        elif "timeout" in error_msg:
+            logger.error(f"Non-blocking visualization capture routine failure: {error_msg}")
+        else:
+            logger.error(f"Visualization failure: {error_msg}")
