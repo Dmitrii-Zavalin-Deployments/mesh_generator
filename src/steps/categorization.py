@@ -129,10 +129,8 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.RotationZ", 0)    # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
-            # Lowering this to 0.45 ensures that even with rotation, the object 
-            # is rendered at less than half its "fit-to-frame" size, 
-            # guaranteeing no edges are cut.
-            gmsh.option.setNumber("General.ZoomFactor", 0.45)
+            # Lowered to 0.35 to reduce model scale within the viewport.
+            gmsh.option.setNumber("General.ZoomFactor", 0.35)
             
             # Resolve destination paths using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
