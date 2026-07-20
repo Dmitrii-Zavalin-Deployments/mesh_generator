@@ -334,11 +334,11 @@ jobs:
 
           HEADER="# 📐 Mesh Generator"
 
-          PROJECT_INTRO="## 🧩 Mesh Generator — CAD → Mesh → Voxelization Pipeline
+          PROJECT_INTRO="## 🧩 CAD → Mesh → Voxelization Pipeline
           A high‑fidelity scientific mesh generator designed for CAD/STEP geometries,
           voxelization, CI‑optimized rendering, and simulation preprocessing.
 
-          ### 🖼️ CAD → Mesh → Voxelization Preview
+          ### 🖼️ Pipeline Preview (STEP → Mesh → Voxel)
 
           <p align=\"center\">
             <img src=\"data/testing-input-output/step_snapshot.png\" width=\"180\" />
