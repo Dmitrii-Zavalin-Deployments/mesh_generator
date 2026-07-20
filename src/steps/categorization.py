@@ -47,7 +47,9 @@ def _run_gmsh_engine(container: SovereignContainer):
         logger.info("Gmsh context already active. Reusing existing runtime session and clearing active models.")
         gmsh.clear()
     
-    gmsh.option.setNumber("General.Terminal", 0)  # Mutes terminal output
+    # STABILIZATION PATCH 1: Complete progressive logging suppression
+    gmsh.option.setNumber("General.Terminal", 0)   # Mutes terminal output routing
+    gmsh.option.setNumber("General.Verbosity", 1)  # Mutes progress counters; allows only critical errors
     
     try:
         # Abstract model initialization to accept any geometry variation smoothly
@@ -60,6 +62,14 @@ def _run_gmsh_engine(container: SovereignContainer):
         # Define Mesh Size Field (Adaptive)
         gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
         gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
+        
+        # STABILIZATION PATCH 2: Loop Crash/Segfault Prevention
+        # Switch 2D algorithm to MeshAdapt (2) to cleanly resolve complex/imperfect non-manifold CAD seams
+        gmsh.option.setNumber("Mesh.Algorithm", 2)
+        
+        # Isolate 1D edge generation and purge duplicate boundary nodes before baking 2D surfaces or 3D volumes
+        gmsh.model.mesh.generate(1)
+        gmsh.model.mesh.removeDuplicateNodes()
         
         # Generate 3D Mesh
         gmsh.model.mesh.generate(3)
