@@ -128,9 +128,11 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.RotationY", 30)   # Roll / Turn
             gmsh.option.setNumber("General.RotationZ", 0)    # Yaw
             
-            # --- UNIVERSAL FIT FIX ---
-            # Automatically scales and centers the geometry dynamically to fit perfectly within the viewport bounds.
-            gmsh.option.setNumber("General.AutoPosition", 1)
+            # --- UNIVERSAL PADDING BORDERS FIX ---
+            # Explicitly control the whitespace/border padding around the model.
+            # 0.0 forces the model to tightly touch the window edge. 
+            # 0.4 adds a clean 40% margin buffer around the geometry to prevent cropping.
+            gmsh.option.setNumber("General.DisplayBorderFactor", 0.4)
             
             # Resolve destination paths using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
