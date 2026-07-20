@@ -94,7 +94,7 @@ def test_results_contract_validation(instantiated_container):
     Before execution, the container must reserve space for the outputs (grid, mask, BCs).
     """
     # The result schema dictates three placeholders:
-    #     Grid (Structural Mesh), Mask (Fluid/Solid mapping), Boundary Conditions
+    #      Grid (Structural Mesh), Mask (Fluid/Solid mapping), Boundary Conditions
     
     # 1. Existence Check:
     # The attributes must be defined to hold the future computation.
@@ -104,7 +104,7 @@ def test_results_contract_validation(instantiated_container):
     
     # 2. State Check:
     # A fresh container must initialize these values to None to prevent 'dirty' data.
-    #    State = None (Empty/Initialized)
+    #      State = None (Empty/Initialized)
     assert instantiated_container.grid is None, "Contract Violation: 'grid' must initialize as None."
     assert instantiated_container.mask is None, "Contract Violation: 'mask' must initialize as None."
     assert instantiated_container.boundary_conditions is None, "Contract Violation: 'boundary_conditions' must initialize as None."
