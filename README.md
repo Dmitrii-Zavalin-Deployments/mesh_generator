@@ -5,12 +5,26 @@ voxelization, CI‑optimized rendering, and simulation preprocessing.
 
 ### 🖼️ CAD → Mesh → Voxelization Preview
 
-![STEP Geometry](data/testing-input-output/step_snapshot.png)
-→
-![Mesh Snapshot](data/testing-input-output/mesh_snapshot.png)
-→
-![Voxel Mask](data/testing-input-output/voxel_mask_verification.png)
+<p align="center">
+  <img src="data/testing-input-output/step_snapshot.png" width="180" />
+  →
+  <img src="data/testing-input-output/mesh_snapshot.png" width="180" />
+  →
+  <img src="data/testing-input-output/voxel_mask_verification.png" width="180" />
+</p>
 
+---
+
+### 📚 Resources & Documentation
+- **Tutorial/Book:** ***currently in development***
+---
+### 🧮 Performance Audit
+### Audit: 2026-07-20 22:10:40 UTC
+- **Branch:** `main`
+- **Status:** `success`
+- **Run:** [Detailed Execution Logs](https://github.com/Dmitrii-Zavalin-Deployments/mesh_generator/actions/runs/29782728408)
+- **CPU Load:** `60.4%`
+- **Memory Usage:** `321/15989MB`
 ---
 
 ### 📚 Resources & Documentation
