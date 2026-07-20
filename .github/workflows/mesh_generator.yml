@@ -340,11 +340,13 @@ jobs:
 
           ### 🖼️ CAD → Mesh → Voxelization Preview
 
-          ![STEP Geometry](data/testing-input-output/step_snapshot.png)
-          →
-          ![Mesh Snapshot](data/testing-input-output/mesh_snapshot.png)
-          →
-          ![Voxel Mask](data/testing-input-output/voxel_mask_verification.png)
+          <p align=\"center\">
+            <img src=\"data/testing-input-output/step_snapshot.png\" width=\"180\" />
+            →
+            <img src=\"data/testing-input-output/mesh_snapshot.png\" width=\"180\" />
+            →
+            <img src=\"data/testing-input-output/voxel_mask_verification.png\" width=\"180\" />
+          </p>
 
           ---
           "
