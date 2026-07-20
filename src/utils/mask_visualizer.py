@@ -139,31 +139,32 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
                 logger.info("Extracting CAD boundary surfaces for aligned visualization...")
-                
-                # Compute background triangulation mesh solely for smooth face shading calculations
+
                 BRepMesh_IncrementalMesh(cad_solid, 0.5)
-                
-                # 1. Extract Smooth Faces (Rendered with zero wireframe borders)
+
                 explorer_face = TopExp_Explorer(cad_solid, TopAbs_FACE)
                 polygons = []
 
                 while explorer_face.More():
                     face = explorer_face.Current()
                     explorer_face.Next()
+
                     loc = TopLoc_Location()
                     triangulation = BRep_Tool.Triangulation(face, loc)
                     if triangulation:
+                        trsf = loc.Transformation()   # <-- REQUIRED FIX
+
                         nodes = triangulation.Nodes()
                         triangles = triangulation.Triangles()
+
                         for i in range(1, triangulation.NbTriangles() + 1):
                             tri = triangles.Value(i)
                             idx1, idx2, idx3 = tri.Get()
-                            
-                            p1 = nodes.Value(idx1)
-                            p2 = nodes.Value(idx2)
-                            p3 = nodes.Value(idx3)
-                            
-                            # Map CAD coordinates identically to the voxel transformation: (X, Z, Y)
+
+                            p1 = nodes.Value(idx1).Transformed(trsf)   # <-- FIX
+                            p2 = nodes.Value(idx2).Transformed(trsf)   # <-- FIX
+                            p3 = nodes.Value(idx3).Transformed(trsf)   # <-- FIX
+
                             polygons.append([
                                 [p1.X(), p1.Z(), p1.Y()],
                                 [p2.X(), p2.Z(), p2.Y()],
@@ -175,40 +176,41 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                     ax_cad = fig_cad.add_subplot(111, projection='3d')
                     ax_cad.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
 
-                    # Render vector CAD surfaces cleanly without internal mesh lines (edgecolors='none')
-                    poly_collection = Poly3DCollection(polygons, facecolors='lightgray', edgecolors='none', alpha=0.5)
+                    poly_collection = Poly3DCollection(polygons, facecolors='lightgray',
+                                                    edgecolors='none', alpha=0.5)
                     ax_cad.add_collection3d(poly_collection)
 
-                    # 2. Extract and Plot Clean Topological Boundary Edges (Eliminates meshed triangle appearance)
                     explorer_edge = TopExp_Explorer(cad_solid, TopAbs_EDGE)
                     while explorer_edge.More():
                         edge = explorer_edge.Current()
                         explorer_edge.Next()
-                        
-                        # Generate smooth parametric curves for true boundary outlines
+
                         curve = BRepAdaptor_Curve(edge)
                         first_param = curve.FirstParameter()
                         last_param = curve.LastParameter()
-                        
-                        # Uniformly sample points to plot clean, high-fidelity geometry curves
+
+                        loc_edge = edge.Location()
+                        trsf_edge = loc_edge.Transformation()   # <-- REQUIRED FIX
+
                         u_samples = np.linspace(first_param, last_param, 50)
                         x_pts, y_pts, z_pts = [], [], []
+
                         for u in u_samples:
-                            pt = curve.Value(u)
-                            # Apply exact matching coordinate transposition (X, Z, Y)
+                            pt = curve.Value(u).Transformed(trsf_edge)   # <-- FIX
+
                             x_pts.append(pt.X())
                             y_pts.append(pt.Z())
                             z_pts.append(pt.Y())
-                        
+
                         ax_cad.plot(x_pts, y_pts, z_pts, color='blue', linewidth=1.2)
 
-                    # Enforce the exact same spatial grid boundaries and matching spatial scale aspect ratio
                     ax_cad.set_xlim(grid["x_min"], grid["x_max"])
                     ax_cad.set_ylim(grid["z_min"], grid["z_max"])
                     ax_cad.set_zlim(grid["y_min"], grid["y_max"])
                     ax_cad.set_box_aspect((x_span, y_span, z_span))
 
-                    ax_cad.set_title("CAD Structural Geometry Verification (STEP Native)", fontsize=12, fontweight='bold', pad=15)
+                    ax_cad.set_title("CAD Structural Geometry Verification (STEP Native)",
+                                    fontsize=12, fontweight='bold', pad=15)
                     ax_cad.set_xlabel("X Axis (CAD X)", fontsize=9)
                     ax_cad.set_ylabel("Z Axis (CAD Z)", fontsize=9)
                     ax_cad.set_zlabel("Y Axis (CAD Y)", fontsize=9)
@@ -220,7 +222,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
 
             except Exception as cad_err:
                 logger.warning(f"Headless CAD boundary line parsing rendering skipped or unavailable: {str(cad_err)}")
-        
+
     except Exception as e:
         error_msg = str(e)
         if "reshape" in error_msg:
