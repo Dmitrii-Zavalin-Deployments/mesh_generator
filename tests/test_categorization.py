@@ -209,8 +209,8 @@ def test_gmsh_engine_topology_violation_error():
     
     # Setup standard Gmsh mocks and configure stateful lifecycle hooks
     mock_gmsh = MagicMock()
-    mock_gmsh.is_initialized.return_value = False
-    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.is_initialized, 'return_value', True)
+    mock_gmsh.isInitialized.return_value = False
+    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.isInitialized, 'return_value', True)
     
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1]), np.array([0.0, 0.0, 0.0]), [])
     # Return element type 1 (Lines) instead of type 4 (Tetrahedrons)
@@ -240,7 +240,7 @@ def test_gmsh_engine_reused_session():
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     mock_gmsh = MagicMock()
-    mock_gmsh.is_initialized.return_value = True # PRE-INITIALIZED STATE
+    mock_gmsh.isInitialized.return_value = True # PRE-INITIALIZED STATE
     
     # Fixed: Return 4 nodes to match the indices referenced inside the tetrahedra array mappings
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.zeros(12), [])
@@ -281,8 +281,8 @@ def test_gmsh_engine_full_execution_flow_success():
     element_node_tags = [np.array([1, 2, 3, 4])]
     
     mock_gmsh = MagicMock()
-    mock_gmsh.is_initialized.return_value = False
-    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.is_initialized, 'return_value', True)
+    mock_gmsh.isInitialized.return_value = False
+    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.isInitialized, 'return_value', True)
     
     mock_gmsh.model.mesh.getNodes.return_value = (node_tags, coord, [])
     mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
@@ -333,8 +333,8 @@ def test_gmsh_engine_visualization_failure_escalation():
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     mock_gmsh = MagicMock()
-    mock_gmsh.is_initialized.return_value = False
-    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.is_initialized, 'return_value', True)
+    mock_gmsh.isInitialized.return_value = False
+    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.isInitialized, 'return_value', True)
     
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.zeros(12), [])
     mock_gmsh.model.mesh.getElements.return_value = ([4], [1], [np.array([1, 2, 3, 4])])
