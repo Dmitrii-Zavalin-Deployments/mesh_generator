@@ -24,7 +24,8 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
       2. Spatial grid striding (downsampling) to keep total voxel count manageable.
       3. Full-render visualization (showing Fluid, Solid, and Walls) with 
          transparency to ensure interior features like holes remain visible.
-      4. Axes re-mapping to perfectly align Matplotlib outputs with standard CAD/Mesh orientations.
+      4. Axes re-mapping and explicit box aspect ratios to perfectly align 
+         Matplotlib outputs with standard CAD/Mesh orientations.
     """
     logger.info("Initializing optimized 3D voxel mask visualization...")
     
@@ -85,6 +86,11 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         z_edges = np.linspace(grid["y_min"], grid["y_max"], nz_vis + 1)  # Visual Z maps to CAD Y
         X, Y, Z = np.meshgrid(x_edges, y_edges, z_edges, indexing='ij')
 
+        # Compute uniform spans to lock exact proportional aspect ratio across both plots
+        x_span = grid["x_max"] - grid["x_min"]
+        y_span = grid["z_max"] - grid["z_min"]
+        z_span = grid["y_max"] - grid["y_min"]
+
         # Initialize Voxel Plot
         fig = plt.figure(figsize=(10, 8), dpi=150)
         ax = fig.add_subplot(111, projection='3d')
@@ -97,6 +103,9 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         ax.set_xlim(grid["x_min"], grid["x_max"])
         ax.set_ylim(grid["z_min"], grid["z_max"])
         ax.set_zlim(grid["y_min"], grid["y_max"])
+        
+        # Explicitly apply bounding box aspect ratio to enforce matching pitch/roll/yaw appearance
+        ax.set_box_aspect((x_span, y_span, z_span))
 
         # Label definitions matching spatial reassignment
         ax.set_title("Voxelization Grid Mask Boundary Map (CI Optimized)", fontsize=12, fontweight='bold', pad=15)
@@ -118,26 +127,29 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         plt.close(fig)
         logger.info(f"Voxel verification chart saved: {destination_path}")
 
-        # --- NATIVE STEP CAD SNAPSHOT GENERATION ---
+        # --- CLEAN NATIVE STEP CAD SNAPSHOT GENERATION ---
         if cad_solid is not None:
             try:
                 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
                 from OCC.Core.TopExp import TopExp_Explorer
-                from OCC.Core.TopAbs import TopAbs_FACE
+                from OCC.Core.TopAbs import TopAbs_FACE, TopAbs_EDGE
                 from OCC.Core.BRep import BRep_Tool
                 from OCC.Core.TopLoc import TopLoc_Location
+                from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
                 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
                 logger.info("Extracting CAD boundary surfaces for aligned visualization...")
                 
-                # Compute mesh triangulation on the CAD solid
+                # Compute background triangulation mesh solely for smooth face shading calculations
                 BRepMesh_IncrementalMesh(cad_solid, 0.5)
-                explorer = TopExp_Explorer(cad_solid, TopAbs_FACE)
+                
+                # 1. Extract Smooth Faces (Rendered with zero wireframe borders)
+                explorer_face = TopExp_Explorer(cad_solid, TopAbs_FACE)
                 polygons = []
 
-                while explorer.More():
-                    face = explorer.Current()
-                    explorer.Next()
+                while explorer_face.More():
+                    face = explorer_face.Current()
+                    explorer_face.Next()
                     loc = TopLoc_Location()
                     triangulation = BRep_Tool.Triangulation(face, loc)
                     if triangulation:
@@ -163,14 +175,38 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                     ax_cad = fig_cad.add_subplot(111, projection='3d')
                     ax_cad.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
 
-                    # Render vector CAD surfaces headlessly
-                    poly_collection = Poly3DCollection(polygons, facecolors='lightgray', edgecolors='blue', linewidths=0.1, alpha=0.4)
+                    # Render vector CAD surfaces cleanly without internal mesh lines (edgecolors='none')
+                    poly_collection = Poly3DCollection(polygons, facecolors='lightgray', edgecolors='none', alpha=0.5)
                     ax_cad.add_collection3d(poly_collection)
 
-                    # Enforce the exact same spatial grid boundaries
+                    # 2. Extract and Plot Clean Topological Boundary Edges (Eliminates meshed triangle appearance)
+                    explorer_edge = TopExp_Explorer(cad_solid, TopAbs_EDGE)
+                    while explorer_edge.More():
+                        edge = explorer_edge.Current()
+                        explorer_edge.Next()
+                        
+                        # Generate smooth parametric curves for true boundary outlines
+                        curve = BRepAdaptor_Curve(edge)
+                        first_param = curve.FirstParameter()
+                        last_param = curve.LastParameter()
+                        
+                        # Uniformly sample points to plot clean, high-fidelity geometry curves
+                        u_samples = np.linspace(first_param, last_param, 50)
+                        x_pts, y_pts, z_pts = [], [], []
+                        for u in u_samples:
+                            pt = curve.Value(u)
+                            # Apply exact matching coordinate transposition (X, Z, Y)
+                            x_pts.append(pt.X())
+                            y_pts.append(pt.Z())
+                            z_pts.append(pt.Y())
+                        
+                        ax_cad.plot(x_pts, y_pts, z_pts, color='blue', linewidth=1.2)
+
+                    # Enforce the exact same spatial grid boundaries and matching spatial scale aspect ratio
                     ax_cad.set_xlim(grid["x_min"], grid["x_max"])
                     ax_cad.set_ylim(grid["z_min"], grid["z_max"])
                     ax_cad.set_zlim(grid["y_min"], grid["y_max"])
+                    ax_cad.set_box_aspect((x_span, y_span, z_span))
 
                     ax_cad.set_title("CAD Structural Geometry Verification (STEP Native)", fontsize=12, fontweight='bold', pad=15)
                     ax_cad.set_xlabel("X Axis (CAD X)", fontsize=9)
@@ -183,7 +219,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                     logger.info(f"CAD geometry snapshot successfully rendered: {cad_img_path}")
 
             except Exception as cad_err:
-                logger.warning(f"Headless CAD triangulation rendering skipped or unavailable: {str(cad_err)}")
+                logger.warning(f"Headless CAD boundary line parsing rendering skipped or unavailable: {str(cad_err)}")
         
     except Exception as e:
         error_msg = str(e)
