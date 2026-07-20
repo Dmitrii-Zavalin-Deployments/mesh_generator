@@ -9,6 +9,11 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
+# --- UNIFIED VIEWPOINT CONSTANTS ---
+# Standardizes the isometric viewpoint across all visualization engines
+VIEW_ELEV = 30
+VIEW_AZIM = -60
+
 def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
     """
     Parses the pipeline output dictionary and saves a 3D voxel mask snapshot.
@@ -58,7 +63,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
             nx, ny, nz = mask_3d.shape
 
         # --- AXIS ORIENTATION ALIGNMENT ---
-        # To align perfectly with the CAD viewer convention (where CAD Y is vertical),
+        # To align perfectly with the CAD viewer convention (where the hole axis CAD Y is vertical),
         # we map: Visual X = CAD X, Visual Y = CAD Z, Visual Z = CAD Y.
         mask_3d_vis = np.transpose(mask_3d, (0, 2, 1))  # Swap Y and Z axes
         nx_vis, ny_vis, nz_vis = mask_3d_vis.shape
@@ -76,19 +81,19 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
 
         # Generate coordinate edges matching the visual transposition
         x_edges = np.linspace(grid["x_min"], grid["x_max"], nx_vis + 1)
-        y_edges = np.linspace(grid["z_min"], grid["z_max"], ny_vis + 1)  # Visual Y is CAD Z
-        z_edges = np.linspace(grid["y_min"], grid["y_max"], nz_vis + 1)  # Visual Z is CAD Y
+        y_edges = np.linspace(grid["z_min"], grid["z_max"], ny_vis + 1)  # Visual Y maps to CAD Z
+        z_edges = np.linspace(grid["y_min"], grid["y_max"], nz_vis + 1)  # Visual Z maps to CAD Y
         X, Y, Z = np.meshgrid(x_edges, y_edges, z_edges, indexing='ij')
 
         # Initialize Voxel Plot
         fig = plt.figure(figsize=(10, 8), dpi=150)
         ax = fig.add_subplot(111, projection='3d')
-        ax.view_init(elev=30, azim=-60)  # Standard isometric viewpoint matching your CAD environment
+        ax.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
 
         # Render Voxel Grid
         ax.voxels(X, Y, Z, filled, facecolors=colors, edgecolors=(0.3, 0.3, 0.3, 0.1), linewidth=0.2)
 
-        # Enforce unified absolute scale boundaries
+        # Enforce unified absolute scale boundaries matching the coordinate swap
         ax.set_xlim(grid["x_min"], grid["x_max"])
         ax.set_ylim(grid["z_min"], grid["z_max"])
         ax.set_zlim(grid["y_min"], grid["y_max"])
@@ -113,7 +118,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         plt.close(fig)
         logger.info(f"Voxel verification chart saved: {destination_path}")
 
-        # --- OPTIONAL: ALIGNED CAD GEOMETRY SNAPSHOT GENERATION ---
+        # --- NATIVE STEP CAD SNAPSHOT GENERATION ---
         if cad_solid is not None:
             try:
                 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
@@ -156,12 +161,13 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                 if polygons:
                     fig_cad = plt.figure(figsize=(10, 8), dpi=150)
                     ax_cad = fig_cad.add_subplot(111, projection='3d')
-                    ax_cad.view_init(elev=30, azim=-60)
+                    ax_cad.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
 
                     # Render vector CAD surfaces headlessly
                     poly_collection = Poly3DCollection(polygons, facecolors='lightgray', edgecolors='blue', linewidths=0.1, alpha=0.4)
                     ax_cad.add_collection3d(poly_collection)
 
+                    # Enforce the exact same spatial grid boundaries
                     ax_cad.set_xlim(grid["x_min"], grid["x_max"])
                     ax_cad.set_ylim(grid["z_min"], grid["z_max"])
                     ax_cad.set_zlim(grid["y_min"], grid["y_max"])
