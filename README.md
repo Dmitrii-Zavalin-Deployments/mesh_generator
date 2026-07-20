@@ -1,6 +1,28 @@
-# 📐 Mesh Generator Performance Audit
+# 📐 Mesh Generator
+## 🧩 Mesh Generator — CAD → Mesh → Voxelization Pipeline
+A high‑fidelity scientific mesh generator designed for CAD/STEP geometries,
+voxelization, CI‑optimized rendering, and simulation preprocessing.
+
+### 🖼️ CAD → Mesh → Voxelization Preview
+
+![STEP Geometry](data/testing-input-output/step_snapshot.png)
+→
+![Mesh Snapshot](data/testing-input-output/mesh_snapshot.png)
+→
+![Voxel Mask](data/testing-input-output/voxel_mask_verification.png)
+
+---
+
 ### 📚 Resources & Documentation
 - **Tutorial/Book:** ***currently in development***
+---
+### 🧮 Performance Audit
+### Audit: 2026-07-20 22:00:32 UTC
+- **Branch:** `main`
+- **Status:** `success`
+- **Run:** [Detailed Execution Logs](https://github.com/Dmitrii-Zavalin-Deployments/mesh_generator/actions/runs/29782074896)
+- **CPU Load:** `26.2%`
+- **Memory Usage:** `319/15993MB`
 ---
 ### Audit: 2026-07-20 20:45:55 UTC
 - **Branch:** `main`
