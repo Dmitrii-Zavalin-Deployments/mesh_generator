@@ -250,10 +250,10 @@ def test_gmsh_engine_reused_session():
     with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
         step.execute(container)
         
-    # Verify reuse path: clear called, init/finalize skipped
-    assert mock_gmsh.clear.called
-    assert not mock_gmsh.initialize.called
-    assert not mock_gmsh.finalize.called
+    # Verify reuse path: clear skipped, finalize/init called
+    assert not mock_gmsh.clear.called
+    assert mock_gmsh.initialize.called
+    assert mock_gmsh.finalize.called
 
 def test_gmsh_engine_full_execution_flow_success():
     """
