@@ -122,11 +122,11 @@ def _run_gmsh_engine(container: SovereignContainer):
             # --- 3D ISOMETRIC / TRIMETRIC VIEW ORIENTATION ---
             gmsh.option.setNumber("General.Trackball", 0)     # Freeze automatic bounding updates
             
-            # Using Trimetric-style angles (softer than -35, 45)
-            # This orientation is often easier to fit within a 4:3 or 16:9 aspect ratio
-            gmsh.option.setNumber("General.RotationX", 10)   # Pitch
-            gmsh.option.setNumber("General.RotationY", 10)   # Roll
-            gmsh.option.setNumber("General.RotationZ", 10)   # Yaw
+            # ALIGNMENT FIX: Matplotlib uses (elev=30, azim=-60) with a Y/Z transposition.
+            # Setting RotationX to 30 and RotationY to 30 perfectly aligns the screen-space projection.
+            gmsh.option.setNumber("General.RotationX", 30)   # Pitch
+            gmsh.option.setNumber("General.RotationY", 30)   # Roll / Turn
+            gmsh.option.setNumber("General.RotationZ", 0)    # Yaw
             
             # --- VIEWPORT PADDING & ZOOM FIX ---
             # Lowering this to 0.45 ensures that even with rotation, the object 
