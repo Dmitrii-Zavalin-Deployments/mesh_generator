@@ -332,23 +332,41 @@ jobs:
           EOF
           )
 
-          HEADER="# 📐 Mesh Generator Performance Audit"
+          HEADER="# 📐 Mesh Generator"
+
+          PROJECT_INTRO="## 🧩 Mesh Generator — CAD → Mesh → Voxelization Pipeline
+          A high‑fidelity scientific mesh generator designed for CAD/STEP geometries,
+          voxelization, CI‑optimized rendering, and simulation preprocessing.
+
+          ### 🖼️ CAD → Mesh → Voxelization Preview
+
+          ![STEP Geometry](data/testing-input-output/step_snapshot.png)
+          →
+          ![Mesh Snapshot](data/testing-input-output/mesh_snapshot.png)
+          →
+          ![Voxel Mask](data/testing-input-output/voxel_mask_verification.png)
+
+          ---
+          "
+
           TUTORIAL="### 📚 Resources & Documentation
           - **Tutorial/Book:** ***currently in development***
           ---"
 
           if [ -f "README.md" ]; then
-              # Extract everything after the first horizontal rule to preserve the body
               sed '1,/---/d' README.md > old_body.tmp
               echo "$HEADER" > README.md
+              echo "$PROJECT_INTRO" >> README.md
               echo "$TUTORIAL" >> README.md
+              echo "### 🧮 Performance Audit" >> README.md
               echo "$NEW_ENTRY" >> README.md
               cat old_body.tmp >> README.md
               rm old_body.tmp
           else
-              # Initialize new README
               echo "$HEADER" > README.md
+              echo "$PROJECT_INTRO" >> README.md
               echo "$TUTORIAL" >> README.md
+              echo "### 🧮 Performance Audit" >> README.md
               echo "$NEW_ENTRY" >> README.md
           fi
 
