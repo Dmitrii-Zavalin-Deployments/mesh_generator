@@ -12,12 +12,14 @@ logger = logging.getLogger(__name__)
 def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
     """
     Parses the pipeline output dictionary and saves a 3D voxel mask snapshot.
+    Also extracts and saves a perfectly aligned snapshot of the raw STEP geometry.
     
     Optimizations implemented to prevent GitHub Actions CI timeouts:
       1. Hard-capped maximum axes limits to protect rendering workflows.
       2. Spatial grid striding (downsampling) to keep total voxel count manageable.
       3. Full-render visualization (showing Fluid, Solid, and Walls) with 
          transparency to ensure interior features like holes remain visible.
+      4. Axes re-mapping to perfectly align Matplotlib outputs with standard CAD/Mesh orientations.
     """
     logger.info("Initializing optimized 3D voxel mask visualization...")
     
@@ -26,6 +28,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         grid = results.get("grid", {})
         mask_1d = results.get("mask", [])
         mesh_snapshot_path = results.get("mesh_snapshot_path", "")
+        cad_solid = output_data.get("cad_solid") or results.get("cad_solid")
         
         if not grid or not mask_1d:
             logger.warning("Voxel visualizer skipped: 'grid' or 'mask' missing.")
@@ -54,38 +57,47 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
             mask_3d = mask_3d[::stride, ::stride, ::stride]
             nx, ny, nz = mask_3d.shape
 
-        # --- VISUALIZATION MAPPING ---
-        # Render everything (Fluid, Solid, Wall) so the hole remains visible.
-        # We use alpha transparency on the fluid to allow "looking into" the object.
-        filled = (mask_3d != 999) # Fill all voxels
-        
-        colors = np.zeros((nx, ny, nz, 4))
-        # Fluid (1): Light Blue, high transparency
-        colors[mask_3d == 1] = [0.68, 0.85, 0.90, 0.20] 
-        # Solid (0): Grey, opaque
-        colors[mask_3d == 0] = [0.50, 0.50, 0.50, 0.80] 
-        # Wall (-1): Dark Blue, solid
-        colors[mask_3d == -1] = [0.05, 0.05, 0.20, 0.95] 
+        # --- AXIS ORIENTATION ALIGNMENT ---
+        # To align perfectly with the CAD viewer convention (where CAD Y is vertical),
+        # we map: Visual X = CAD X, Visual Y = CAD Z, Visual Z = CAD Y.
+        mask_3d_vis = np.transpose(mask_3d, (0, 2, 1))  # Swap Y and Z axes
+        nx_vis, ny_vis, nz_vis = mask_3d_vis.shape
 
-        # Generate coordinate edges
-        x_edges = np.linspace(grid["x_min"], grid["x_max"], nx + 1)
-        y_edges = np.linspace(grid["y_min"], grid["y_max"], ny + 1)
-        z_edges = np.linspace(grid["z_min"], grid["z_max"], nz + 1)
+        # --- VISUALIZATION MAPPING ---
+        filled = (mask_3d_vis != 999) # Fill all active voxels
+        
+        colors = np.zeros((nx_vis, ny_vis, nz_vis, 4))
+        # Fluid (1): Light Blue, high transparency
+        colors[mask_3d_vis == 1] = [0.68, 0.85, 0.90, 0.20] 
+        # Solid (0): Grey, opaque
+        colors[mask_3d_vis == 0] = [0.50, 0.50, 0.50, 0.80] 
+        # Wall (-1): Dark Blue, solid
+        colors[mask_3d_vis == -1] = [0.05, 0.05, 0.20, 0.95] 
+
+        # Generate coordinate edges matching the visual transposition
+        x_edges = np.linspace(grid["x_min"], grid["x_max"], nx_vis + 1)
+        y_edges = np.linspace(grid["z_min"], grid["z_max"], ny_vis + 1)  # Visual Y is CAD Z
+        z_edges = np.linspace(grid["y_min"], grid["y_max"], nz_vis + 1)  # Visual Z is CAD Y
         X, Y, Z = np.meshgrid(x_edges, y_edges, z_edges, indexing='ij')
 
-        # Initialize Plot
+        # Initialize Voxel Plot
         fig = plt.figure(figsize=(10, 8), dpi=150)
         ax = fig.add_subplot(111, projection='3d')
-        ax.view_init(elev=15, azim=30)
+        ax.view_init(elev=30, azim=-60)  # Standard isometric viewpoint matching your CAD environment
 
         # Render Voxel Grid
         ax.voxels(X, Y, Z, filled, facecolors=colors, edgecolors=(0.3, 0.3, 0.3, 0.1), linewidth=0.2)
 
-        # Label definitions and geometric bounds
+        # Enforce unified absolute scale boundaries
+        ax.set_xlim(grid["x_min"], grid["x_max"])
+        ax.set_ylim(grid["z_min"], grid["z_max"])
+        ax.set_zlim(grid["y_min"], grid["y_max"])
+
+        # Label definitions matching spatial reassignment
         ax.set_title("Voxelization Grid Mask Boundary Map (CI Optimized)", fontsize=12, fontweight='bold', pad=15)
-        ax.set_xlabel("X Axis Dimension", fontsize=9)
-        ax.set_ylabel("Y Axis Dimension", fontsize=9)
-        ax.set_zlabel("Z Axis Dimension", fontsize=9)
+        ax.set_xlabel("X Axis (CAD X)", fontsize=9)
+        ax.set_ylabel("Z Axis (CAD Z)", fontsize=9)
+        ax.set_zlabel("Y Axis (CAD Y)", fontsize=9)
         
         # Legend
         from matplotlib.patches import Patch
@@ -99,8 +111,73 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         destination_path = os.path.join(save_dir, "voxel_mask_verification.png")
         plt.savefig(destination_path, bbox_inches='tight', pad_inches=0.3, dpi=150)
         plt.close(fig)
-        
         logger.info(f"Voxel verification chart saved: {destination_path}")
+
+        # --- OPTIONAL: ALIGNED CAD GEOMETRY SNAPSHOT GENERATION ---
+        if cad_solid is not None:
+            try:
+                from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+                from OCC.Core.TopExp import TopExp_Explorer
+                from OCC.Core.TopAbs import TopAbs_FACE
+                from OCC.Core.BRep import BRep_Tool
+                from OCC.Core.TopLoc import TopLoc_Location
+                from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+                logger.info("Extracting CAD boundary surfaces for aligned visualization...")
+                
+                # Compute mesh triangulation on the CAD solid
+                BRepMesh_IncrementalMesh(cad_solid, 0.5)
+                explorer = TopExp_Explorer(cad_solid, TopAbs_FACE)
+                polygons = []
+
+                while explorer.More():
+                    face = explorer.Current()
+                    explorer.Next()
+                    loc = TopLoc_Location()
+                    triangulation = BRep_Tool.Triangulation(face, loc)
+                    if triangulation:
+                        nodes = triangulation.Nodes()
+                        triangles = triangulation.Triangles()
+                        for i in range(1, triangulation.NbTriangles() + 1):
+                            tri = triangles.Value(i)
+                            idx1, idx2, idx3 = tri.Get()
+                            
+                            p1 = nodes.Value(idx1)
+                            p2 = nodes.Value(idx2)
+                            p3 = nodes.Value(idx3)
+                            
+                            # Map CAD coordinates identically to the voxel transformation: (X, Z, Y)
+                            polygons.append([
+                                [p1.X(), p1.Z(), p1.Y()],
+                                [p2.X(), p2.Z(), p2.Y()],
+                                [p3.X(), p3.Z(), p3.Y()]
+                            ])
+
+                if polygons:
+                    fig_cad = plt.figure(figsize=(10, 8), dpi=150)
+                    ax_cad = fig_cad.add_subplot(111, projection='3d')
+                    ax_cad.view_init(elev=30, azim=-60)
+
+                    # Render vector CAD surfaces headlessly
+                    poly_collection = Poly3DCollection(polygons, facecolors='lightgray', edgecolors='blue', linewidths=0.1, alpha=0.4)
+                    ax_cad.add_collection3d(poly_collection)
+
+                    ax_cad.set_xlim(grid["x_min"], grid["x_max"])
+                    ax_cad.set_ylim(grid["z_min"], grid["z_max"])
+                    ax_cad.set_zlim(grid["y_min"], grid["y_max"])
+
+                    ax_cad.set_title("CAD Structural Geometry Verification (STEP Native)", fontsize=12, fontweight='bold', pad=15)
+                    ax_cad.set_xlabel("X Axis (CAD X)", fontsize=9)
+                    ax_cad.set_ylabel("Z Axis (CAD Z)", fontsize=9)
+                    ax_cad.set_zlabel("Y Axis (CAD Y)", fontsize=9)
+
+                    cad_img_path = os.path.join(save_dir, "cad_geometry_snapshot.png")
+                    plt.savefig(cad_img_path, bbox_inches='tight', pad_inches=0.3, dpi=150)
+                    plt.close(fig_cad)
+                    logger.info(f"CAD geometry snapshot successfully rendered: {cad_img_path}")
+
+            except Exception as cad_err:
+                logger.warning(f"Headless CAD triangulation rendering skipped or unavailable: {str(cad_err)}")
         
     except Exception as e:
         error_msg = str(e)
