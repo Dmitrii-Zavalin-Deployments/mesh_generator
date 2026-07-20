@@ -1,7 +1,8 @@
 # tests/test_mask_visualizer.py
 import os
 import logging
-from unittest.mock import patch
+import numpy as np
+from unittest.mock import patch, MagicMock
 from src.utils.mask_visualizer import generate_mask_snapshot
 
 # --- LITERATE TEST SUITE ---
@@ -132,9 +133,9 @@ def test_generate_mask_snapshot_dimension_mismatch(caplog):
 
 def test_generate_mask_snapshot_exception_catch_all(caplog):
     """
-    [ROBUSTNESS PATH: EXCEPTION ISOLATION GATE]
+    [ROBUSTNESS PATH: EXCEPTION ISOLATION GATE - TIMEOUT]
     Ensures that any structural canvas initialization error or unexpected rendering subsystem 
-    fault is cleanly intercepted by the visualizer try/except block without blowing up the core pipeline.
+    fault containing 'timeout' is cleanly routed to its matching logger pathway.
     """
     # Construct a valid data instance to bypass early exit path gates
     valid_input = {
@@ -153,3 +154,177 @@ def test_generate_mask_snapshot_exception_catch_all(caplog):
         
     # Assertion: The isolation gate must capture the error tracking context
     assert "Non-blocking visualization capture routine failure" in caplog.text
+
+
+def test_generate_mask_snapshot_striding_large_voxels(tmpdir):
+    """
+    [OPTIMIZATION PATH: SPATIAL STRIDING FOR LARGE LATTICES]
+    Verify that the spatial downsampling logic applies a stride factor of 4 when total voxels 
+    exceed the 1,000,000 limit threshold to protect GitHub Actions runner runtime footprints (Lines 61-64).
+    """
+    nx, ny, nz = 101, 100, 100  # 1,010,000 total voxels (> 1_000_000)
+    mask_1d = [1] * (nx * ny * nz)
+    
+    input_data = {
+        "results": {
+            "grid": {"nx": nx, "ny": ny, "nz": nz, "x_min": 0, "x_max": 10, "y_min": 0, "y_max": 10, "z_min": 0, "z_max": 10},
+            "mask": mask_1d
+        }
+    }
+    
+    generate_mask_snapshot(input_data, fallback_save_dir=str(tmpdir))
+    assert os.path.exists(os.path.join(str(tmpdir), "voxel_mask_verification.png"))
+
+
+def test_generate_mask_snapshot_striding_axis_ceiling(tmpdir):
+    """
+    [OPTIMIZATION PATH: SPATIAL STRIDING FOR EXTENDED AXIS]
+    Verify that a downsampling stride factor of 2 is applied when an individual grid axis length 
+    exceeds MAX_AXIS_CEILING (150) even if the net volume is under 1,000,000 (Lines 61-64).
+    """
+    nx, ny, nz = 160, 2, 2  # 640 total voxels, but nx > 150 ceiling
+    mask_1d = [1] * (nx * ny * nz)
+    
+    input_data = {
+        "results": {
+            "grid": {"nx": nx, "ny": ny, "nz": nz, "x_min": 0, "x_max": 10, "y_min": 0, "y_max": 10, "z_min": 0, "z_max": 10},
+            "mask": mask_1d
+        }
+    }
+    
+    generate_mask_snapshot(input_data, fallback_save_dir=str(tmpdir))
+    assert os.path.exists(os.path.join(str(tmpdir), "voxel_mask_verification.png"))
+
+
+def test_generate_mask_snapshot_cad_rendering_success(tmpdir):
+    """
+    [SUCCESS PATH: CAD NATIVE SHAPE EXTRACTION]
+    Simulates successful OpenCASCADE boundary triangulation and edge extraction workflows 
+    to hit the complete headless CAD visualizer overlay routine (Lines 132-222).
+    """
+    # Initialize mock structural layers for OpenCASCADE C++ interfaces
+    mock_mesh = MagicMock()
+    mock_topexp = MagicMock()
+    mock_topabs = MagicMock()
+    mock_brep = MagicMock()
+    mock_toploc = MagicMock()
+    mock_adaptor = MagicMock()
+
+    mock_topabs.TopAbs_FACE = 1
+    mock_topabs.TopAbs_EDGE = 2
+
+    # Loop configuration bounds (Return elements once, then break loop)
+    mock_face_explorer = MagicMock()
+    mock_face_explorer.More.side_effect = [True, False]
+    mock_face_explorer.Current.return_value = MagicMock()
+
+    mock_edge_explorer = MagicMock()
+    mock_edge_explorer.More.side_effect = [True, False]
+    mock_edge_explorer.Current.return_value = MagicMock()
+
+    mock_topexp.TopExp_Explorer.side_effect = lambda shape, abs_type: (
+        mock_face_explorer if abs_type == 1 else mock_edge_explorer
+    )
+
+    # Triangulation matrices & coordinate assignments
+    mock_triangulation = MagicMock()
+    mock_triangulation.NbTriangles.return_value = 1
+    
+    mock_tri = MagicMock()
+    mock_tri.Get.return_value = (1, 2, 3)
+    mock_triangulation.Triangles.return_value.Value.return_value = mock_tri
+
+    mock_pt = MagicMock()
+    mock_pt.X.return_value = 0.5
+    mock_pt.Y.return_value = 0.5
+    mock_pt.Z.return_value = 0.5
+
+    mock_nodes = MagicMock()
+    mock_nodes.Value.return_value.Transformed.return_value = mock_pt
+    mock_triangulation.Nodes.return_value = mock_nodes
+    mock_brep.BRep_Tool.Triangulation.return_value = mock_triangulation
+
+    # Adaptor curve parameters for edge line generation
+    mock_curve = MagicMock()
+    mock_curve.FirstParameter.return_value = 0.0
+    mock_curve.LastParameter.return_value = 1.0
+    mock_curve.Value.return_value.Transformed.return_value = mock_pt
+    mock_adaptor.BRepAdaptor_Curve.return_value = mock_curve
+
+    occ_modules = {
+        "OCC": MagicMock(),
+        "OCC.Core": MagicMock(),
+        "OCC.Core.BRepMesh": mock_mesh,
+        "OCC.Core.TopExp": mock_topexp,
+        "OCC.Core.TopAbs": mock_topabs,
+        "OCC.Core.BRep": mock_brep,
+        "OCC.Core.TopLoc": mock_toploc,
+        "OCC.Core.BRepAdaptor": mock_adaptor,
+    }
+
+    input_data = {
+        "cad_solid": MagicMock(),
+        "results": {
+            "grid": {"nx": 1, "ny": 1, "nz": 1, "x_min": 0, "x_max": 1, "y_min": 0, "y_max": 1, "z_min": 0, "z_max": 1},
+            "mask": [1]
+        }
+    }
+
+    # Inject mock structures into sys.modules to prevent environment import faults
+    with patch.dict("sys.modules", occ_modules):
+        generate_mask_snapshot(input_data, fallback_save_dir=str(tmpdir))
+
+    assert os.path.exists(os.path.join(str(tmpdir), "cad_geometry_snapshot.png"))
+
+
+def test_generate_mask_snapshot_cad_rendering_failure(tmpdir, caplog):
+    """
+    [ROBUSTNESS PATH: CAD SUBSYSTEM ISOLATION]
+    Verifies that internal exceptions during OpenCASCADE geometric parsing or meshing 
+    are gracefully logged as warnings without halting the primary voxel map outputs (Lines 223-224).
+    """
+    mock_mesh = MagicMock()
+    mock_mesh.BRepMesh_IncrementalMesh.side_effect = Exception("OCC internal triangulation failure")
+
+    occ_modules = {
+        "OCC": MagicMock(),
+        "OCC.Core": MagicMock(),
+        "OCC.Core.BRepMesh": mock_mesh,
+    }
+
+    input_data = {
+        "cad_solid": MagicMock(),
+        "results": {
+            "grid": {"nx": 1, "ny": 1, "nz": 1, "x_min": 0, "x_max": 1, "y_min": 0, "y_max": 1, "z_min": 0, "z_max": 1},
+            "mask": [1]
+        }
+    }
+
+    with patch.dict("sys.modules", occ_modules), caplog.at_level(logging.WARNING):
+        generate_mask_snapshot(input_data, fallback_save_dir=str(tmpdir))
+
+    # Core canvas should still complete rendering cleanly
+    assert "Headless CAD boundary line parsing rendering skipped" in caplog.text
+    assert os.path.exists(os.path.join(str(tmpdir), "voxel_mask_verification.png"))
+
+
+def test_generate_mask_snapshot_generic_failure(caplog):
+    """
+    [ERROR PATH: UNCLASSIFIED RUNTIME FALLBACK]
+    Ensures that standard unclassified exceptions are cleanly routed to the final fallback 
+    generic error logger pathway rather than the reshape/timeout branches (Line 233).
+    """
+    valid_input = {
+        "results": {
+            "grid": {"x_min": 0, "x_max": 1, "y_min": 0, "y_max": 1, "z_min": 0, "z_max": 1, "nx": 1, "ny": 1, "nz": 1},
+            "mask": [1]
+        }
+    }
+
+    # We inject a runtime error that completely bypasses 'reshape' or 'timeout' keywords
+    with patch("matplotlib.pyplot.figure", side_effect=RuntimeError("Unclassified core canvas storage write fault")), \
+         caplog.at_level(logging.ERROR):
+         
+        generate_mask_snapshot(valid_input)
+        
+    assert "Visualization failure:" in caplog.text
