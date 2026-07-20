@@ -118,11 +118,6 @@ def _run_gmsh_engine(container: SovereignContainer):
             # Offscreen rendering resolution dimensions
             gmsh.option.setNumber("General.GraphicsWidth", 1200)
             gmsh.option.setNumber("General.GraphicsHeight", 900)
-
-            # Set structural visibility configurations
-            gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
-            gmsh.option.setNumber("Mesh.Lines", 1)
-            gmsh.option.setNumber("Mesh.Tetrahedra", 1)
             
             # --- 3D ISOMETRIC / TRIMETRIC VIEW ORIENTATION ---
             gmsh.option.setNumber("General.Trackball", 0)     # Freeze automatic bounding updates
@@ -139,18 +134,35 @@ def _run_gmsh_engine(container: SovereignContainer):
             # guaranteeing no edges are cut.
             gmsh.option.setNumber("General.ZoomFactor", 0.45)
             
-            # Resolve destination path using the directory context of the input model
+            # Resolve destination paths using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
+            step_snapshot_path = os.path.join(workspace_dir, "step_snapshot.png")
             snapshot_path = os.path.join(workspace_dir, "mesh_snapshot.png")
             
             # Wake up the FLTK interface context inside Xvfb
             gmsh.fltk.initialize()
             
-            # CRITICAL MATRIX REBUILD: Force system to recalculate viewport and clear stale dimensions
+            # --- PHASE 1: GENERATE RAW STEP GEOMETRY SNAPSHOT ---
+            # Temporarily turn off all mesh display elements to capture clean CAD boundaries
+            gmsh.option.setNumber("Mesh.SurfaceEdges", 0)
+            gmsh.option.setNumber("Mesh.Lines", 0)
+            gmsh.option.setNumber("Mesh.Tetrahedra", 0)
+            
+            # Force system to recalculate viewport and write raw geometry buffer
             gmsh.graphics.draw()
             gmsh.fltk.update()
+            gmsh.write(step_snapshot_path)
+            logger.info(f"Universal STEP snapshot saved successfully: {step_snapshot_path}")
             
-            # Write the recalculated frame buffer pixels to disk
+            # --- PHASE 2: GENERATE MESH SNAPSHOT (PERFECTLY ALIGNED) ---
+            # Restore visibility configurations for full mesh layout representation
+            gmsh.option.setNumber("Mesh.SurfaceEdges", 1)
+            gmsh.option.setNumber("Mesh.Lines", 1)
+            gmsh.option.setNumber("Mesh.Tetrahedra", 1)
+            
+            # Refresh context frame and dump matching matrix pixel layout to disk
+            gmsh.graphics.draw()
+            gmsh.fltk.update()
             gmsh.write(snapshot_path)
             gmsh.fltk.finalize()
             
