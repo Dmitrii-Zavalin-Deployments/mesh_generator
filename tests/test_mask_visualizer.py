@@ -1,7 +1,6 @@
 # tests/test_mask_visualizer.py
 import os
 import logging
-import numpy as np
 from unittest.mock import patch, MagicMock
 from src.utils.mask_visualizer import generate_mask_snapshot
 
