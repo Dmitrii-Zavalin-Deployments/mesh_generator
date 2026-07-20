@@ -44,8 +44,10 @@ def _run_gmsh_engine(container: SovereignContainer):
         gmsh.initialize()
         initialized_here = True
     else:
-        logger.info("Gmsh context already active. Reusing existing runtime session and clearing active models.")
-        gmsh.clear()
+        logger.warning("Gmsh context active. Performing hard-reset to avoid memory corruption.")
+        gmsh.finalize()
+        gmsh.initialize()
+        initialized_here = True
     
     # STABILIZATION PATCH 1: Complete progressive logging suppression
     gmsh.option.setNumber("General.Terminal", 0)   # Mutes terminal output routing
