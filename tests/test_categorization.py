@@ -209,8 +209,8 @@ def test_gmsh_engine_topology_violation_error():
     
     # Setup standard Gmsh mocks and configure stateful lifecycle hooks
     mock_gmsh = MagicMock()
-    mock_gmsh.isInitialized.return_value = False
-    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.isInitialized, 'return_value', True)
+    mock_gmsh.is_initialized.return_value = False
+    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.is_initialized, 'return_value', True)
     
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1]), np.array([0.0, 0.0, 0.0]), [])
     # Return element type 1 (Lines) instead of type 4 (Tetrahedrons)
@@ -225,8 +225,8 @@ def test_gmsh_engine_reused_session():
     """
     [GMSH ENGINE PATH: REUSED SESSION]
     Verifies that if Gmsh is already initialized, the engine reuses the 
-    existing context, clears the model, and skips the finalize lifecycle.
-    This hits lines 48-49 (coverage 100%).
+    existing context, performs a hard reset, and executes the finalize lifecycle.
+    This hits lines 46-50.
     """
     container = SovereignContainer(
         use_gmsh=True,
@@ -240,9 +240,9 @@ def test_gmsh_engine_reused_session():
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     mock_gmsh = MagicMock()
-    mock_gmsh.isInitialized.return_value = True # PRE-INITIALIZED STATE
+    mock_gmsh.is_initialized.return_value = True # PRE-INITIALIZED STATE
     
-    # Fixed: Return 4 nodes to match the indices referenced inside the tetrahedra array mappings
+    # Return 4 nodes to match the indices referenced inside the tetrahedra array mappings
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.zeros(12), [])
     mock_gmsh.model.mesh.getElements.return_value = ([4], [np.array([1])], [np.array([1, 2, 3, 4])])
     
@@ -250,8 +250,7 @@ def test_gmsh_engine_reused_session():
     with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
         step.execute(container)
         
-    # Verify reuse path: clear skipped, finalize/init called
-    assert not mock_gmsh.clear.called
+    # Verify reuse/reset path: finalize and re-initialize called during reset sequence
     assert mock_gmsh.initialize.called
     assert mock_gmsh.finalize.called
 
@@ -259,8 +258,7 @@ def test_gmsh_engine_full_execution_flow_success():
     """
     [GMSH ENGINE PATH: NOMINAL INTEGRATION FLOW]
     Simulates a successful and pristine Layer 1 unstructured mesh baking 
-    execution sequence. Validates matrix caching, automated offscreen 
-    visualization rendering, and fallback fluid mask generation.
+    execution sequence. Hits lines 44-45 (initialization branch) and line 129.
     """
     container = SovereignContainer(
         use_gmsh=True,
@@ -281,8 +279,8 @@ def test_gmsh_engine_full_execution_flow_success():
     element_node_tags = [np.array([1, 2, 3, 4])]
     
     mock_gmsh = MagicMock()
-    mock_gmsh.isInitialized.return_value = False
-    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.isInitialized, 'return_value', True)
+    mock_gmsh.is_initialized.return_value = False
+    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.is_initialized, 'return_value', True)
     
     mock_gmsh.model.mesh.getNodes.return_value = (node_tags, coord, [])
     mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
@@ -333,8 +331,8 @@ def test_gmsh_engine_visualization_failure_escalation():
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     mock_gmsh = MagicMock()
-    mock_gmsh.isInitialized.return_value = False
-    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.isInitialized, 'return_value', True)
+    mock_gmsh.is_initialized.return_value = False
+    mock_gmsh.initialize.side_effect = lambda: setattr(mock_gmsh.is_initialized, 'return_value', True)
     
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.zeros(12), [])
     mock_gmsh.model.mesh.getElements.return_value = ([4], [1], [np.array([1, 2, 3, 4])])
@@ -355,7 +353,6 @@ def test_voxel_engine_wall_classification():
     [COVERAGE PATH: LEGACY VOXELIZER WALL]
     Forces the voxel engine to classify a cell as a 'Wall' (-1) by mocking the 
     classifier to return a mix of IN and OUT states for the 8 corners of a single voxel.
-    This hits lines 195-196.
     """
     # 1. Setup minimal container and grid
     container = SovereignContainer(
