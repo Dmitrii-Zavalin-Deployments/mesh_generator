@@ -1,4 +1,5 @@
 # 📐 Mesh Generator
+
 ## 🧩 CAD → Mesh → Voxelization Pipeline
 A high‑fidelity scientific mesh generator designed for CAD/STEP geometries,
 voxelization, CI‑optimized rendering, and simulation preprocessing.
@@ -13,6 +14,20 @@ voxelization, CI‑optimized rendering, and simulation preprocessing.
   <img src="data/testing-input-output/voxel_mask_verification.png" width="220" />
 </div>
 
+---
+
+### 📚 Resources & Documentation
+- **Tutorial/Book:** ***currently in development***
+---
+
+### 🧮 Performance Audit
+---
+### Audit: 2026-07-21 09:30:37 UTC
+- **Branch:** `main`
+- **Status:** `success`
+- **Run:** [Detailed Execution Logs](https://github.com/Dmitrii-Zavalin-Deployments/mesh_generator/actions/runs/29818275822)
+- **CPU Load:** `77.5%`
+- **Memory Usage:** `320/15989MB`
 ---
 
 ### 📚 Resources & Documentation
