@@ -368,8 +368,8 @@ jobs:
 
           ---
 
-          ### 🧮 Performance Audit
-          ---
+          ### 🧮 Performance Audit:
+          
           EOF
           )
 
