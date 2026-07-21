@@ -332,7 +332,8 @@ jobs:
           EOF
           )
 
-          HEADER="# 📐 Mesh Generator
+          HEADER=$(cat <<EOF
+          # 📐 Mesh Generator
 
           ## 🧩 CAD → Mesh → Voxelization Pipeline
           A high‑fidelity scientific mesh generator designed for CAD/STEP geometries,
@@ -368,8 +369,9 @@ jobs:
           ---
 
           ### 🧮 Performance Audit
-
-          ---"
+          ---
+          EOF
+          )
 
           if [ -f "README.md" ]; then
               # Extract everything after the first horizontal rule to preserve the body
