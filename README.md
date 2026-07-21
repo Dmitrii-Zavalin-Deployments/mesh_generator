@@ -8,12 +8,26 @@ voxelization, CI‑optimized rendering, and simulation preprocessing.
 
 <div align="center">
   <img src="data/testing-input-output/step_snapshot.png" width="220" style="vertical-align: middle;" />
-  <span style="font-size: 32px; vertical-align: middle; margin: 0 12px;">⟶</span>
+  <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='5' y1='12' x2='19' y2='12'/><polyline points='12 5 19 12 12 19'/></svg>" width="36" style="vertical-align: middle; margin: 0 16px;" />
   <img src="data/testing-input-output/mesh_snapshot.png" width="220" style="vertical-align: middle;" />
-  <span style="font-size: 32px; vertical-align: middle; margin: 0 12px;">⟶</span>
+  <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='5' y1='12' x2='19' y2='12'/><polyline points='12 5 19 12 12 19'/></svg>" width="36" style="vertical-align: middle; margin: 0 16px;" />
   <img src="data/testing-input-output/voxel_mask_verification.png" width="220" style="vertical-align: middle;" />
 </div>
 
+---
+
+### 📚 Resources & Documentation
+- **Tutorial/Book:** ***currently in development***
+---
+
+### 🧮 Performance Audit
+---
+### Audit: 2026-07-21 10:15:23 UTC
+- **Branch:** `main`
+- **Status:** `success`
+- **Run:** [Detailed Execution Logs](https://github.com/Dmitrii-Zavalin-Deployments/mesh_generator/actions/runs/29821277197)
+- **CPU Load:** `45.6%`
+- **Memory Usage:** `322/15989MB`
 ---
 
 ### 📚 Resources & Documentation
