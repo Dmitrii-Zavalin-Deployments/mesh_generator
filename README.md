@@ -33,6 +33,20 @@ voxelization, CI‑optimized rendering, and simulation preprocessing.
 
 ---
 
+### 🧮 Performance Audit:
+### Audit: 2026-07-21 12:19:26 UTC
+- **Branch:** `main`
+- **Status:** `success`
+- **Run:** [Detailed Execution Logs](https://github.com/Dmitrii-Zavalin-Deployments/mesh_generator/actions/runs/29829325397)
+- **CPU Load:** `26.8%`
+- **Memory Usage:** `322/15989MB`
+---
+
+### 📚 Resources & Documentation
+- **Tutorial/Book:** ***currently in development***
+
+---
+
 ### 🧮 Performance Audit
 ---
 ### Audit: 2026-07-21 12:12:33 UTC
