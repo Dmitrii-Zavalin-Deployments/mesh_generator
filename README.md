@@ -7,13 +7,27 @@ voxelization, CI‑optimized rendering, and simulation preprocessing.
 ### 🖼️ Pipeline Preview (STEP → Mesh → Voxel)
 
 <div align="center">
-  <img src="data/testing-input-output/step_snapshot.png" width="220" />
-  <span style="font-size: 32px;">⟶</span>
-  <img src="data/testing-input-output/mesh_snapshot.png" width="220" />
-  <span style="font-size: 32px;">⟶</span>
-  <img src="data/testing-input-output/voxel_mask_verification.png" width="220" />
+  <img src="data/testing-input-output/step_snapshot.png" width="220" style="vertical-align: middle;" />
+  <span style="font-size: 32px; vertical-align: middle; margin: 0 12px;">⟶</span>
+  <img src="data/testing-input-output/mesh_snapshot.png" width="220" style="vertical-align: middle;" />
+  <span style="font-size: 32px; vertical-align: middle; margin: 0 12px;">⟶</span>
+  <img src="data/testing-input-output/voxel_mask_verification.png" width="220" style="vertical-align: middle;" />
 </div>
 
+---
+
+### 📚 Resources & Documentation
+- **Tutorial/Book:** ***currently in development***
+---
+
+### 🧮 Performance Audit
+---
+### Audit: 2026-07-21 09:38:27 UTC
+- **Branch:** `main`
+- **Status:** `success`
+- **Run:** [Detailed Execution Logs](https://github.com/Dmitrii-Zavalin-Deployments/mesh_generator/actions/runs/29818827870)
+- **CPU Load:** `27.9%`
+- **Memory Usage:** `319/15989MB`
 ---
 
 ### 📚 Resources & Documentation
