@@ -361,8 +361,6 @@ jobs:
             </tr>
           </table>
 
-          ---
-
           ### 📚 Resources & Documentation
           - **Tutorial/Book:** ***currently in development***
 
@@ -375,7 +373,7 @@ jobs:
 
           if [ -f "README.md" ]; then
               # Extract everything after the first horizontal rule to preserve the body
-              sed '1,/---/d' README.md > old_body.tmp
+              sed -n '/### Audit:/,$p' README.md > old_body.tmp
               echo "$HEADER" > README.md
               echo "$NEW_ENTRY" >> README.md
               cat old_body.tmp >> README.md
