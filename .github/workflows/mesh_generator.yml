@@ -334,7 +334,7 @@ jobs:
 
           HEADER="# 📐 Mesh Generator"
 
-          PROJECT_INTRO="## 🧩 CAD → Mesh → Voxelization Pipeline
+          ## 🧩 CAD → Mesh → Voxelization Pipeline
           A high‑fidelity scientific mesh generator designed for CAD/STEP geometries,
           voxelization, CI‑optimized rendering, and simulation preprocessing.
 
@@ -349,28 +349,24 @@ jobs:
           </div>
 
           ---
-          "
 
-          TUTORIAL="### 📚 Resources & Documentation
+          ### 📚 Resources & Documentation
           - **Tutorial/Book:** ***currently in development***
-          ---"
+          ---
 
-          # Remove everything from the first Performance Audit section in old README
+          ### 🧮 Performance Audit
+          ---
+
           if [ -f "README.md" ]; then
-              sed '/### 🧮 Performance Audit/,$d' README.md > old_body.tmp
-
+              # Extract everything after the first horizontal rule to preserve the body
+              sed '1,/---/d' README.md > old_body.tmp
               echo "$HEADER" > README.md
-              echo "$PROJECT_INTRO" >> README.md
-              echo "$TUTORIAL" >> README.md
-              echo "### 🧮 Performance Audit" >> README.md
               echo "$NEW_ENTRY" >> README.md
               cat old_body.tmp >> README.md
               rm old_body.tmp
           else
+              # Initialize new README
               echo "$HEADER" > README.md
-              echo "$PROJECT_INTRO" >> README.md
-              echo "$TUTORIAL" >> README.md
-              echo "### 🧮 Performance Audit" >> README.md
               echo "$NEW_ENTRY" >> README.md
           fi
 
