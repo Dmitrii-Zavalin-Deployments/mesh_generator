@@ -1,5 +1,6 @@
 # tests/test_mesh_generator_interface.py
-from src.state.mesh_generator_state import GridState, BoundaryConditionState
+from src.state.mesh_generator_state import BoundaryConditionState, GridState
+
 
 class TestMeshGeneratorInterfaces:
     """

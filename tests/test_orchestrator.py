@@ -1,8 +1,9 @@
 # tests/test_orchestrator.py
 from unittest.mock import MagicMock, call
+
+from interfaces.base_interface import StepInterface
 from src.pipeline.orchestrator import Orchestrator
 from src.state.mesh_generator_state import SovereignContainer
-from interfaces.base_interface import StepInterface
 
 # --- LITERATE TEST SUITE ---
 

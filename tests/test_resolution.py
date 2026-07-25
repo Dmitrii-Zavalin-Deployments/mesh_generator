@@ -1,13 +1,15 @@
 # tests/test_resolution.py
 import logging
-import pytest
 import os
 from unittest.mock import patch
-from OCC.Core.TopoDS import TopoDS_Shape
-from OCC.Core.STEPControl import STEPControl_Reader
+
+import pytest
 from OCC.Core.IFSelect import IFSelect_RetDone
-from src.steps.resolution import ResolutionStep, get_min_feature_size
+from OCC.Core.STEPControl import STEPControl_Reader
+from OCC.Core.TopoDS import TopoDS_Shape
+
 from src.state.mesh_generator_state import SovereignContainer
+from src.steps.resolution import ResolutionStep, get_min_feature_size
 
 # --- DUMMY GEOMETRY LOADER ---
 

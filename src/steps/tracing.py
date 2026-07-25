@@ -1,8 +1,10 @@
 import logging
+
+from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.BRepBndLib import brepbndlib
+
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
-from OCC.Core.BRepBndLib import brepbndlib
-from OCC.Core.Bnd import Bnd_Box
 
 logger = logging.getLogger(__name__)
 
@@ -56,5 +58,5 @@ class TracingStep(StepInterface):
             logger.info(f"TracingStep successful: BBox identified as {container.bbox}")
             
         except Exception as e:
-            logger.error(f"TracingStep failed during geometric calculation: {str(e)}")
+            logger.error(f"TracingStep failed during geometric calculation: {e!s}")
             raise

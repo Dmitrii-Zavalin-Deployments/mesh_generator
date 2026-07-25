@@ -1,7 +1,9 @@
 import logging
+
 import numpy as np
+
 from interfaces.base_interface import StepInterface
-from src.state.mesh_generator_state import SovereignContainer, BoundaryConditionState
+from src.state.mesh_generator_state import BoundaryConditionState, SovereignContainer
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)

@@ -1,8 +1,10 @@
 # src/utils/mask_visualizer.py
-import os
 import logging
-import numpy as np
+import os
+
 import matplotlib
+import numpy as np
+
 # Force headless rendering backend to prevent X11 display connection errors
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -130,13 +132,13 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         # --- CLEAN NATIVE STEP CAD SNAPSHOT GENERATION ---
         if cad_solid is not None:
             try:
-                from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
-                from OCC.Core.TopExp import TopExp_Explorer
-                from OCC.Core.TopAbs import TopAbs_FACE, TopAbs_EDGE
-                from OCC.Core.BRep import BRep_Tool
-                from OCC.Core.TopLoc import TopLoc_Location
-                from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
                 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+                from OCC.Core.BRep import BRep_Tool
+                from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
+                from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+                from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_FACE
+                from OCC.Core.TopExp import TopExp_Explorer
+                from OCC.Core.TopLoc import TopLoc_Location
 
                 logger.info("Extracting CAD boundary surfaces for aligned visualization...")
 
@@ -221,7 +223,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                     logger.info(f"CAD geometry snapshot successfully rendered: {cad_img_path}")
 
             except Exception as cad_err:
-                logger.warning(f"Headless CAD boundary line parsing rendering skipped or unavailable: {str(cad_err)}")
+                logger.warning(f"Headless CAD boundary line parsing rendering skipped or unavailable: {cad_err!s}")
 
     except Exception as e:
         error_msg = str(e)

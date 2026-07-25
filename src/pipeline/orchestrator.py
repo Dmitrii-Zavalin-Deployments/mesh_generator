@@ -1,6 +1,7 @@
-from typing import List
+
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
+
 
 class Orchestrator:
     """
@@ -13,7 +14,7 @@ class Orchestrator:
     """
     __slots__ = ('steps',)
 
-    def __init__(self, steps: List[StepInterface]):
+    def __init__(self, steps: list[StepInterface]):
         """
         Initializes the Orchestrator with a fixed, ordered sequence of pipeline steps.
         """

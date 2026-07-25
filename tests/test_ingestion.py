@@ -1,9 +1,12 @@
 # tests/test_ingestion.py
 import logging
 import os
+
 import pytest
-from src.steps.ingestion import IngestionStep
+
 from src.state.mesh_generator_state import SovereignContainer
+from src.steps.ingestion import IngestionStep
+
 
 def get_dummy_container(step_path: str) -> SovereignContainer:
     """

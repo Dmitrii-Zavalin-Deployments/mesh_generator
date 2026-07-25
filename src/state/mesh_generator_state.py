@@ -1,12 +1,13 @@
-from typing import List, Optional
+
 from OCC.Core.TopoDS import TopoDS_Shape
+
 
 class BoundaryConditionState:
     """
     State container for a single Boundary Condition.
     Preserves the nested structure defined in mesh_generator_results_schema.json.
     """
-    __slots__ = ('location', 'type', 'surface_id')
+    __slots__ = ('location', 'surface_id', 'type')
 
     def __init__(self, location: str, type: str, surface_id: str):
         self.location = str(location)
@@ -18,7 +19,7 @@ class GridState:
     State container for the Grid Extents and Resolution.
     Compatible with both Cartesian Voxel grids and 'Virtual Grids' from Gmsh.
     """
-    __slots__ = ('x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max', 'nx', 'ny', 'nz')
+    __slots__ = ('nx', 'ny', 'nz', 'x_max', 'x_min', 'y_max', 'y_min', 'z_max', 'z_min')
     
     def __init__(self, x_min: float, x_max: float, y_min: float, y_max: float, z_min: float, z_max: float, nx: int, ny: int, nz: int):
         self.x_min, self.x_max = float(x_min), float(x_max)
@@ -37,8 +38,18 @@ class SovereignContainer:
     No default values or convenience fallbacks are permitted.
     """
     __slots__ = (
-        'step_file', 'solver_version', 'tolerance', 'max_element_size', 'min_element_size',
-        'bc_map', '_grid', '_mask', '_boundary_conditions', '_cad_solid', '_bbox', '_use_gmsh'
+        '_bbox',
+        '_boundary_conditions',
+        '_cad_solid',
+        '_grid',
+        '_mask',
+        '_use_gmsh',
+        'bc_map',
+        'max_element_size',
+        'min_element_size',
+        'solver_version',
+        'step_file',
+        'tolerance'
     )
 
     def __init__(
@@ -73,46 +84,46 @@ class SovereignContainer:
     # --- Properties with Constitution Enforcement ---
 
     @property
-    def grid(self) -> Optional[GridState]: return self._grid
+    def grid(self) -> GridState | None: return self._grid
 
     @grid.setter
-    def grid(self, value: Optional[GridState]):
+    def grid(self, value: GridState | None):
         if value is not None and not isinstance(value, GridState):
             raise TypeError("CONSTITUTION VIOLATION: 'grid' must be an instance of GridState.")
         self._grid = value
 
     @property
-    def mask(self) -> Optional[List[int]]: return self._mask
+    def mask(self) -> list[int] | None: return self._mask
 
     @mask.setter
-    def mask(self, value: Optional[List[int]]):
+    def mask(self, value: list[int] | None):
         if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'mask' must be a List.")
         self._mask = value
 
     @property
-    def boundary_conditions(self) -> Optional[List[BoundaryConditionState]]: return self._boundary_conditions
+    def boundary_conditions(self) -> list[BoundaryConditionState] | None: return self._boundary_conditions
 
     @boundary_conditions.setter
-    def boundary_conditions(self, value: Optional[List[BoundaryConditionState]]):
+    def boundary_conditions(self, value: list[BoundaryConditionState] | None):
         if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'boundary_conditions' must be a List.")
         self._boundary_conditions = value
     
     @property
-    def cad_solid(self) -> Optional[TopoDS_Shape]: return self._cad_solid
+    def cad_solid(self) -> TopoDS_Shape | None: return self._cad_solid
 
     @cad_solid.setter
-    def cad_solid(self, value: Optional[TopoDS_Shape]):
+    def cad_solid(self, value: TopoDS_Shape | None):
         if value is not None and not (isinstance(value, TopoDS_Shape) or type(value).__name__ == "TopoDS_Solid"):
             raise TypeError(f"CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape, not {type(value)}.")
         self._cad_solid = value
     
     @property
-    def bbox(self) -> Optional[tuple]: return self._bbox
+    def bbox(self) -> tuple | None: return self._bbox
 
     @bbox.setter
-    def bbox(self, value: Optional[tuple]):
+    def bbox(self, value: tuple | None):
         if value is not None and not isinstance(value, tuple):
             raise TypeError("CONSTITUTION VIOLATION: 'bbox' must be a tuple.")
         self._bbox = value

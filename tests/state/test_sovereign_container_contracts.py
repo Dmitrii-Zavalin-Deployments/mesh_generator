@@ -1,6 +1,7 @@
 # tests/state/test_sovereign_container_contracts.py
 
 import pytest
+
 from src.state.mesh_generator_state import SovereignContainer
 from tests.dummies.dummy_harness import dummy_in, get_mock_config
 

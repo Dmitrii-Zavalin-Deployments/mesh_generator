@@ -1,8 +1,10 @@
 # tests/test_main.py
 import sys
+from unittest.mock import MagicMock, mock_open, patch
+
 import pytest
-from unittest.mock import patch, mock_open, MagicMock
 from jsonschema import ValidationError
+
 from src.main import main
 from tests.dummies.dummy_harness import dummy_in, get_mock_config
 
@@ -245,10 +247,8 @@ def test_main_strict_configuration_key_policy():
          patch("os.makedirs"), \
          patch("builtins.open", mock_open(read_data='{}')), \
          patch("json.load", side_effect=[malformed_config, {}]), \
-         patch("src.main.validate"):
-        
-        with pytest.raises(KeyError):
-            main()
+         patch("src.main.validate"), pytest.raises(KeyError):
+        main()
 
 
 class TestMainCoverage:

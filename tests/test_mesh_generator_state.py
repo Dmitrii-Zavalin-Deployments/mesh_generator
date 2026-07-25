@@ -1,11 +1,13 @@
 # tests/test_mesh_generator_state.py
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from OCC.Core.TopoDS import TopoDS_Shape
+
 from src.state.mesh_generator_state import (
-    BoundaryConditionState, 
-    GridState, 
-    SovereignContainer
+    BoundaryConditionState,
+    GridState,
+    SovereignContainer,
 )
 
 # --- TYPE-SAFETY CONSTITUTION METACLASS INTERCEPT ---

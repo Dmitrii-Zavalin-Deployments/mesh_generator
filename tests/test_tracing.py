@@ -1,12 +1,15 @@
 # tests/test_tracing.py
 import logging
-import pytest
 from unittest.mock import patch
-from OCC.Core.TopoDS import TopoDS_Shape
+
+import pytest
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
 from OCC.Core.gp import gp_Pnt
-from src.steps.tracing import TracingStep
+from OCC.Core.TopoDS import TopoDS_Shape
+
 from src.state.mesh_generator_state import SovereignContainer
+from src.steps.tracing import TracingStep
+
 
 def get_dummy_container(step_path: str, cad_solid: TopoDS_Shape = None) -> SovereignContainer:
     """

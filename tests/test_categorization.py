@@ -1,17 +1,18 @@
 # tests/test_categorization.py
 import os
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import numpy as np
+import pytest
+from OCC.Core.IFSelect import IFSelect_RetDone
+from OCC.Core.STEPControl import STEPControl_Reader
 
 # OpenCASCADE Mock Targets
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
-from OCC.Core.STEPControl import STEPControl_Reader
-from OCC.Core.IFSelect import IFSelect_RetDone
 
-from src.steps.categorization import CategorizationStep, _run_voxel_engine
-from src.state.mesh_generator_state import SovereignContainer, GridState
 import src.steps.categorization as categorization_module
+from src.state.mesh_generator_state import GridState, SovereignContainer
+from src.steps.categorization import CategorizationStep, _run_voxel_engine
 
 # --- TYPE-SAFETY CONSTITUTION METACLASS INTERCEPT ---
 

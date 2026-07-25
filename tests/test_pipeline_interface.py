@@ -1,9 +1,12 @@
 # tests/test_pipeline_interface.py
+from typing import get_type_hints
+
 import pytest
-from typing import List, get_type_hints
 from OCC.Core.TopoDS import TopoDS_Shape
+
 from interfaces.pipeline_interface import PipelineInterface
-from src.state.mesh_generator_state import GridState, BoundaryConditionState
+from src.state.mesh_generator_state import BoundaryConditionState, GridState
+
 
 class TestPipelineInterface:
     """
@@ -61,11 +64,11 @@ class TestPipelineInterface:
                 return self._grid
 
             @property
-            def mask(self) -> List[int]:
+            def mask(self) -> list[int]:
                 return self._mask
 
             @property
-            def boundary_conditions(self) -> List[BoundaryConditionState]:
+            def boundary_conditions(self) -> list[BoundaryConditionState]:
                 return self._boundary_conditions
 
         # 3. Execution: Instantiate the state view wrapper
@@ -105,7 +108,7 @@ class TestPipelineInterface:
             @property
             def grid(self): return None
             @property
-            def mask(self) -> List[int]: return []
+            def mask(self) -> list[int]: return []
             @property
             def boundary_conditions(self): return []
 

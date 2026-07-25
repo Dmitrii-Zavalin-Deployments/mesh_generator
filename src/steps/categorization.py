@@ -1,13 +1,15 @@
 import logging
 import os
+
 import numpy as np
-from interfaces.base_interface import StepInterface
-from src.state.mesh_generator_state import SovereignContainer
 
 # Legacy Imports for fallback voxelizer
 from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
+
+from interfaces.base_interface import StepInterface
+from src.state.mesh_generator_state import SovereignContainer
 
 # CRITICAL FIX: 'import gmsh' removed from global scope to prevent 
 # test collection aborts in environments missing the Python wrapper.
@@ -168,7 +170,7 @@ def _run_gmsh_engine(container: SovereignContainer):
             
             logger.info(f"Universal mesh snapshot saved successfully: {snapshot_path}")
         except Exception as ex:
-            logger.error(f"CRITICAL VISUALIZATION FAILURE: {str(ex)}")
+            logger.error(f"CRITICAL VISUALIZATION FAILURE: {ex!s}")
             raise ex
 
     finally:

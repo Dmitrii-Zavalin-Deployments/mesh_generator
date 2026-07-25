@@ -1,10 +1,13 @@
 # tests/test_base_interface.py
-import pytest
-import pkgutil
 import importlib
-import src.steps as steps
+import pkgutil
+
+import pytest
+
 from interfaces.base_interface import StepInterface
-from src.state.mesh_generator_state import SovereignContainer, GridState
+from src import steps
+from src.state.mesh_generator_state import GridState, SovereignContainer
+
 
 class TestBaseInterface:
     """

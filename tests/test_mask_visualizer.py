@@ -1,7 +1,8 @@
 # tests/test_mask_visualizer.py
-import os
 import logging
-from unittest.mock import patch, MagicMock
+import os
+from unittest.mock import MagicMock, patch
+
 from src.utils.mask_visualizer import generate_mask_snapshot
 
 # --- LITERATE TEST SUITE ---

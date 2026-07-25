@@ -1,21 +1,22 @@
-import sys
-import os
-import logging
-import json
 import argparse
+import json
+import logging
 import multiprocessing
-from jsonschema import validate, ValidationError
+import os
+import sys
+
+from jsonschema import ValidationError, validate
 
 # --- BOOTSTRAP ---
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.state.mesh_generator_state import SovereignContainer
 from src.pipeline.orchestrator import Orchestrator
-from src.steps.ingestion import IngestionStep
-from src.steps.tracing import TracingStep
-from src.steps.resolution import ResolutionStep
-from src.steps.categorization import CategorizationStep
+from src.state.mesh_generator_state import SovereignContainer
 from src.steps.boundary_conditions import BoundaryConditionsStep
+from src.steps.categorization import CategorizationStep
+from src.steps.ingestion import IngestionStep
+from src.steps.resolution import ResolutionStep
+from src.steps.tracing import TracingStep
 from src.utils.mask_visualizer import generate_mask_snapshot
 
 # Configure logging
@@ -157,7 +158,7 @@ def main():
         try:
             generate_mask_snapshot(output_data)
         except Exception as viz_err:
-            logger.error(f"Voxel verification snapshot engine faulted: {str(viz_err)}")
+            logger.error(f"Voxel verification snapshot engine faulted: {viz_err!s}")
 
         # --- SERIALIZATION LAYER ---
         with open(output_path, 'w') as f:

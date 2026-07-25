@@ -1,7 +1,9 @@
 import logging
+
+from OCC.Core.STEPControl import STEPControl_Reader
+
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
-from OCC.Core.STEPControl import STEPControl_Reader
 
 # Module-level logger is optimal for pytest capture and GHA observability
 logger = logging.getLogger(__name__)

@@ -1,15 +1,17 @@
 import logging
+
 import numpy as np
+from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRepBndLib import brepbndlib
-from interfaces.base_interface import StepInterface
-from src.state.mesh_generator_state import SovereignContainer, GridState
+from OCC.Core.BRepGProp import brepgprop
+from OCC.Core.GProp import GProp_GProps
+from OCC.Core.TopAbs import TopAbs_EDGE
 
 # OCC Imports for feature detection
 from OCC.Core.TopExp import TopExp_Explorer
-from OCC.Core.TopAbs import TopAbs_EDGE
-from OCC.Core.BRepGProp import brepgprop
-from OCC.Core.GProp import GProp_GProps
-from OCC.Core.Bnd import Bnd_Box
+
+from interfaces.base_interface import StepInterface
+from src.state.mesh_generator_state import GridState, SovereignContainer
 
 logger = logging.getLogger(__name__)
 
