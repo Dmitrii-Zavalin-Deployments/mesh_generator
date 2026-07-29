@@ -1,7 +1,4 @@
 import logging
-
-from OCC.Core.STEPControl import STEPControl_Reader
-
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
 
@@ -10,35 +7,42 @@ logger = logging.getLogger(__name__)
 
 class IngestionStep(StepInterface):
     """
-    Refactored S1: STEP File Ingestion.
-    Loads the geometry and populates the SovereignContainer's cad_solid field.
+    Refactored S1: STEP File Ingestion via Gmsh.
+    Loads the CAD geometry into the active Gmsh session.
     """
     
     __slots__ = () # Stateless: Logic only
 
     def execute(self, container: SovereignContainer):
         """
-        Executes the ingestion process.
+        Executes the ingestion process using Gmsh.
         
         Args:
             container: The SovereignContainer instance. 
                        Must have a valid step_file path initialized.
         """
         logger.info(f"Starting IngestionStep: {container.step_file}")
-        reader = STEPControl_Reader()
         
-        # Perform the read operation
-        status = reader.ReadFile(container.step_file)
-        
-        if status != 1:
-            error_msg = f"CONSTITUTION VIOLATION: Ingestion failed for: {container.step_file}"
+        try:
+            import gmsh
+        except ImportError as e:
+            error_msg = "CONSTITUTION VIOLATION: Gmsh Python bindings missing during ingestion."
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            raise RuntimeError(error_msg) from e
+
+        if not gmsh.is_initialized():
+            gmsh.initialize()
             
-        reader.TransferRoots()
+        try:
+            # Open the STEP file directly using the Gmsh CAD kernel
+            gmsh.open(container.step_file)
+            gmsh.model.occ.synchronize()
+        except Exception as e:
+            error_msg = f"CONSTITUTION VIOLATION: Gmsh ingestion failed for: {container.step_file}. Details: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
+            
+        # Store a marker or model reference in cad_solid to satisfy the container state check
+        container.cad_solid = "gmsh_loaded_shape"
         
-        # The setter in SovereignContainer will automatically validate 
-        # that the shape returned by reader.OneShape() is a TopoDS_Shape.
-        container.cad_solid = reader.OneShape()
-        
-        logger.info(f"IngestionStep successful: {container.step_file} loaded into memory.")
+        logger.info(f"IngestionStep successful: {container.step_file} loaded into Gmsh memory.")

@@ -7,7 +7,6 @@ set -e # Terminate script immediately upon any command failure
 echo "📦 Layer 1: Provisioning Non-Native Compiled Binary Foundations..."
 # Install heavy C++ libraries and data backends via Conda to ensure linked stability
 conda install -y -c conda-forge -c defaults \
-    pythonocc-core \
     gmsh \
     numpy \
     matplotlib \
@@ -26,7 +25,6 @@ echo "🔬 Layer 4: Running Post-Provisioning Integrity Check..."
 python -c "
 import gmsh
 import matplotlib
-import OCC
 import h5py
 print(f'✅ Dependency Integrity Verified.')
 print(f'   - Gmsh Engine: {gmsh.__version__}')

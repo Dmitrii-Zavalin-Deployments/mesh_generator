@@ -1,8 +1,5 @@
 import logging
 
-from OCC.Core.Bnd import Bnd_Box
-from OCC.Core.BRepBndLib import brepbndlib
-
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
 
@@ -10,10 +7,10 @@ logger = logging.getLogger(__name__)
 
 class TracingStep(StepInterface):
     """
-    Refactored S2-S7: Domain Tracing.
+    Refactored S2-S7: Domain Tracing via Gmsh.
     
     This step acts as the 'geometric surveyor'. Its primary responsibility is to 
-    determine the spatial envelope of the loaded geometry. This envelope (the BBox)
+    determine the spatial envelope of the loaded geometry using Gmsh. This envelope (the BBox)
     is the foundation upon which the subsequent ResolutionStep and MeshingStep will build.
     """
     
@@ -21,16 +18,15 @@ class TracingStep(StepInterface):
 
     def execute(self, container: SovereignContainer):
         """
-        Executes the spatial tracing process.
+        Executes the spatial tracing process using Gmsh.
         
         Args:
             container: The SovereignContainer instance. 
-                       Requires a valid, non-None 'cad_solid' (loaded via IngestionStep).
+                       Requires an initialized and loaded Gmsh session.
         """
-        logger.info("Starting TracingStep: calculating bounding box.")
+        logger.info("Starting TracingStep: calculating bounding box via Gmsh.")
         
         # GUARD CLAUSE: Strict dependency enforcement.
-        # We cannot calculate a bounding box for geometry that hasn't been loaded.
         if container.cad_solid is None:
             error_msg = (
                 "CONSTITUTION VIOLATION: 'cad_solid' is None. "
@@ -39,24 +35,29 @@ class TracingStep(StepInterface):
             logger.error(error_msg)
             raise RuntimeError(error_msg)
 
-        # INITIALIZATION: Create a new Bnd_Box object.
-        bbox = Bnd_Box()
-        
-        # GEOMETRIC CALCULATION:
-        # Use the static 'brepbndlib.Add' method to expand the bbox 
-        # to encapsulate every part of the solid.
         try:
-            brepbndlib.Add(container.cad_solid, bbox)
+            import gmsh
+        except ImportError as e:
+            error_msg = "CONSTITUTION VIOLATION: Gmsh Python bindings missing during tracing."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
+
+        if not gmsh.is_initialized():
+            error_msg = "CONSTITUTION VIOLATION: Gmsh session not initialized during TracingStep."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
+        # GEOMETRIC CALCULATION:
+        # Retrieve the bounding box of the entire model (dim = -1, tag = -1)
+        try:
+            xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.getBoundingBox(-1, -1)
             
             # DATA PERSISTENCE:
-            # bbox.Get() returns (xmin, ymin, zmin, xmax, ymax, zmax).
-            # We explicitly unpack and cast to a tuple to ensure 
-            # it matches the SovereignContainer setter contract.
-            xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
             container.bbox = (xmin, ymin, zmin, xmax, ymax, zmax)
             
             logger.info(f"TracingStep successful: BBox identified as {container.bbox}")
             
         except Exception as e:
-            logger.error(f"TracingStep failed during geometric calculation: {e!s}")
-            raise
+            error_msg = f"TracingStep failed during geometric calculation: {e!s}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e

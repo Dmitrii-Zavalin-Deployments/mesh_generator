@@ -24,6 +24,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mesh_generator")
 
+
 def validate_json(data, schema_path):
     with open(schema_path, 'r') as f:
         schema = json.load(f)
@@ -33,6 +34,7 @@ def validate_json(data, schema_path):
     except ValidationError as e:
         logger.error(f"SCHEMA VIOLATION: {schema_path}")
         raise e
+
 
 def main():
     parser = argparse.ArgumentParser(description="Modular Workspace Mesh Generator")
@@ -61,51 +63,48 @@ def main():
     else:
         output_path = os.path.join(workspace, args.output_file_name)
 
-    snapshot_file = os.path.join(os.path.dirname(output_path), "mesh_snapshot.png")
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     # 2. Load and Validate Config
-    with open("config/config.json", 'r') as f:
+    config_path = os.path.join("config", "config.json")
+    if not os.path.exists(config_path):
+        config_path = "config.json"
+    with open(config_path, 'r') as f:
         config = json.load(f)
     validate_json(config, "schema/mesh_generator_config_schema.json")
 
-    # 3. Extract Core Context (No-Default Policy Enforcement)
-    engine_type = config['engine_type']
-
-    # 4. Initialize Sovereign Container
+    # 3. Initialize SovereignContainer (Gmsh Dedicated Engine)
     container = SovereignContainer(
         step_file=step_file,
         max_element_size=config['max_element_size'],
         tolerance=config['tolerance'],
         min_element_size=config['min_element_size'],
-        boundary_map=config['boundary_map'],
-        use_gmsh=(engine_type == 'gmsh')
+        boundary_map=config['boundary_map']
     )
 
-    logger.info(f"Starting pipeline execution. Engine: {engine_type}")
+    logger.info("Starting pipeline execution with Gmsh engine.")
 
     # --- GMSH PARALLELIZATION & TOPOLOGY REMEDIATION LAYER ---
-    if engine_type == 'gmsh':
-        import gmsh
-        
-        if not gmsh.isInitialized():
-            logger.info("Initializing Gmsh runtime engine context...")
-            gmsh.initialize()
-        else:
-            logger.warning("Gmsh engine already active in global state context. Skipping initialization.")
-        
-        cores = multiprocessing.cpu_count()
-        logger.info(f"Commanding hardware allocation: Parallel tracking across {cores} threads.")
-        gmsh.option.setNumber("General.NumThreads", cores)
-        gmsh.option.setNumber("Mesh.Algorithm3D", 10)
-        gmsh.option.setNumber("Mesh.CharacteristicLengthFromCurvature", 0)
-        gmsh.option.setNumber("Mesh.CharacteristicLengthExtendFromBoundary", 1)
-        gmsh.option.setNumber("Geometry.Tolerance", config['tolerance'])
-        gmsh.option.setNumber("Mesh.CharacteristicLengthMax", config['max_element_size'])
-        gmsh.option.setNumber("Mesh.CharacteristicLengthMin", config['min_element_size'])
+    import gmsh
+
+    if not gmsh.is_initialized():
+        logger.info("Initializing Gmsh runtime engine context...")
+        gmsh.initialize()
+    else:
+        logger.warning("Gmsh engine already active in global state context. Skipping initialization.")
+
+    cores = multiprocessing.cpu_count()
+    logger.info(f"Commanding hardware allocation: Parallel tracking across {cores} threads.")
+    gmsh.option.setNumber("General.NumThreads", cores)
+    gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+    gmsh.option.setNumber("Mesh.CharacteristicLengthFromCurvature", 0)
+    gmsh.option.setNumber("Mesh.CharacteristicLengthExtendFromBoundary", 1)
+    gmsh.option.setNumber("Geometry.Tolerance", config['tolerance'])
+    gmsh.option.setNumber("Mesh.CharacteristicLengthMax", config['max_element_size'])
+    gmsh.option.setNumber("Mesh.CharacteristicLengthMin", config['min_element_size'])
 
     try:
-        # 5. Orchestrate Pipeline Execution
+        # 4. Orchestrate Pipeline Execution
         pipeline = Orchestrator([
             IngestionStep(),
             TracingStep(),
@@ -114,16 +113,31 @@ def main():
             BoundaryConditionsStep()
         ])
         pipeline.run(container)
-        
-        # 6. Serialize Output Payload
+
+        # 5. Serialize Output Payload
+        boundary_map = getattr(container, "boundary_map", getattr(container, "bc_map", config['boundary_map']))
+
+        bc_list = []
+        for bc in (container.boundary_conditions or []):
+            item = {
+                "location": bc.location,
+                "type": bc.type
+            }
+            if hasattr(bc, "surface_id") and bc.surface_id is not None:
+                item["surface_id"] = str(bc.surface_id)
+            bc_list.append(item)
+
         output_data = {
-            "inputs": {"step_model": {"path": container.step_file}},
+            "inputs": {
+                "step_model": {
+                    "path": container.step_file
+                }
+            },
             "config": {
-                "engine_type": engine_type,
                 "tolerance": container.tolerance,
                 "max_element_size": container.max_element_size,
                 "min_element_size": container.min_element_size,
-                "boundary_map": container.bc_map
+                "boundary_map": boundary_map
             },
             "results": {
                 "grid": {
@@ -133,11 +147,7 @@ def main():
                     "nx": container.grid.nx, "ny": container.grid.ny, "nz": container.grid.nz
                 } if container.grid else None,
                 "mask": container.mask if container.mask is not None else [],
-                "mesh_snapshot_path": os.path.abspath(snapshot_file) if engine_type == 'gmsh' else None,
-                "boundary_conditions": [
-                    {"location": bc.location, "type": bc.type, "surface_id": bc.surface_id}
-                    for bc in (container.boundary_conditions or [])
-                ]
+                "boundary_conditions": bc_list
             }
         }
 
@@ -152,14 +162,21 @@ def main():
             json.dump(output_data, f, indent=2)
         logger.info(f"Results serialized to: {output_path}")
 
+        # Validate serialized payload against output schema
+        if os.path.exists("schema/mesh_generator_output_schema.json"):
+            validate_json(output_data, "schema/mesh_generator_output_schema.json")
+
     finally:
-        if engine_type == 'gmsh':
+        try:
             import gmsh
-            if gmsh.isInitialized():
+            if gmsh.is_initialized():
                 logger.info("Executing final environment cleanup. Purging Gmsh memory structures...")
                 gmsh.finalize()
             else:
                 logger.warning("Gmsh finalization bypassed: Engine was already uninitialized by an internal pipeline step.")
+        except ImportError:
+            pass
+
 
 if __name__ == "__main__":  # pragma: no cover
     main()

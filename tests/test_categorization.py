@@ -4,15 +4,10 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from OCC.Core.IFSelect import IFSelect_RetDone
-from OCC.Core.STEPControl import STEPControl_Reader
-
-# OpenCASCADE Mock Targets
-from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
 
 import src.steps.categorization as categorization_module
 from src.state.mesh_generator_state import GridState, SovereignContainer
-from src.steps.categorization import CategorizationStep, _run_voxel_engine
+from src.steps.categorization import CategorizationStep
 
 # --- TYPE-SAFETY CONSTITUTION METACLASS INTERCEPT ---
 
@@ -34,21 +29,6 @@ def bypass_constitution_type_check():
     with patch("src.state.mesh_generator_state.TopoDS_Shape", DummyTopoDS_Shape):
         yield
 
-# --- HELPER DATA LOADER ---
-
-def get_real_sphere_shape():
-    """
-    Parses the actual geometry from the dummy directory.
-    We require a valid TopoDS_Shape to satisfy the SovereignContainer constitution.
-    """
-    file_path = os.path.join(os.path.dirname(__file__), "dummies", "sample_geometry.step")
-    reader = STEPControl_Reader()
-    if os.path.exists(file_path) and reader.ReadFile(file_path) == IFSelect_RetDone:
-        reader.TransferRoots()
-        return reader.Shape()
-    # Fallback to our valid placeholder shape if the physical asset is absent
-    return DummyTopoDS_Shape()
-
 # --- LITERATE TEST SUITE ---
 
 def test_categorization_guard_clause():
@@ -58,7 +38,7 @@ def test_categorization_guard_clause():
     grid state is undefined, preventing downstream step execution failures.
     """
     container = SovereignContainer(
-        use_gmsh=False,
+        use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
         tolerance=1e-6,
@@ -81,7 +61,7 @@ def test_categorization_post_condition_violation():
     mask state unpopulated, a Post-Condition Violation exception aborts the process.
     """
     container = SovereignContainer(
-        use_gmsh=False,
+        use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
         tolerance=1e-6,
@@ -90,76 +70,13 @@ def test_categorization_post_condition_violation():
     )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
-    # Force mock the voxel engine wrapper to complete while leaving the container empty
+    # Force mock the Gmsh engine wrapper to complete while leaving the container empty
     step = CategorizationStep()
-    with patch("src.steps.categorization._run_voxel_engine") as mock_voxel:
-        mock_voxel.return_value = None
+    with patch("src.steps.categorization._run_gmsh_engine") as mock_gmsh:
+        mock_gmsh.return_value = None
         container.mask = None  # Ensure it remains unallocated
         with pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION: Categorization Engine failed"):
             step.execute(container)
-
-@patch("src.steps.categorization.BRepClass3d_SolidClassifier")
-def test_categorization_legacy_solid_branch(mock_classifier_class):
-    """
-    [LEGACY VOXEL ENGINE: SOLID CLASSIFICATION]
-    Forces the legacy 'Solid' branch mapping. We mock the classifier 
-    to report TopAbs_IN for all tested corner coordinates.
-    """
-    # 1. Setup Mock
-    mock_classifier = MagicMock()
-    mock_classifier.State.return_value = TopAbs_IN
-    mock_classifier_class.return_value = mock_classifier
-    
-    # 2. Setup Container with valid geometry and legacy mode flag
-    container = SovereignContainer(
-        use_gmsh=False,
-        step_file="dummy.step",
-        max_element_size=0.5,
-        tolerance=1e-6,
-        min_element_size=0.1,
-        boundary_map={}
-    )
-    container.cad_solid = get_real_sphere_shape() 
-    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1) # 1x1x1 grid
-    
-    # 3. Execute
-    step = CategorizationStep()
-    step.execute(container)
-    
-    # 4. Assert: Voxel mask 0 corresponds directly to Solid domain
-    assert container.mask[0] == 0 
-    assert mock_classifier.Perform.called
-
-@patch("src.steps.categorization.BRepClass3d_SolidClassifier")
-def test_categorization_legacy_fluid_branch(mock_classifier_class):
-    """
-    [LEGACY VOXEL ENGINE: FLUID CLASSIFICATION]
-    Forces the legacy 'Fluid' branch mapping. We mock the classifier 
-    to report TopAbs_OUT for all sampled corners.
-    """
-    # 1. Setup Mock
-    mock_classifier = MagicMock()
-    mock_classifier.State.return_value = TopAbs_OUT
-    mock_classifier_class.return_value = mock_classifier
-    
-    # 2. Setup Container
-    container = SovereignContainer(
-        use_gmsh=False,
-        step_file="dummy.step",
-        max_element_size=0.5,
-        tolerance=1e-6,
-        min_element_size=0.1,
-        boundary_map={}
-    )
-    container.cad_solid = get_real_sphere_shape()
-    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
-    
-    # 3. Execute
-    step = CategorizationStep()
-    step.execute(container)
-    
-    # 4. Assert: Voxel mask 1 corresponds directly to Fluid domain
-    assert container.mask[0] == 1
 
 def test_gmsh_engine_missing_bindings_error():
     """
@@ -221,7 +138,6 @@ def test_gmsh_engine_reused_session():
     [GMSH ENGINE PATH: REUSED SESSION]
     Verifies that if Gmsh is already initialized, the engine reuses the 
     existing context, performs a hard reset, and executes the finalize lifecycle.
-    This hits lines 46-50.
     """
     container = SovereignContainer(
         use_gmsh=True,
@@ -252,7 +168,7 @@ def test_gmsh_engine_full_execution_flow_success():
     """
     [GMSH ENGINE PATH: NOMINAL INTEGRATION FLOW]
     Simulates a successful and pristine Layer 1 unstructured mesh baking 
-    execution sequence. Hits lines 44-45 (initialization branch) and line 129.
+    execution sequence.
     """
     container = SovereignContainer(
         use_gmsh=True,
@@ -278,7 +194,7 @@ def test_gmsh_engine_full_execution_flow_success():
     mock_gmsh.model.mesh.getNodes.return_value = (node_tags, coord, [])
     mock_gmsh.model.mesh.getElements.return_value = (element_types, element_tags, element_node_tags)
     
-    # Use the module reference to clear the cache
+    # Clear the cache prior to execution
     categorization_module._GMSH_MESH_CACHE.clear()
     
     step = CategorizationStep()
@@ -337,41 +253,5 @@ def test_gmsh_engine_visualization_failure_escalation():
         with pytest.raises(Exception, match="Xvfb frame buffer allocation timeout"):
             step.execute(container)
             
-    # CRITICAL VERIFICATION: Ensure resource cleanup run even on rendering crash loops
+    # CRITICAL VERIFICATION: Ensure resource cleanup runs even on rendering crash loops
     assert mock_gmsh.finalize.called
-
-def test_voxel_engine_wall_classification():
-    """
-    [COVERAGE PATH: LEGACY VOXELIZER WALL]
-    Forces the voxel engine to classify a cell as a 'Wall' (-1) by mocking the 
-    classifier to return a mix of IN and OUT states for the 8 corners of a single voxel.
-    """
-    # 1. Setup minimal container and grid
-    container = SovereignContainer(
-        step_file="dummy.step",
-        max_element_size=1.0,
-        tolerance=1e-6,
-        min_element_size=0.1,
-        boundary_map={},
-        use_gmsh=False
-    )
-    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
-    container.cad_solid = DummyTopoDS_Shape() # Placeholder object
-    
-    # 2. Mock the classifier behavior
-    with patch("src.steps.categorization.BRepClass3d_SolidClassifier") as MockClassifier:
-        mock_instance = MockClassifier.return_value
-        
-        # We need 8 corners for the voxel. 
-        # Side effect: 4 IN, 4 OUT -> Forces 'else' branch (Wall)
-        mock_instance.State.side_effect = [
-            TopAbs_IN, TopAbs_IN, TopAbs_IN, TopAbs_IN, 
-            TopAbs_OUT, TopAbs_OUT, TopAbs_OUT, TopAbs_OUT
-        ]
-        
-        # 3. Execute
-        _run_voxel_engine(container)
-        
-        # 4. Verify
-        # The mask for the only cell in a 1x1x1 grid should be -1 (Wall)
-        assert container.mask[0] == -1

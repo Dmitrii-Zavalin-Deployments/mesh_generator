@@ -1,6 +1,3 @@
-from OCC.Core.TopoDS import TopoDS_Shape
-
-
 class BoundaryConditionState:
     """
     State container for a single Boundary Condition.
@@ -17,7 +14,7 @@ class BoundaryConditionState:
 class GridState:
     """
     State container for the Grid Extents and Resolution.
-    Compatible with both Cartesian Voxel grids and 'Virtual Grids' from Gmsh.
+    Compatible with Gmsh unstructured grids and virtual resolutions.
     """
     __slots__ = ('nx', 'ny', 'nz', 'x_max', 'x_min', 'y_max', 'y_min', 'z_max', 'z_min')
     
@@ -44,7 +41,6 @@ class SovereignContainer:
         '_cad_solid',
         '_grid',
         '_mask',
-        '_use_gmsh',
         'bc_map',
         'max_element_size',
         'min_element_size',
@@ -58,8 +54,7 @@ class SovereignContainer:
         max_element_size: float, 
         tolerance: float, 
         min_element_size: float,
-        boundary_map: dict,
-        use_gmsh: bool
+        boundary_map: dict
     ):
         """
         Explicit Initialization: No defaults permitted. 
@@ -70,7 +65,6 @@ class SovereignContainer:
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)
         self.bc_map = dict(boundary_map)
-        self._use_gmsh = bool(use_gmsh)
         
         # --- Computed Fields (Initialized as None) ---
         self._grid = None
@@ -109,12 +103,10 @@ class SovereignContainer:
         self._boundary_conditions = value
     
     @property
-    def cad_solid(self) -> TopoDS_Shape | None: return self._cad_solid
+    def cad_solid(self) -> object | None: return self._cad_solid
 
     @cad_solid.setter
-    def cad_solid(self, value: TopoDS_Shape | None):
-        if value is not None and not (isinstance(value, TopoDS_Shape) or type(value).__name__ == "TopoDS_Solid"):
-            raise TypeError(f"CONSTITUTION VIOLATION: 'cad_solid' must be a TopoDS_Shape, not {type(value)}.")
+    def cad_solid(self, value: object | None):
         self._cad_solid = value
     
     @property
@@ -125,12 +117,3 @@ class SovereignContainer:
         if value is not None and not isinstance(value, tuple):
             raise TypeError("CONSTITUTION VIOLATION: 'bbox' must be a tuple.")
         self._bbox = value
-
-    @property
-    def use_gmsh(self) -> bool: return self._use_gmsh
-
-    @use_gmsh.setter
-    def use_gmsh(self, value: bool):
-        if not isinstance(value, bool):
-            raise TypeError("CONSTITUTION VIOLATION: 'use_gmsh' must be a boolean.")
-        self._use_gmsh = value
