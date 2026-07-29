@@ -6,7 +6,6 @@
   },
   "config": {
     "engine_type": "gmsh",
-    "solver_version": "1.0.0",
     "tolerance": 1.0,
     "max_element_size": 50.0,
     "min_element_size": 10.0,
