@@ -17,7 +17,15 @@ def test_boundary_conditions_constitution_violation():
     (grid state or voxel mask) are missing from the SovereignContainer.
     """
     step = BoundaryConditionsStep()
-    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, False)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.1,
+        solver_version="v1",
+        tolerance=1e-6,
+        min_element_size=0.01,
+        boundary_map={},
+        use_gmsh=False
+    )
     
     # Grid and mask are missing/None by default on initialization, triggering the guard clause
     with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
@@ -80,7 +88,15 @@ def test_boundary_conditions_missing_map_key():
     (bc_map), the system raises a KeyError to prevent undefined physical behavior.
     """
     step = BoundaryConditionsStep()
-    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, False)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.1,
+        solver_version="v1",
+        tolerance=1e-6,
+        min_element_size=0.01,
+        boundary_map={},
+        use_gmsh=False
+    )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     container.mask = [-1] # Cell 0 is an interface
     
@@ -95,7 +111,15 @@ def test_boundary_conditions_gmsh_missing_cache():
     of the global mesh vertex cache.
     """
     step = BoundaryConditionsStep()
-    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, True)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.1,
+        solver_version="v1",
+        tolerance=1e-6,
+        min_element_size=0.01,
+        boundary_map={},
+        use_gmsh=True
+    )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     container.mask = [1]
     
@@ -113,7 +137,15 @@ def test_boundary_conditions_degenerate_tetrahedron_skip():
     that cause singular matrix inversion failures rather than crashing the pipeline.
     """
     step = BoundaryConditionsStep()
-    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {}, True)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.1,
+        solver_version="v1",
+        tolerance=1e-6,
+        min_element_size=0.01,
+        boundary_map={},
+        use_gmsh=True
+    )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     container.mask = [1]
     
@@ -192,7 +224,15 @@ def test_boundary_conditions_legacy_path():
     loop and proceeds directly to mapping existing mask data.
     """
     step = BoundaryConditionsStep()
-    container = SovereignContainer("test.step", 0.1, "v1", 1e-6, 0.01, {"x_min": "inlet"}, False)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.1,
+        solver_version="v1",
+        tolerance=1e-6,
+        min_element_size=0.01,
+        boundary_map={"x_min": "inlet"},
+        use_gmsh=False
+    )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     container.mask = [-1]
     
