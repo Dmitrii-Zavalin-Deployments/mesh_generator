@@ -11,10 +11,6 @@
       "default": "gmsh",
       "description": "Determines which meshing engine to use. 'voxel' for the legacy grid algorithm; 'gmsh' for the high-fidelity geometry-aware mesher."
     },
-    "solver_version": {
-      "type": "string",
-      "description": "Version identifier of the meshing/solver backend."
-    },
     "tolerance": {
       "type": "number",
       "description": "Geometric tolerance used during STEP parsing, surface reconstruction, and point-in-solid classification."
@@ -44,7 +40,6 @@
   },
   "required": [
     "engine_type",
-    "solver_version",
     "tolerance",
     "max_element_size",
     "min_element_size",

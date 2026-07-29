@@ -1,9 +1,8 @@
 {
   "engine_type": "gmsh",
-  "solver_version": "1.0.0",
   "tolerance": 1,
-  "max_element_size": 50,
-  "min_element_size": 10,
+  "max_element_size": 1000,
+  "min_element_size": 100,
   "boundary_map": {
     "x_min": "inflow",
     "x_max": "outflow",

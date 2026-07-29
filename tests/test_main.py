@@ -17,7 +17,6 @@ class SerializableStubContainer:
     """
     def __init__(self):
         self.step_file = "valid_workspace/geometry.step"
-        self.solver_version = "v1.0.0"
         self.tolerance = 1e-6
         self.max_element_size = 0.5
         self.min_element_size = 0.1
@@ -268,7 +267,6 @@ class TestMainCoverage:
                  "tolerance": 1e-6, 
                  "max_element_size": 0.5, 
                  "min_element_size": 0.1, 
-                 "solver_version": "1.0", 
                  "boundary_map": {}
              }), \
              patch("src.main.validate_json"), \
@@ -302,7 +300,6 @@ class TestMainCoverage:
                  "tolerance": 1e-6, 
                  "max_element_size": 0.5, 
                  "min_element_size": 0.1, 
-                 "solver_version": "1.0", 
                  "boundary_map": {}
              }), \
              patch("src.main.validate_json"), \

@@ -34,7 +34,6 @@ def instantiated_container(valid_config):
     return SovereignContainer(
         step_file=in_data["inputs"]["step_file"],
         max_element_size=valid_config["max_element_size"],
-        solver_version=valid_config["solver_version"],
         tolerance=valid_config["tolerance"],
         min_element_size=valid_config["min_element_size"],
         boundary_map=valid_config["boundary_map"],
@@ -72,8 +71,8 @@ def test_config_contract_validation(instantiated_container, valid_config):
     The container acts as the single source of truth for simulation parameters.
     """
     # We list the mandatory configuration attributes:
-    #    solver_version, tolerance, max_element_size, min_element_size, bc_map
-    expected_attrs = ['solver_version', 'tolerance', 'max_element_size', 'min_element_size', 'bc_map']
+    #    tolerance, max_element_size, min_element_size, bc_map
+    expected_attrs = ['tolerance', 'max_element_size', 'min_element_size', 'bc_map']
     
     # Each attribute must exist and conform to its schema-defined type.
     for attr in expected_attrs:
@@ -81,8 +80,7 @@ def test_config_contract_validation(instantiated_container, valid_config):
         assert hasattr(instantiated_container, attr), f"Contract Violation: '{attr}' missing from container."
         
     # We validate the type definitions for the simulation physics:
-    #    Solver Version (str), Tolerance (float), Max Size (float), Min Size (float), BC Map (dict)
-    assert isinstance(instantiated_container.solver_version, str), "Contract Violation: 'solver_version' must be a string."
+    #    Tolerance (float), Max Size (float), Min Size (float), BC Map (dict)
     assert isinstance(instantiated_container.tolerance, float), "Contract Violation: 'tolerance' must be a float."
     assert isinstance(instantiated_container.max_element_size, float), "Contract Violation: 'max_element_size' must be a float."
     assert isinstance(instantiated_container.min_element_size, float), "Contract Violation: 'min_element_size' must be a float."

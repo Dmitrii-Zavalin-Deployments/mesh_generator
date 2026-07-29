@@ -61,7 +61,6 @@ def test_categorization_guard_clause():
         use_gmsh=False,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={"x_min": "inlet"}
@@ -85,7 +84,6 @@ def test_categorization_post_condition_violation():
         use_gmsh=False,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -117,7 +115,6 @@ def test_categorization_legacy_solid_branch(mock_classifier_class):
         use_gmsh=False,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -150,7 +147,6 @@ def test_categorization_legacy_fluid_branch(mock_classifier_class):
         use_gmsh=False,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -176,7 +172,6 @@ def test_gmsh_engine_missing_bindings_error():
         use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -201,7 +196,6 @@ def test_gmsh_engine_topology_violation_error():
         use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -233,7 +227,6 @@ def test_gmsh_engine_reused_session():
         use_gmsh=True,
         step_file="tests/dummies/sample_geometry.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -265,7 +258,6 @@ def test_gmsh_engine_full_execution_flow_success():
         use_gmsh=True,
         step_file="tests/dummies/sample_geometry.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -324,7 +316,6 @@ def test_gmsh_engine_visualization_failure_escalation():
         use_gmsh=True,
         step_file="tests/dummies/sample_geometry.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
@@ -359,7 +350,6 @@ def test_voxel_engine_wall_classification():
     container = SovereignContainer(
         step_file="dummy.step",
         max_element_size=1.0,
-        solver_version="v1.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={},

@@ -20,7 +20,6 @@ def test_boundary_conditions_constitution_violation():
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
-        solver_version="v1",
         tolerance=1e-6,
         min_element_size=0.01,
         boundary_map={},
@@ -52,7 +51,6 @@ def test_boundary_conditions_all_faces():
         use_gmsh=False,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map=bc_map
@@ -91,7 +89,6 @@ def test_boundary_conditions_missing_map_key():
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
-        solver_version="v1",
         tolerance=1e-6,
         min_element_size=0.01,
         boundary_map={},
@@ -114,7 +111,6 @@ def test_boundary_conditions_gmsh_missing_cache():
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
-        solver_version="v1",
         tolerance=1e-6,
         min_element_size=0.01,
         boundary_map={},
@@ -140,7 +136,6 @@ def test_boundary_conditions_degenerate_tetrahedron_skip():
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
-        solver_version="v1",
         tolerance=1e-6,
         min_element_size=0.01,
         boundary_map={},
@@ -170,7 +165,6 @@ def test_gmsh_voxelization_full_classification():
         use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map=bc_map
@@ -227,7 +221,6 @@ def test_boundary_conditions_legacy_path():
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
-        solver_version="v1",
         tolerance=1e-6,
         min_element_size=0.01,
         boundary_map={"x_min": "inlet"},
@@ -252,7 +245,6 @@ def test_invalid_tolerance_raises_error():
         use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=-0.5,  # Trigger for the ValueError
         min_element_size=0.1,
         boundary_map={}
@@ -279,7 +271,6 @@ def test_optimization_branch_coverage():
         use_gmsh=True,
         step_file="dummy.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={"x_min": "inlet", "x_max": "outlet"}

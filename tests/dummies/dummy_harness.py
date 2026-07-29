@@ -1,4 +1,3 @@
-
 class dummy_in(dict):
     """
     Schema-aligned harness for input data.
@@ -54,7 +53,6 @@ class dummy_out(dict):
 def get_mock_config():
     """Returns a valid config matching mesh_generator_config_schema.json"""
     return {
-        "solver_version": "v1.0.0",
         "tolerance": 1e-6,
         "max_element_size": 0.5,
         "min_element_size": 0.1,
