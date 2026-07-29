@@ -3,11 +3,6 @@ import os
 
 import numpy as np
 
-# Legacy Imports for fallback voxelizer
-from OCC.Core.BRepClass3d import BRepClass3d_SolidClassifier
-from OCC.Core.gp import gp_Pnt
-from OCC.Core.TopAbs import TopAbs_IN, TopAbs_OUT
-
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
 
@@ -21,7 +16,7 @@ logger = logging.getLogger(__name__)
 # without violating SovereignContainer's __slots__ boundary policies.
 _GMSH_MESH_CACHE = {}
 
-# --- Module-Level Engines (Regrouped outside the class to pass the Constitution check) ---
+# --- Module-Level Engines ---
 
 def _run_gmsh_engine(container: SovereignContainer):
     """
@@ -186,87 +181,25 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.finalize()
 
 
-def _run_voxel_engine(container: SovereignContainer):
-    """Legacy Voxelizer Implementation."""
-    logger.info("Starting Legacy Voxel Engine categorization...")
-    classifier = BRepClass3d_SolidClassifier(container.cad_solid)
-    grid = container.grid
-    
-    dx = (grid.x_max - grid.x_min) / grid.nx
-    dy = (grid.y_max - grid.y_min) / grid.ny
-    dz = (grid.z_max - grid.z_min) / grid.nz
-    
-    mask = [0] * (grid.nx * grid.ny * grid.nz)
-    stats = {"solid": 0, "fluid": 0, "wall": 0}
-
-    # Iterate over every voxel in the computational domain.
-    for i in range(grid.nx):
-        for j in range(grid.ny):
-            for k in range(grid.nz):
-                
-                # Voxel corner coordinate mapping:
-                # Defines the 8 vertices of the cell cube for spatial sampling.
-                x0, y0, z0 = grid.x_min + i*dx, grid.y_min + j*dy, grid.z_min + k*dz
-                corners = [
-                    gp_Pnt(x0,      y0,      z0),      gp_Pnt(x0+dx, y0,      z0),
-                    gp_Pnt(x0,      y0+dy,   z0),      gp_Pnt(x0+dx, y0+dy,   z0),
-                    gp_Pnt(x0,      y0,      z0+dz),   gp_Pnt(x0+dx, y0,      z0+dz),
-                    gp_Pnt(x0,      y0+dy,   z0+dz),   gp_Pnt(x0+dx, y0+dy,   z0+dz)
-                ]
-                
-                # Collect the spatial state for each corner vertex.
-                # 1e-7 provides a strict tolerance for boundary coincidence.
-                states = []
-                for pt in corners:
-                    classifier.Perform(pt, 1e-7)
-                    states.append(classifier.State())
-                
-                # Classification Logic (Conservative Voxelization):
-                # 1. Interior: If all 8 corners are IN, the entire voxel is definitely solid.
-                # 2. Exterior: If all 8 corners are OUT, the entire voxel is definitely fluid.
-                # 3. Boundary: If corners show a mix (IN/OUT/ON), the voxel contains a surface.
-                
-                idx = i + grid.nx * (j + grid.ny * k)
-                
-                if all(s == TopAbs_IN for s in states):
-                    mask[idx] = 0   # Solid
-                    stats["solid"] += 1
-                elif all(s == TopAbs_OUT for s in states):
-                    mask[idx] = 1   # Fluid
-                    stats["fluid"] += 1
-                else:
-                    mask[idx] = -1  # Wall
-                    stats["wall"] += 1
-
-    # Persistence to the Sovereign Container.
-    container.mask = mask
-    logger.info(f"Voxel Engine categorization complete. Mask Stats: {stats}")
-
-
 # --- The Compliant Class ---
 
 class CategorizationStep(StepInterface):
     """
     S11: Spatial Categorization Controller.
     
-    Delegates the categorization strategy to either the legacy Voxelizer 
-    or the new Geometry-Aware Gmsh engine.
+    Delegates the categorization strategy to the Geometry-Aware Gmsh engine.
     """
     
     __slots__ = () # Stateless: Logic only
     
     def execute(self, container: SovereignContainer):
-        """Dispatches logic to the appropriate engine."""
+        """Dispatches logic to the Gmsh engine."""
         if container.grid is None:
             raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep.")
 
-        # Evaluates strategy flags out of the centralized, typed container properties
-        if container.use_gmsh:
-            _run_gmsh_engine(container)
-        else:
-            _run_voxel_engine(container)
+        _run_gmsh_engine(container)
 
         # Ensure we satisfy sovereign container contracts before leaving.
-        # Check applies to BOTH engines to strictly guarantee JSON schema compliance.
+        # Check strictly guarantees JSON schema compliance.
         if container.mask is None:
             raise RuntimeError("POST-CONDITION VIOLATION: Categorization Engine failed to populate container.mask")

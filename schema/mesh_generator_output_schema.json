@@ -23,15 +23,6 @@
       "description": "Configuration parameters used during this mesh generation run. Included for reproducibility and documentation.",
       "additionalProperties": false,
       "properties": {
-        "engine_type": {
-          "type": "string",
-          "enum": [
-            "voxel",
-            "gmsh"
-          ],
-          "default": "gmsh",
-          "description": "Determines which meshing engine to use. 'voxel' for the legacy grid algorithm; 'gmsh' for the high-fidelity geometry-aware mesher."
-        },
         "tolerance": {
           "type": "number",
           "description": "Geometric tolerance used during STEP parsing, surface reconstruction, and point-in-solid classification."

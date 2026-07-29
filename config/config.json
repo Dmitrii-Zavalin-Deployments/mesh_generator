@@ -1,5 +1,4 @@
 {
-  "engine_type": "gmsh",
   "tolerance": 1,
   "max_element_size": 1000,
   "min_element_size": 100,

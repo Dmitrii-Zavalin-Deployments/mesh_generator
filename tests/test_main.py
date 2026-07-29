@@ -263,7 +263,6 @@ class TestMainCoverage:
              patch("os.makedirs"), \
              patch("builtins.open", mock_open(read_data='{}')), \
              patch("src.main.json.load", return_value={
-                 "engine_type": "gmsh", 
                  "tolerance": 1e-6, 
                  "max_element_size": 0.5, 
                  "min_element_size": 0.1, 
@@ -296,7 +295,6 @@ class TestMainCoverage:
              patch("os.makedirs"), \
              patch("builtins.open", mock_open(read_data='{}')), \
              patch("src.main.json.load", return_value={
-                 "engine_type": "gmsh", 
                  "tolerance": 1e-6, 
                  "max_element_size": 0.5, 
                  "min_element_size": 0.1, 
