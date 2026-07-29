@@ -11,14 +11,13 @@ from src.steps.ingestion import IngestionStep
 def get_dummy_container(step_path: str) -> SovereignContainer:
     """
     To ensure pipeline integrity, we instantiate the container with 
-    strict constraints on element size and versioning, satisfying the 
+    strict constraints on element size, satisfying the 
     SovereignContainer contract before ingestion.
     """
     return SovereignContainer(
         use_gmsh=False,
         step_file=step_path,
         max_element_size=2.0,
-        solver_version="v1.0.0",
         tolerance=1e-4,
         min_element_size=0.5,
         boundary_map={"x_min": "inlet"}

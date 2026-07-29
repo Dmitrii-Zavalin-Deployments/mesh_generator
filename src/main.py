@@ -4,12 +4,10 @@ import logging
 import multiprocessing
 import os
 import sys
-
 from jsonschema import ValidationError, validate
 
 # --- BOOTSTRAP ---
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from src.pipeline.orchestrator import Orchestrator
 from src.state.mesh_generator_state import SovereignContainer
 from src.steps.boundary_conditions import BoundaryConditionsStep
@@ -72,46 +70,36 @@ def main():
     validate_json(config, "schema/mesh_generator_config_schema.json")
 
     # 3. Extract Core Context (No-Default Policy Enforcement)
-    # Direct bracket lookup guarantees failure and process death if a key is absent.
     engine_type = config['engine_type']
 
     # 4. Initialize Sovereign Container
     container = SovereignContainer(
         step_file=step_file,
         max_element_size=config['max_element_size'],
-        solver_version=config['solver_version'],
         tolerance=config['tolerance'],
         min_element_size=config['min_element_size'],
         boundary_map=config['boundary_map'],
         use_gmsh=(engine_type == 'gmsh')
     )
-    
+
     logger.info(f"Starting pipeline execution. Engine: {engine_type}")
 
     # --- GMSH PARALLELIZATION & TOPOLOGY REMEDIATION LAYER ---
     if engine_type == 'gmsh':
         import gmsh
         
-        # Guard against double initialization loops
         if not gmsh.isInitialized():
             logger.info("Initializing Gmsh runtime engine context...")
             gmsh.initialize()
         else:
             logger.warning("Gmsh engine already active in global state context. Skipping initialization.")
         
-        # Optimize compute allocations for virtualized CI runners (2 vCPUs)
         cores = multiprocessing.cpu_count()
         logger.info(f"Commanding hardware allocation: Parallel tracking across {cores} threads.")
         gmsh.option.setNumber("General.NumThreads", cores)
-        
-        # Switch to HXT mesh generation schema (parallelized, highly performant)
         gmsh.option.setNumber("Mesh.Algorithm3D", 10)
-        
-        # Bypass boundary curvature traps to eliminate single-threaded infinite refinement stalls
         gmsh.option.setNumber("Mesh.CharacteristicLengthFromCurvature", 0)
         gmsh.option.setNumber("Mesh.CharacteristicLengthExtendFromBoundary", 1)
-        
-        # Bind sovereign configuration tokens directly to geometry options (No-Default Policy)
         gmsh.option.setNumber("Geometry.Tolerance", config['tolerance'])
         gmsh.option.setNumber("Mesh.CharacteristicLengthMax", config['max_element_size'])
         gmsh.option.setNumber("Mesh.CharacteristicLengthMin", config['min_element_size'])
@@ -132,7 +120,6 @@ def main():
             "inputs": {"step_model": {"path": container.step_file}},
             "config": {
                 "engine_type": engine_type,
-                "solver_version": container.solver_version,
                 "tolerance": container.tolerance,
                 "max_element_size": container.max_element_size,
                 "min_element_size": container.min_element_size,
@@ -166,10 +153,8 @@ def main():
         logger.info(f"Results serialized to: {output_path}")
 
     finally:
-        # Guarantee memory teardown of binary objects regardless of run-time failures
         if engine_type == 'gmsh':
             import gmsh
-            # Guard against tearing down an already finalized or closed singleton session
             if gmsh.isInitialized():
                 logger.info("Executing final environment cleanup. Purging Gmsh memory structures...")
                 gmsh.finalize()

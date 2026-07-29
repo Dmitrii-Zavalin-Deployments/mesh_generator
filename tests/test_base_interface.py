@@ -83,7 +83,6 @@ class TestBaseInterface:
             use_gmsh=False,
             step_file="test_geometry.step",
             max_element_size=1.5,
-            solver_version="1.0.0",
             tolerance=1e-5,
             min_element_size=0.1,
             boundary_map={"inlet": "dirichlet"}
@@ -124,7 +123,6 @@ class TestBaseInterface:
             use_gmsh=False,
             step_file="test.step", 
             max_element_size=1.0, 
-            solver_version="1.0",
             tolerance=1e-5, 
             min_element_size=0.1, 
             boundary_map={}

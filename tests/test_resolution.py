@@ -61,7 +61,7 @@ def test_get_min_feature_size_bbox_fallback():
         
         # We supply an explicit bounding box: (xmin, ymin, zmin, xmax, ymax, zmax)
         # Yields dimensional lengths: 
-        #     DeltaX = 10.0, DeltaY = 5.0, DeltaZ = 20.0
+        #      DeltaX = 10.0, DeltaY = 5.0, DeltaZ = 20.0
         # The minimum dimensional delta is min(10.0, 5.0, 20.0) = 5.0.
         mock_bbox.return_value.Get.return_value = (0.0, 0.0, 0.0, 10.0, 5.0, 20.0)
         
@@ -76,7 +76,6 @@ def get_dummy_container(bbox=None, cad_solid=None) -> SovereignContainer:
         use_gmsh=False,
         step_file="dummy.step",
         max_element_size=2.0,
-        solver_version="v1.0.0",
         tolerance=1e-4,
         min_element_size=0.5,
         boundary_map={"x_min": "inlet"}
@@ -95,7 +94,7 @@ def test_resolution_logs_on_success(caplog):
     step = ResolutionStep()
 
     # Logic: Grid resolution N is calculated as:
-    #     N = Span / ElementSize = 10.0 / 1.0 = 10
+    #      N = Span / ElementSize = 10.0 / 1.0 = 10
     with patch("src.steps.resolution.get_min_feature_size", return_value=1.0):
         with caplog.at_level(logging.INFO):
             step.execute(container)

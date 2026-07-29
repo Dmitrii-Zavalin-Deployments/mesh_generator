@@ -57,7 +57,6 @@ def test_sovereign_container_setup():
         use_gmsh=False,
         step_file="test.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={"x": "y"}
@@ -76,7 +75,14 @@ def test_sovereign_container_setters_happy_path():
     Verify that valid types are accepted by the container setters.
     This demonstrates the successful state transition for each attribute.
     """
-    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {}, True)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.5,
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={},
+        use_gmsh=True
+    )
     
     # Transition: Set valid data structures
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
@@ -96,10 +102,16 @@ def test_sovereign_container_type_violations():
     """
     [COVERAGE PATH: CONSTITUTIONAL VIOLATIONS]
     We enforce the constitution by attempting to pass invalid types to setters.
-    This triggers the explicit TypeError blocks (Lines 78, 87, 96, 107, 116),
-    ensuring 100% path coverage.
+    This triggers the explicit TypeError blocks, ensuring 100% path coverage.
     """
-    container = SovereignContainer("test.step", 0.5, "v1", 1e-6, 0.1, {}, True)
+    container = SovereignContainer(
+        step_file="test.step",
+        max_element_size=0.5,
+        tolerance=1e-6,
+        min_element_size=0.1,
+        boundary_map={},
+        use_gmsh=True
+    )
     
     # 1. Grid Check: Expect TypeError when passing a string instead of GridState.
     with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'grid' must be an instance of GridState"):
@@ -131,7 +143,6 @@ def test_sovereign_container_use_gmsh_type_error():
     container = SovereignContainer(
         step_file="tests/dummies/sample_geometry.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={},
@@ -143,7 +154,6 @@ def test_sovereign_container_use_gmsh_type_error():
     with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'use_gmsh' must be a boolean."):
         container.use_gmsh = 1
 
-
 def test_sovereign_container_use_gmsh_nominal_toggle():
     """
     [SUCCESS PATH: NOMINAL STATE MUTATION]
@@ -154,7 +164,6 @@ def test_sovereign_container_use_gmsh_nominal_toggle():
     container = SovereignContainer(
         step_file="tests/dummies/sample_geometry.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={},

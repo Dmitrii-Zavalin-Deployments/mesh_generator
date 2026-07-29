@@ -20,7 +20,6 @@ def get_dummy_container(step_path: str, cad_solid: TopoDS_Shape = None) -> Sover
         use_gmsh=False,
         step_file=step_path,
         max_element_size=2.0,
-        solver_version="v1.0.0",
         tolerance=1e-4,
         min_element_size=0.5,
         boundary_map={"x_min": "inlet"}

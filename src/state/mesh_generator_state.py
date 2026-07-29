@@ -1,4 +1,3 @@
-
 from OCC.Core.TopoDS import TopoDS_Shape
 
 
@@ -14,6 +13,7 @@ class BoundaryConditionState:
         self.type = str(type)
         self.surface_id = str(surface_id)
 
+
 class GridState:
     """
     State container for the Grid Extents and Resolution.
@@ -26,6 +26,7 @@ class GridState:
         self.y_min, self.y_max = float(y_min), float(y_max)
         self.z_min, self.z_max = float(z_min), float(z_max)
         self.nx, self.ny, self.nz = int(nx), int(ny), int(nz)
+
 
 class SovereignContainer:
     """
@@ -47,7 +48,6 @@ class SovereignContainer:
         'bc_map',
         'max_element_size',
         'min_element_size',
-        'solver_version',
         'step_file',
         'tolerance'
     )
@@ -56,7 +56,6 @@ class SovereignContainer:
         self, 
         step_file: str, 
         max_element_size: float, 
-        solver_version: str, 
         tolerance: float, 
         min_element_size: float,
         boundary_map: dict,
@@ -67,7 +66,6 @@ class SovereignContainer:
         All pipeline configuration must be provided by the caller.
         """
         self.step_file = str(step_file)
-        self.solver_version = str(solver_version)
         self.tolerance = float(tolerance)
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)

@@ -1,3 +1,4 @@
+
 # tests/test_orchestrator.py
 from unittest.mock import MagicMock, call
 
@@ -37,7 +38,6 @@ def test_orchestrator_execution_flow():
         use_gmsh=False,
         step_file="test.step",
         max_element_size=0.5,
-        solver_version="v1.0.0",
         tolerance=1e-6,
         min_element_size=0.1,
         boundary_map={}
