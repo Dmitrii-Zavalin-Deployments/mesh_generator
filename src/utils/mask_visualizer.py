@@ -11,12 +11,13 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
-# --- UNIFIED VIEWPOINT CONSTANTS ---
-# Standardizes the isometric viewpoint across all visualization engines
-VIEW_ELEV = 30
-VIEW_AZIM = -60
 
-def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
+def generate_mask_snapshot(
+    output_data: dict, 
+    fallback_save_dir: str = None, 
+    elev: float = 30.0, 
+    azim: float = -60.0
+):
     """
     Parses the pipeline output dictionary and saves a 3D voxel mask snapshot.
     Also extracts and saves a perfectly aligned snapshot of the raw STEP geometry.
@@ -24,10 +25,9 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
     Optimizations implemented to prevent GitHub Actions CI timeouts:
       1. Hard-capped maximum axes limits to protect rendering workflows.
       2. Spatial grid striding (downsampling) to keep total voxel count manageable.
-      3. Full-render visualization (showing Fluid, Solid, and Walls) with 
-         transparency to ensure interior features like holes remain visible.
-      4. Axes re-mapping and explicit box aspect ratios to perfectly align 
-         Matplotlib outputs with standard CAD/Mesh orientations.
+      3. Dynamic deflection mesh sizing based on physical bounding box scale.
+      4. Standard native (X, Y, Z) mapping and explicit box aspect ratios to 
+         align Matplotlib outputs directly with the true STEP file coordinate space.
     """
     logger.info("Initializing optimized 3D voxel mask visualization...")
     
@@ -65,10 +65,9 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
             mask_3d = mask_3d[::stride, ::stride, ::stride]
             nx, ny, nz = mask_3d.shape
 
-        # --- AXIS ORIENTATION ALIGNMENT ---
-        # To align perfectly with the CAD viewer convention (where the hole axis CAD Y is vertical),
-        # we map: Visual X = CAD X, Visual Y = CAD Z, Visual Z = CAD Y.
-        mask_3d_vis = np.transpose(mask_3d, (0, 2, 1))  # Swap Y and Z axes
+        # --- NATIVE AXIS MAPPING ---
+        # Direct native coordinate alignment in world space matching the STEP file
+        mask_3d_vis = mask_3d
         nx_vis, ny_vis, nz_vis = mask_3d_vis.shape
 
         # --- VISUALIZATION MAPPING ---
@@ -82,38 +81,39 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
         # Wall (-1): Dark Blue, solid
         colors[mask_3d_vis == -1] = [0.05, 0.05, 0.20, 0.95] 
 
-        # Generate coordinate edges matching the visual transposition
+        # Generate coordinate edges matching native (X, Y, Z) CAD geometry
         x_edges = np.linspace(grid["x_min"], grid["x_max"], nx_vis + 1)
-        y_edges = np.linspace(grid["z_min"], grid["z_max"], ny_vis + 1)  # Visual Y maps to CAD Z
-        z_edges = np.linspace(grid["y_min"], grid["y_max"], nz_vis + 1)  # Visual Z maps to CAD Y
+        y_edges = np.linspace(grid["y_min"], grid["y_max"], ny_vis + 1)
+        z_edges = np.linspace(grid["z_min"], grid["z_max"], nz_vis + 1)
         X, Y, Z = np.meshgrid(x_edges, y_edges, z_edges, indexing='ij')
 
-        # Compute uniform spans to lock exact proportional aspect ratio across both plots
+        # Compute dynamic bounding box spans
         x_span = grid["x_max"] - grid["x_min"]
-        y_span = grid["z_max"] - grid["z_min"]
-        z_span = grid["y_max"] - grid["y_min"]
+        y_span = grid["y_max"] - grid["y_min"]
+        z_span = grid["z_max"] - grid["z_min"]
+        max_span = max(x_span, y_span, z_span)
 
         # Initialize Voxel Plot
         fig = plt.figure(figsize=(10, 8), dpi=150)
         ax = fig.add_subplot(111, projection='3d')
-        ax.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
+        ax.view_init(elev=elev, azim=azim)
 
         # Render Voxel Grid
         ax.voxels(X, Y, Z, filled, facecolors=colors, edgecolors=(0.3, 0.3, 0.3, 0.1), linewidth=0.2)
 
-        # Enforce unified absolute scale boundaries matching the coordinate swap
+        # Enforce unified absolute scale boundaries directly from STEP coordinate bounds
         ax.set_xlim(grid["x_min"], grid["x_max"])
-        ax.set_ylim(grid["z_min"], grid["z_max"])
-        ax.set_zlim(grid["y_min"], grid["y_max"])
+        ax.set_ylim(grid["y_min"], grid["y_max"])
+        ax.set_zlim(grid["z_min"], grid["z_max"])
         
-        # Explicitly apply bounding box aspect ratio to enforce matching pitch/roll/yaw appearance
+        # Explicitly apply true bounding box aspect ratio to enforce 1:1 spatial proportion
         ax.set_box_aspect((x_span, y_span, z_span))
 
-        # Label definitions matching spatial reassignment
+        # Native label definitions matching CAD world coordinate frame
         ax.set_title("Voxelization Grid Mask Boundary Map (CI Optimized)", fontsize=12, fontweight='bold', pad=15)
         ax.set_xlabel("X Axis (CAD X)", fontsize=9)
-        ax.set_ylabel("Z Axis (CAD Z)", fontsize=9)
-        ax.set_zlabel("Y Axis (CAD Y)", fontsize=9)
+        ax.set_ylabel("Y Axis (CAD Y)", fontsize=9)
+        ax.set_zlabel("Z Axis (CAD Z)", fontsize=9)
         
         # Legend
         from matplotlib.patches import Patch
@@ -142,7 +142,9 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
 
                 logger.info("Extracting CAD boundary surfaces for aligned visualization...")
 
-                BRepMesh_IncrementalMesh(cad_solid, 0.5)
+                # DYNAMIC DEFLECTION SCALE: Adapt mesh deflection based on model scale (0.5% of max span)
+                dynamic_deflection = max(0.001, 0.005 * max_span)
+                BRepMesh_IncrementalMesh(cad_solid, dynamic_deflection)
 
                 explorer_face = TopExp_Explorer(cad_solid, TopAbs_FACE)
                 polygons = []
@@ -154,7 +156,7 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                     loc = TopLoc_Location()
                     triangulation = BRep_Tool.Triangulation(face, loc)
                     if triangulation:
-                        trsf = loc.Transformation()   # <-- REQUIRED FIX
+                        trsf = loc.Transformation()
 
                         nodes = triangulation.Nodes()
                         triangles = triangulation.Triangles()
@@ -163,20 +165,21 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                             tri = triangles.Value(i)
                             idx1, idx2, idx3 = tri.Get()
 
-                            p1 = nodes.Value(idx1).Transformed(trsf)   # <-- FIX
-                            p2 = nodes.Value(idx2).Transformed(trsf)   # <-- FIX
-                            p3 = nodes.Value(idx3).Transformed(trsf)   # <-- FIX
+                            p1 = nodes.Value(idx1).Transformed(trsf)
+                            p2 = nodes.Value(idx2).Transformed(trsf)
+                            p3 = nodes.Value(idx3).Transformed(trsf)
 
+                            # Direct native (X, Y, Z) world coordinate mapping
                             polygons.append([
-                                [p1.X(), p1.Z(), p1.Y()],
-                                [p2.X(), p2.Z(), p2.Y()],
-                                [p3.X(), p3.Z(), p3.Y()]
+                                [p1.X(), p1.Y(), p1.Z()],
+                                [p2.X(), p2.Y(), p2.Z()],
+                                [p3.X(), p3.Y(), p3.Z()]
                             ])
 
                 if polygons:
                     fig_cad = plt.figure(figsize=(10, 8), dpi=150)
                     ax_cad = fig_cad.add_subplot(111, projection='3d')
-                    ax_cad.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
+                    ax_cad.view_init(elev=elev, azim=azim)
 
                     poly_collection = Poly3DCollection(polygons, facecolors='lightgray',
                                                     edgecolors='none', alpha=0.5)
@@ -192,30 +195,31 @@ def generate_mask_snapshot(output_data: dict, fallback_save_dir: str = None):
                         last_param = curve.LastParameter()
 
                         loc_edge = edge.Location()
-                        trsf_edge = loc_edge.Transformation()   # <-- REQUIRED FIX
+                        trsf_edge = loc_edge.Transformation()
 
                         u_samples = np.linspace(first_param, last_param, 50)
                         x_pts, y_pts, z_pts = [], [], []
 
                         for u in u_samples:
-                            pt = curve.Value(u).Transformed(trsf_edge)   # <-- FIX
+                            pt = curve.Value(u).Transformed(trsf_edge)
 
+                            # Direct native (X, Y, Z) point extraction
                             x_pts.append(pt.X())
-                            y_pts.append(pt.Z())
-                            z_pts.append(pt.Y())
+                            y_pts.append(pt.Y())
+                            z_pts.append(pt.Z())
 
                         ax_cad.plot(x_pts, y_pts, z_pts, color='blue', linewidth=1.2)
 
                     ax_cad.set_xlim(grid["x_min"], grid["x_max"])
-                    ax_cad.set_ylim(grid["z_min"], grid["z_max"])
-                    ax_cad.set_zlim(grid["y_min"], grid["y_max"])
+                    ax_cad.set_ylim(grid["y_min"], grid["y_max"])
+                    ax_cad.set_zlim(grid["z_min"], grid["z_max"])
                     ax_cad.set_box_aspect((x_span, y_span, z_span))
 
                     ax_cad.set_title("CAD Structural Geometry Verification (STEP Native)",
                                     fontsize=12, fontweight='bold', pad=15)
                     ax_cad.set_xlabel("X Axis (CAD X)", fontsize=9)
-                    ax_cad.set_ylabel("Z Axis (CAD Z)", fontsize=9)
-                    ax_cad.set_zlabel("Y Axis (CAD Y)", fontsize=9)
+                    ax_cad.set_ylabel("Y Axis (CAD Y)", fontsize=9)
+                    ax_cad.set_zlabel("Z Axis (CAD Z)", fontsize=9)
 
                     cad_img_path = os.path.join(save_dir, "cad_geometry_snapshot.png")
                     plt.savefig(cad_img_path, bbox_inches='tight', pad_inches=0.3, dpi=150)

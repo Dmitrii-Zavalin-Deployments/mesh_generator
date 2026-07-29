@@ -63,6 +63,18 @@ def _run_gmsh_engine(container: SovereignContainer):
         gmsh.model.occ.importShapes(container.step_file)
         gmsh.model.occ.synchronize()
         
+        # --- DYNAMIC GEOMETRY-AWARE ROTATION CENTER & VIEWPORT CONFIGURATION ---
+        # Compute the bounding box of the imported model to dynamically target 
+        # the rotation anchor and framing to its true geometric center and size.
+        xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.getBoundingBox(-1, -1)
+        cx = (xmin + xmax) / 2.0
+        cy = (ymin + ymax) / 2.0
+        cz = (zmin + zmax) / 2.0
+        
+        gmsh.option.setNumber("General.RotationCenterX", cx)
+        gmsh.option.setNumber("General.RotationCenterY", cy)
+        gmsh.option.setNumber("General.RotationCenterZ", cz)
+        
         # Define Mesh Size Field (Adaptive)
         gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
         gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
@@ -121,18 +133,13 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.GraphicsWidth", 1200)
             gmsh.option.setNumber("General.GraphicsHeight", 900)
             
-            # --- 3D ISOMETRIC / TRIMETRIC VIEW ORIENTATION ---
-            gmsh.option.setNumber("General.Trackball", 0)     # Freeze automatic bounding updates
-            
-            # ALIGNMENT FIX: Matplotlib uses (elev=30, azim=-60) with a Y/Z transposition.
-            # Setting RotationX to 30 and RotationY to 30 perfectly aligns the screen-space projection.
-            gmsh.option.setNumber("General.RotationX", 30)   # Pitch
-            gmsh.option.setNumber("General.RotationY", 30)   # Roll / Turn
-            gmsh.option.setNumber("General.RotationZ", 0)    # Yaw
+            # --- FULLY DYNAMIC MODEL-REFLECTIVE VIEWPORT ---
+            # Re-enable the trackball/auto-bounding so Gmsh calculates framing and 
+            # initial orientation natively based on the imported geometry's orientation.
+            gmsh.option.setNumber("General.Trackball", 1)
             
             # --- UNIVERSAL PADDING BORDERS FIX ---
             # Explicitly control the whitespace/border padding around the model.
-            # 0.0 forces the model to tightly touch the window edge. 
             # 0.4 adds a clean 40% margin buffer around the geometry to prevent cropping.
             gmsh.option.setNumber("General.DisplayBorderFactor", 0.4)
             
@@ -150,7 +157,7 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("Mesh.Lines", 0)
             gmsh.option.setNumber("Mesh.Tetrahedra", 0)
             
-            # Force system to recalculate viewport and write raw geometry buffer
+            # Force system to recalculate viewport, auto-fit, and write raw geometry buffer
             gmsh.graphics.draw()
             gmsh.fltk.update()
             gmsh.write(step_snapshot_path)
