@@ -1,8 +1,8 @@
 # tests/test_pipeline_interface.py
-import pytest
+
+from interfaces.grid_interface import GridInterface
 
 from interfaces.pipeline_interface import PipelineInterface
-from interfaces.grid_interface import GridInterface
 from src.state.mesh_generator_state import GridState
 
 
