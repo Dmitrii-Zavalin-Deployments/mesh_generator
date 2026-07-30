@@ -71,11 +71,13 @@ def test_categorization_post_condition_violation():
     
     # Force mock the Gmsh engine wrapper to complete while leaving the container empty
     step = CategorizationStep()
-    with patch("src.steps.categorization._run_gmsh_engine") as mock_gmsh:
+    with (
+        patch("src.steps.categorization._run_gmsh_engine") as mock_gmsh,
+        pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION: Categorization Engine failed"),
+    ):
         mock_gmsh.return_value = None
         container.mask = None  # Ensure it remains unallocated
-        with pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION: Categorization Engine failed"):
-            step.execute(container)
+        step.execute(container)
 
 def test_gmsh_engine_missing_bindings_error():
     """
@@ -97,9 +99,11 @@ def test_gmsh_engine_missing_bindings_error():
     step = CategorizationStep()
     
     # Intercept inside-scope import execution by temporarily hiding gmsh from sys.modules
-    with patch.dict("sys.modules", {"gmsh": None}):
-        with pytest.raises(RuntimeError, match="Gmsh Python bindings missing"):
-            step.execute(container)
+    with (
+        patch.dict("sys.modules", {"gmsh": None}),
+        pytest.raises(RuntimeError, match="Gmsh Python bindings missing"),
+    ):
+        step.execute(container)
 
 def test_gmsh_engine_topology_violation_error():
     """
@@ -128,9 +132,11 @@ def test_gmsh_engine_topology_violation_error():
     mock_gmsh.model.mesh.getElements.return_value = ([1], [], [])
     
     step = CategorizationStep()
-    with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
-        with pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements"):
-            step.execute(container)
+    with (
+        patch.dict("sys.modules", {"gmsh": mock_gmsh}),
+        pytest.raises(RuntimeError, match="POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements"),
+    ):
+        step.execute(container)
 
 def test_gmsh_engine_reused_session():
     """
@@ -149,7 +155,7 @@ def test_gmsh_engine_reused_session():
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     mock_gmsh = MagicMock()
-    mock_gmsh.is_initialized.return_value = True # PRE-INITIALIZED STATE
+    mock_gmsh.is_initialized.return_value = True  # PRE-INITIALIZED STATE
     
     # Return 4 nodes to match the indices referenced inside the tetrahedra array mappings
     mock_gmsh.model.mesh.getNodes.return_value = (np.array([1, 2, 3, 4]), np.zeros(12), [])
@@ -177,12 +183,12 @@ def test_gmsh_engine_full_execution_flow_success():
         min_element_size=0.1,
         boundary_map={}
     )
-    container.grid = GridState(0, 2, 0, 2, 0, 2, 2, 2, 2) # 2x2x2 = 8 cells
+    container.grid = GridState(0, 2, 0, 2, 0, 2, 2, 2, 2)  # 2x2x2 = 8 cells
     
     # Mocking standard arrays returned by GMSH C API
     node_tags = np.array([1, 2, 3, 4])
     coord = np.array([0.0, 0.0, 0.0,  1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0])
-    element_types = [4] # Explicitly provide Type 4 Tetrahedrons
+    element_types = [4]  # Explicitly provide Type 4 Tetrahedrons
     element_tags = [np.array([101])]
     element_node_tags = [np.array([1, 2, 3, 4])]
     
@@ -248,9 +254,11 @@ def test_gmsh_engine_visualization_failure_escalation():
     mock_gmsh.write.side_effect = Exception("Xvfb frame buffer allocation timeout")
     
     step = CategorizationStep()
-    with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
-        with pytest.raises(Exception, match="Xvfb frame buffer allocation timeout"):
-            step.execute(container)
-            
+    with (
+        patch.dict("sys.modules", {"gmsh": mock_gmsh}),
+        pytest.raises(Exception, match="Xvfb frame buffer allocation timeout"),
+    ):
+        step.execute(container)
+        
     # CRITICAL VERIFICATION: Ensure resource cleanup runs even on rendering crash loops
     assert mock_gmsh.finalize.called
