@@ -128,15 +128,17 @@ def _run_gmsh_engine(container: SovereignContainer):
             gmsh.option.setNumber("General.GraphicsWidth", 1200)
             gmsh.option.setNumber("General.GraphicsHeight", 900)
             
-            # --- FULLY DYNAMIC MODEL-REFLECTIVE VIEWPORT ---
-            # Re-enable the trackball/auto-bounding so Gmsh calculates framing and 
-            # initial orientation natively based on the imported geometry's orientation.
-            gmsh.option.setNumber("General.Trackball", 1)
+            # --- FULLY DYNAMIC ISOMETRIC VIEWPORT ALIGNMENT ---
+            # Disable automatic trackball override to enforce custom 3D rotation angles
+            gmsh.option.setNumber("General.Trackball", 0)
             
-            # --- UNIVERSAL PADDING BORDERS FIX ---
-            # Explicitly control the whitespace/border padding around the model.
-            # 0.4 adds a clean 40% margin buffer around the geometry to prevent cropping.
-            gmsh.option.setNumber("General.DisplayBorderFactor", 0.4)
+            # Apply 3D Isometric View Rotations matching Matplotlib (elev=30, azim=-60)
+            gmsh.option.setNumber("General.RotationX", -60.0)
+            gmsh.option.setNumber("General.RotationY", 0.0)
+            gmsh.option.setNumber("General.RotationZ", -40.0)
+            
+            # Control whitespace/border padding around model (30% buffer)
+            gmsh.option.setNumber("General.DisplayBorderFactor", 0.3)
             
             # Resolve destination paths using the directory context of the input model
             workspace_dir = os.path.dirname(os.path.abspath(container.step_file))
