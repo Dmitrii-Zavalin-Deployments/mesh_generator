@@ -1,6 +1,5 @@
 # tests/test_pipeline_interface.py
-
-from interfaces.grid_interface import GridInterface
+import pytest
 
 from interfaces.mesh_generator_interface import GridInterface
 from interfaces.pipeline_interface import PipelineInterface
