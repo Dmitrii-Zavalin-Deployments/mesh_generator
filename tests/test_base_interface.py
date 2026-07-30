@@ -3,7 +3,6 @@ import importlib
 import pkgutil
 
 import pytest
-from jsonschema import ValidationError
 
 from interfaces.base_interface import StepInterface
 from src import steps

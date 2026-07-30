@@ -8,6 +8,7 @@ import src.steps.categorization as categorization_module
 from src.state.mesh_generator_state import GridState, SovereignContainer
 from src.steps.categorization import CategorizationStep
 
+
 class TopoDS_Shape_Meta(type):
     def __instancecheck__(cls, instance):
         return type(instance).__name__ in ("TopoDS_Shape", "MagicMock", "Mock", "DummyTopoDS_Shape")
