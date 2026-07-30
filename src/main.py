@@ -26,6 +26,10 @@ logger = logging.getLogger("mesh_generator")
 
 
 def validate_json(data, schema_path):
+    """Validates input or output payload data against a JSON schema file."""
+    if not os.path.exists(schema_path):
+        logger.warning(f"Schema file not found at {schema_path}. Skipping validation.")
+        return
     with open(schema_path, 'r') as f:
         schema = json.load(f)
     try:
@@ -43,7 +47,7 @@ def main():
     parser.add_argument("--output_file_name", required=True, help="Name or relative path of the output JSON file")
     args = parser.parse_args()
 
-    workspace = args.input_output_folder
+    workspace = os.path.abspath(args.input_output_folder)
     logger.info(f"Pipeline initialized. Workspace: {workspace}")
 
     # 1. Resolve and Validate Input STEP File Location Explicitly
@@ -69,9 +73,16 @@ def main():
     config_path = os.path.join("config", "config.json")
     if not os.path.exists(config_path):
         config_path = "config.json"
+    
+    if not os.path.exists(config_path):
+        error_msg = f"CONSTITUTION VIOLATION: Configuration file not found at {config_path}."
+        logger.critical(error_msg)
+        raise FileNotFoundError(error_msg)
+
     with open(config_path, 'r') as f:
         config = json.load(f)
-    validate_json(config, "schema/mesh_generator_config_schema.json")
+    
+    validate_json(config, os.path.join("schema", "mesh_generator_config_schema.json"))
 
     # 3. Initialize SovereignContainer (Gmsh Dedicated Engine)
     container = SovereignContainer(
@@ -153,7 +164,7 @@ def main():
 
         # --- VISUAL MASK VERIFICATION GATE ---
         try:
-            generate_mask_snapshot(output_data)
+            generate_mask_snapshot(output_data, fallback_save_dir=workspace)
         except Exception as viz_err:
             logger.error(f"Voxel verification snapshot engine faulted: {viz_err!s}")
 
@@ -163,8 +174,7 @@ def main():
         logger.info(f"Results serialized to: {output_path}")
 
         # Validate serialized payload against output schema
-        if os.path.exists("schema/mesh_generator_output_schema.json"):
-            validate_json(output_data, "schema/mesh_generator_output_schema.json")
+        validate_json(output_data, os.path.join("schema", "mesh_generator_output_schema.json"))
 
     finally:
         try:

@@ -20,7 +20,7 @@ def generate_mask_snapshot(
 ):
     """
     Parses the pipeline output dictionary and saves a 3D voxel mask snapshot.
-    Also extracts and saves a perfectly aligned snapshot of the raw STEP geometry.
+    Also extracts and saves a perfectly aligned snapshot of the raw STEP geometry if available.
     
     Optimizations implemented to prevent GitHub Actions CI timeouts:
       1. Hard-capped maximum axes limits to protect rendering workflows.
@@ -66,7 +66,6 @@ def generate_mask_snapshot(
             nx, ny, nz = mask_3d.shape
 
         # --- NATIVE AXIS MAPPING ---
-        # Direct native coordinate alignment in world space matching the STEP file
         mask_3d_vis = mask_3d
         nx_vis, ny_vis, nz_vis = mask_3d_vis.shape
 
@@ -130,7 +129,8 @@ def generate_mask_snapshot(
         logger.info(f"Voxel verification chart saved: {destination_path}")
 
         # --- CLEAN NATIVE STEP CAD SNAPSHOT GENERATION ---
-        if cad_solid is not None:
+        # Only attempt OCC extraction if cad_solid is a valid TopoDS_Shape object (not a string backend marker)
+        if cad_solid is not None and not isinstance(cad_solid, str):
             try:
                 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
                 from OCC.Core.BRep import BRep_Tool
@@ -169,7 +169,6 @@ def generate_mask_snapshot(
                             p2 = nodes.Value(idx2).Transformed(trsf)
                             p3 = nodes.Value(idx3).Transformed(trsf)
 
-                            # Direct native (X, Y, Z) world coordinate mapping
                             polygons.append([
                                 [p1.X(), p1.Y(), p1.Z()],
                                 [p2.X(), p2.Y(), p2.Z()],
@@ -202,8 +201,6 @@ def generate_mask_snapshot(
 
                         for u in u_samples:
                             pt = curve.Value(u).Transformed(trsf_edge)
-
-                            # Direct native (X, Y, Z) point extraction
                             x_pts.append(pt.X())
                             y_pts.append(pt.Y())
                             z_pts.append(pt.Z())

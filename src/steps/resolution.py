@@ -43,18 +43,19 @@ class ResolutionStep(StepInterface):
     Refactored S8-S10: Grid Resolution with Adaptive Fidelity via Gmsh.
     
     Dynamically adjusts target resolution based on the minimum geometric 
-    feature size extracted from the active Gmsh session.
+    feature size extracted from the active Gmsh session and the bounding box
+    provided by TracingStep.
     """
     
     __slots__ = ()
 
     def execute(self, container: SovereignContainer):
         """
-        Executes the resolution calculation using Gmsh.
+        Executes the resolution calculation using Gmsh and container state.
         
         Args:
             container: The SovereignContainer instance. 
-                       Requires an initialized and loaded Gmsh session.
+                       Requires TracingStep to have populated container.bbox.
         """
         logger.info("Starting ResolutionStep: calculating adaptive resolution via Gmsh.")
         
@@ -75,14 +76,13 @@ class ResolutionStep(StepInterface):
             logger.error(error_msg)
             raise RuntimeError(error_msg)
 
-        # 1. INSPECTION: Retrieve bounding box from Gmsh model and populate container state
-        try:
-            xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.getBoundingBox(-1, -1)
-            container.bbox = (xmin, ymin, zmin, xmax, ymax, zmax)
-        except Exception as e:
-            error_msg = f"CONSTITUTION VIOLATION: Failed to retrieve bounding box from Gmsh model: {e}"
+        # 1. INSPECTION: Retrieve bounding box from container state populated by TracingStep
+        if container.bbox is None:
+            error_msg = "CONSTITUTION VIOLATION: 'bbox' is None. TracingStep must precede ResolutionStep."
             logger.error(error_msg)
-            raise RuntimeError(error_msg) from e
+            raise RuntimeError(error_msg)
+
+        x_min, y_min, z_min, x_max, y_max, z_max = container.bbox
 
         # Determine the thinnest feature via Gmsh entity traversal
         min_feature = get_min_feature_size()
