@@ -19,9 +19,3 @@ class GridInterface(Protocol):
     nx: int
     ny: int
     nz: int
-
-class BoundaryConditionInterface(Protocol):
-    """Structural contract for a single BC."""
-    location: str
-    type: str
-    surface_id: str

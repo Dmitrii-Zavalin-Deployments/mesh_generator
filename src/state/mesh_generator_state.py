@@ -1,16 +1,3 @@
-class BoundaryConditionState:
-    """
-    State container for a single Boundary Condition.
-    Preserves the nested structure defined in mesh_generator_results_schema.json.
-    """
-    __slots__ = ('location', 'surface_id', 'type')
-
-    def __init__(self, location: str, type: str, surface_id: str):
-        self.location = str(location)
-        self.type = str(type)
-        self.surface_id = str(surface_id)
-
-
 class GridState:
     """
     State container for the Grid Extents and Resolution.
@@ -37,11 +24,9 @@ class SovereignContainer:
     """
     __slots__ = (
         '_bbox',
-        '_boundary_conditions',
         '_cad_solid',
         '_grid',
         '_mask',
-        'bc_map',
         'max_element_size',
         'min_element_size',
         'step_file',
@@ -53,8 +38,7 @@ class SovereignContainer:
         step_file: str, 
         max_element_size: float, 
         tolerance: float, 
-        min_element_size: float,
-        boundary_map: dict
+        min_element_size: float
     ):
         """
         Explicit Initialization: No defaults permitted. 
@@ -64,12 +48,10 @@ class SovereignContainer:
         self.tolerance = float(tolerance)
         self.max_element_size = float(max_element_size)
         self.min_element_size = float(min_element_size)
-        self.bc_map = dict(boundary_map)
         
         # --- Computed Fields (Initialized as None) ---
         self._grid = None
         self._mask = None
-        self._boundary_conditions = None
         self._cad_solid = None
         self._bbox = None
 
@@ -92,15 +74,6 @@ class SovereignContainer:
         if value is not None and not isinstance(value, list):
             raise TypeError("CONSTITUTION VIOLATION: 'mask' must be a List.")
         self._mask = value
-
-    @property
-    def boundary_conditions(self) -> list[BoundaryConditionState] | None: return self._boundary_conditions
-
-    @boundary_conditions.setter
-    def boundary_conditions(self, value: list[BoundaryConditionState] | None):
-        if value is not None and not isinstance(value, list):
-            raise TypeError("CONSTITUTION VIOLATION: 'boundary_conditions' must be a List.")
-        self._boundary_conditions = value
     
     @property
     def cad_solid(self) -> object | None: return self._cad_solid

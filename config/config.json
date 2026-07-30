@@ -1,14 +1,5 @@
 {
   "tolerance": 1,
   "max_element_size": 1000,
-  "min_element_size": 100,
-  "boundary_map": {
-    "x_min": "inflow",
-    "x_max": "outflow",
-    "y_min": "no-slip",
-    "y_max": "no-slip",
-    "z_min": "no-slip",
-    "z_max": "no-slip",
-    "wall": "no-slip"
-  }
+  "min_element_size": 100
 }

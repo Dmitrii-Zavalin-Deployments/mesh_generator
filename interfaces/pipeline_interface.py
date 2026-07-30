@@ -1,5 +1,5 @@
 from typing import List, Protocol, runtime_checkable
-from interfaces.mesh_generator_interface import GridInterface, BoundaryConditionInterface
+from interfaces.mesh_generator_interface import GridInterface
 
 @runtime_checkable
 class PipelineInterface(Protocol):
@@ -21,9 +21,4 @@ class PipelineInterface(Protocol):
     @property
     def mask(self) -> List[int]: 
         """The computed occupancy or element mask."""
-        ...
-
-    @property
-    def boundary_conditions(self) -> List[BoundaryConditionInterface]: 
-        """The mapping of physical boundaries to conditions."""
         ...

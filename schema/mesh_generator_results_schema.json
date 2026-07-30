@@ -6,7 +6,7 @@
   "properties": {
     "results": {
       "type": "object",
-      "description": "CFD-ready domain representation: grid extents, resolution, mask, and boundary conditions.",
+      "description": "CFD-ready domain representation: grid extents, resolution, and solid/fluid/wall mask.",
       "additionalProperties": false,
       "properties": {
         "grid": {
@@ -68,53 +68,11 @@
               1
             ]
           }
-        },
-        
-        "boundary_conditions": {
-          "type": "array",
-          "description": "Boundary condition locations and types derived from geometry.",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "location": {
-                "type": "string",
-                "enum": [
-                  "x_min",
-                  "x_max",
-                  "y_min",
-                  "y_max",
-                  "z_min",
-                  "z_max",
-                  "wall"
-                ]
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "no-slip",
-                  "free-slip",
-                  "inflow",
-                  "outflow",
-                  "pressure"
-                ]
-              },
-              "surface_id": {
-                "type": "string",
-                "description": "Identifier of the originating geometric surface."
-              }
-            },
-            "required": [
-              "location",
-              "type"
-            ]
-          }
         }
       },
       "required": [
         "grid",
-        "mask",
-        "boundary_conditions"
+        "mask"
       ]
     }
   },

@@ -12,7 +12,7 @@ from src.state.mesh_generator_state import SovereignContainer
 logger = logging.getLogger(__name__)
 
 # --- SSoT Shared Memory Cache ---
-# Used to transfer pre-baked mesh raw structure to BoundaryConditionsStep (Layer 2)
+# Used to transfer pre-baked mesh raw structure to VoxelizationStep (Layer 2)
 # without violating SovereignContainer's __slots__ boundary policies.
 _GMSH_MESH_CACHE = {}
 
@@ -119,7 +119,7 @@ def _run_gmsh_engine(container: SovereignContainer):
         _GMSH_MESH_CACHE["tets_vertices"] = tets_vertices_arr
         
         # Satisfy container contract post-condition checks by providing an initial default fluid mask.
-        # Layer 2 (BoundaryConditionsStep) will overwrite this with the high-precision sampled mask.
+        # Layer 2 (VoxelizationStep) will overwrite this with the high-precision sampled mask.
         container.mask = [1] * (container.grid.nx * container.grid.ny * container.grid.nz)
 
         # --- UNIVERSAL VISUALIZATION RENDER GENERATION ---

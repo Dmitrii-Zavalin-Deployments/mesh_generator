@@ -2,7 +2,7 @@
   "$id": "mesh_generator_config_schema.json",
   "title": "Mesh Generator Configuration Schema",
   "type": "object",
-  "description": "External configuration parameters used by the Mesh Generator to produce the CFD-ready grid, mask, and boundary conditions.",
+  "description": "External configuration parameters used by the Mesh Generator to produce the CFD-ready grid and solid/fluid/wall mask.",
   "additionalProperties": true,
   "properties": {
     "tolerance": {
@@ -16,26 +16,11 @@
     "min_element_size": {
       "type": "number",
       "description": "Minimum allowed mesh element size used when computing grid resolution."
-    },
-    "boundary_map": {
-      "type": "object",
-      "description": "Defines the mapping between spatial boundary locations (domain extents or internal walls) and physical condition types.",
-      "additionalProperties": false,
-      "properties": {
-        "x_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative X domain boundary." },
-        "x_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive X domain boundary." },
-        "y_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative Y domain boundary." },
-        "y_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive Y domain boundary." },
-        "z_min": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the negative Z domain boundary." },
-        "z_max": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Condition type for the positive Z domain boundary." },
-        "wall": { "type": "string", "enum": ["no-slip", "free-slip", "inflow", "outflow", "pressure"], "description": "Default condition type for internal structural interfaces (non-boundary)." }
-      }
     }
   },
   "required": [
     "tolerance",
     "max_element_size",
-    "min_element_size",
-    "boundary_map"
+    "min_element_size"
   ]
 }
