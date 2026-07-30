@@ -93,7 +93,7 @@ def _run_gmsh_engine(container: SovereignContainer):
         nodes_map = {tag: np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64) 
                      for i, tag in enumerate(node_tags)}
 
-        tets_nodes = element_node_tags[tet_idx].reshape(-1, 4)
+        tets_nodes = np.asarray(element_node_tags[tet_idx]).reshape(-1, 4)
         tets_vertices_arr = np.array([[nodes_map[node] for node in tet] for tet in tets_nodes], dtype=np.float64)
         
         _GMSH_MESH_CACHE["nodes_map"] = nodes_map
