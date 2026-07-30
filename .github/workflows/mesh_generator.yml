@@ -276,30 +276,10 @@ jobs:
           # Print output summary for logs tracing
           head -n 30 data/testing-input-output/mesh_generator_output.json
         
-      - name: 🛡️ Post-Execution Schema Compliance Audit
-        run: |
-          echo "--- Running Standalone JSON Schema Verification ---"
-          python -c '
-          import json, sys
-          from jsonschema import validate, ValidationError
-
-          schema_path = "schema/mesh_generator_output_schema.json"
-          output_path = "data/testing-input-output/mesh_generator_output.json"
-
-          try:
-              with open(schema_path, "r") as f:
-                  schema = json.load(f)
-              with open(output_path, "r") as f:
-                  data = json.load(f)
-              
-              validate(instance=data, schema=schema)
-              print("✅ Schema Compliance Audit PASSED: Output payload strictly adheres to schema contracts.")
-          except ValidationError as e:
-              print(f"❌ CONSTITUTION VIOLATION: Output payload failed schema validation: {e.message}", file=sys.stderr)
-              sys.exit(1)
-          except Exception as e:
-              print(f"❌ CRITICAL ERROR during schema verification: {e}", file=sys.stderr)
-              sys.exit(1)
+      - name: 🛡 Post-Execution Schema Compliance Audit
+          run: |
+            echo "--- Running Standalone JSON Schema Verification ---"
+            python src/utils/validate_schema.py
 
       - name: 💾 Sync Testing Assets to Repository
         if: always()
