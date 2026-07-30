@@ -6,7 +6,7 @@ class dummy_in(dict):
     def __init__(self):
         super().__init__({
             "inputs": {
-                "step_file": "tests/data/sample_geometry.step"
+                "step_file": "tests/dummies/sample_geometry.step"
             }
         })
         # Transient attributes for in-memory handling
@@ -22,6 +22,7 @@ class dummy_in(dict):
                 setattr(self, key, value)
         return self
 
+
 class dummy_out(dict):
     """
     Schema-aligned harness for results data.
@@ -36,13 +37,12 @@ class dummy_out(dict):
                     "z_min": 0.0, "z_max": 0.0,
                     "nx": 1, "ny": 1, "nz": 1
                 },
-                "mask": [],
-                "boundary_conditions": []
+                "mask": []
             }
         })
 
     def override(self, **kwargs):
-        """Updates nested results dictionary."""
+        """Updates nested results dictionary or instance attributes."""
         for key, value in kwargs.items():
             if key in self["results"]:
                 self["results"][key] = value
@@ -50,11 +50,11 @@ class dummy_out(dict):
                 setattr(self, key, value)
         return self
 
+
 def get_mock_config():
     """Returns a valid config matching mesh_generator_config_schema.json"""
     return {
         "tolerance": 1e-6,
         "max_element_size": 0.5,
-        "min_element_size": 0.1,
-        "boundary_map": {}
+        "min_element_size": 0.1
     }
