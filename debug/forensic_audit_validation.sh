@@ -1,47 +1,41 @@
 #!/bin/bash
-# Description: Automated forensic audit for KeyError: 'boundary_map'.
+# Description: Automated forensic audit for AttributeError: 'SovereignContainer' object has no attribute 'use_gmsh'.
 # Status: Active (Triggered upon CI failure)
 
 echo "============================================================"
-echo "🔍 STARTING DEEP FORENSIC AUDIT: Missing 'boundary_map' Configuration"
+echo "🔍 STARTING DEEP FORENSIC AUDIT: Missing 'use_gmsh' Attribute"
 echo "============================================================"
 
-# 1. Diagnostic: Check config.json contents
-if [ -f "config/config.json" ]; then
-    echo "--- 1. Smoking-gun source audit: config/config.json ---"
-    cat -n config/config.json
-elif [ -f "config.json" ]; then
-    echo "--- 1. Smoking-gun source audit: config.json ---"
-    cat -n config.json
-else
-    echo "❌ Critical: config.json not found."
+# 1. Diagnostic: Inspect src/steps/voxelization.py around the error line
+if [ -f "src/steps/voxelization.py" ]; then
+    echo "--- 1. Smoking-gun source audit: src/steps/voxelization.py ---"
+    cat -n src/steps/voxelization.py
 fi
 
-# 2. Diagnostic: Check config schema definition
-if [ -f "schema/mesh_generator_config_schema.json" ]; then
-    echo "--- 2. Smoking-gun source audit: schema/mesh_generator_config_schema.json ---"
-    cat -n schema/mesh_generator_config_schema.json
+# 2. Diagnostic: Locate and inspect SovereignContainer definition file
+CONTAINER_MATCH=$(grep -rn "class SovereignContainer" src/ || echo "")
+echo "--- 2. SovereignContainer Definition Location ---"
+echo "$CONTAINER_MATCH"
+
+CONTAINER_PATH=$(echo "$CONTAINER_MATCH" | cut -d: -f1)
+if [ -n "$CONTAINER_PATH" ] && [ -f "$CONTAINER_PATH" ]; then
+    echo "--- 3. Smoking-gun source audit: $CONTAINER_PATH ---"
+    cat -n "$CONTAINER_PATH"
 fi
 
-# 3. Diagnostic: Check src/main.py around SovereignContainer initialization
-if [ -f "src/main.py" ]; then
-    echo "--- 3. Smoking-gun source audit: src/main.py (lines 80-105) ---"
-    sed -n '80,105p' src/main.py
-fi
+# 3. Grep Diagnostic: Search for 'use_gmsh' across the codebase
+echo "--- 4. Grep Diagnostic: Searching for 'use_gmsh' references ---"
+grep -rn "use_gmsh" src/ || echo "No further references found."
 
-# 4. Grep Diagnostic: Search for boundary_map across the codebase
-echo "--- 4. Grep Diagnostic: Searching for 'boundary_map' references ---"
-grep -rn "boundary_map" src/ config/ schema/ || echo "No further references found."
-
-# 5. Suggested Automated Repairs (Commented out with # sed)
+# 4. Suggested Automated Repairs (Commented out with # sed)
 echo "============================================================"
 echo "🛠️ SUGGESTED AUTO-REPAIR INJECTIONS:"
 echo "============================================================"
-echo "# To handle missing boundary_map gracefully in src/main.py using .get():"
-echo "# sed -i \"s/boundary_map=config\['boundary_map'\]/boundary_map=config.get('boundary_map', {})/g\" src/main.py"
+echo "# To make the check robust using getattr in src/steps/voxelization.py:"
+echo "# sed -i \"s/container.use_gmsh/getattr(container, 'use_gmsh', True)/g\" src/steps/voxelization.py"
 echo ""
-echo "# Or to completely remove boundary_map from SovereignContainer call in src/main.py:"
-echo "# sed -i '/boundary_map=/d' src/main.py"
+echo "# Or to inject self.use_gmsh = True into SovereignContainer's __init__:"
+echo "# sed -i '/def __init__(/a \\        self.use_gmsh = True' $CONTAINER_PATH"
 echo "============================================================"
 
 # exit 1
