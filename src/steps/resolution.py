@@ -28,7 +28,8 @@ def get_min_feature_size() -> float:
             length = gmsh.model.occ.getMass(dim, tag)
             if length > 1e-7:
                 min_length = min(min_length, length)
-        except Exception:
+        except (RuntimeError, ValueError) as geom_err:
+            logger.debug(f"Skipping unmeasurable curve entity (dim={dim}, tag={tag}): {geom_err}")
             continue
             
     if min_length != float('inf'):

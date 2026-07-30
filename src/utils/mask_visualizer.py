@@ -223,10 +223,10 @@ def generate_mask_snapshot(
                     plt.close(fig_cad)
                     logger.info(f"CAD geometry snapshot successfully rendered: {cad_img_path}")
 
-            except Exception as cad_err:
+            except (RuntimeError, ValueError, AttributeError, IndexError, TypeError, OSError) as cad_err:
                 logger.warning(f"Headless CAD boundary line parsing rendering skipped or unavailable: {cad_err!s}")
 
-    except Exception as e:
+    except (ValueError, TypeError, RuntimeError, OSError, IndexError, KeyError, AttributeError) as e:
         error_msg = str(e)
         if "reshape" in error_msg:
             logger.error(f"Lattice dimension mismatch: {error_msg}")

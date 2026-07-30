@@ -20,7 +20,7 @@ def main():
     except ValidationError as e:
         print(f"❌ CONSTITUTION VIOLATION: Output payload failed schema validation: {e.message}", file=sys.stderr)
         sys.exit(1)
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, ValueError, TypeError) as e:
         print(f"❌ CRITICAL ERROR during schema verification: {e}", file=sys.stderr)
         sys.exit(1)
 
