@@ -89,8 +89,7 @@ def main():
         step_file=step_file,
         max_element_size=config['max_element_size'],
         tolerance=config['tolerance'],
-        min_element_size=config['min_element_size'],
-        boundary_map=config['boundary_map']
+        min_element_size=config['min_element_size']
     )
 
     logger.info("Starting pipeline execution with Gmsh engine.")
@@ -125,19 +124,7 @@ def main():
         ])
         pipeline.run(container)
 
-        # 5. Serialize Output Payload
-        boundary_map = getattr(container, "boundary_map", getattr(container, "bc_map", config['boundary_map']))
-
-        boundary_conditions_list = []
-        for bc in (container.boundary_conditions or []):
-            item = {
-                "location": bc.location,
-                "type": bc.type
-            }
-            if hasattr(bc, "surface_id") and bc.surface_id is not None:
-                item["surface_id"] = str(bc.surface_id)
-            boundary_conditions_list.append(item)
-
+        # 5. Serialize Output Payload (Strictly conforming to schema with additionalProperties: false)
         output_data = {
             "inputs": {
                 "step_model": {
@@ -147,8 +134,7 @@ def main():
             "config": {
                 "tolerance": container.tolerance,
                 "max_element_size": container.max_element_size,
-                "min_element_size": container.min_element_size,
-                "boundary_map": boundary_map
+                "min_element_size": container.min_element_size
             },
             "results": {
                 "grid": {
@@ -157,8 +143,7 @@ def main():
                     "z_min": container.grid.z_min, "z_max": container.grid.z_max,
                     "nx": container.grid.nx, "ny": container.grid.ny, "nz": container.grid.nz
                 } if container.grid else None,
-                "mask": container.mask if container.mask is not None else [],
-                "boundary_conditions": boundary_conditions_list
+                "mask": container.mask if container.mask is not None else []
             }
         }
 
