@@ -1,5 +1,6 @@
 # tests/test_categorization.py
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from src.state.mesh_generator_state import GridState, SovereignContainer
