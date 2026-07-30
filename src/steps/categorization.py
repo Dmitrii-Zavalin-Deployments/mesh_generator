@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 # without violating SovereignContainer's __slots__ boundary policies.
 _GMSH_MESH_CACHE = {}
 
+<<<<<<< Updated upstream
+=======
+# --- Module-Level Engines ---
+
+>>>>>>> Stashed changes
 def _run_gmsh_engine(container: SovereignContainer):
     """
     Gmsh Implementation Layer 1: Geometry-Aware Unstructured Mesh Baking.
@@ -163,11 +168,35 @@ def _run_gmsh_engine(container: SovereignContainer):
         if initialized_here and gmsh.is_initialized():
             gmsh.finalize()
 
+<<<<<<< Updated upstream
 class CategorizationStep(StepInterface):
     __slots__ = () 
     def execute(self, container: SovereignContainer):
         if container.grid is None:
             raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None.")
         _run_gmsh_engine(container)
+=======
+
+# --- The Compliant Class ---
+
+class CategorizationStep(StepInterface):
+    """
+    S11: Spatial Categorization Controller.
+    
+    Delegates the categorization strategy to the Geometry-Aware Gmsh engine.
+    """
+    
+    __slots__ = () # Stateless: Logic only
+    
+    def execute(self, container: SovereignContainer):
+        """Dispatches logic to the Gmsh engine."""
+        if container.grid is None:
+            raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep.")
+
+        _run_gmsh_engine(container)
+
+        # Ensure we satisfy sovereign container contracts before leaving.
+        # Check strictly guarantees JSON schema compliance.
+>>>>>>> Stashed changes
         if container.mask is None:
             raise RuntimeError("POST-CONDITION VIOLATION: Categorization Engine failed to populate container.mask")

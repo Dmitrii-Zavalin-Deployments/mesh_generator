@@ -56,5 +56,11 @@ def get_mock_config():
     return {
         "tolerance": 1e-6,
         "max_element_size": 0.5,
+<<<<<<< Updated upstream
         "min_element_size": 0.1
     }
+=======
+        "min_element_size": 0.1,
+        "boundary_map": {}
+    }
+>>>>>>> Stashed changes
