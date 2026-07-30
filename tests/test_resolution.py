@@ -134,11 +134,11 @@ def test_resolution_step_geometry_violation():
     mock_gmsh = MagicMock()
     mock_gmsh.is_initialized.return_value = True
 
-    with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
-        with patch("src.steps.resolution.get_min_feature_size", return_value=0.05):
-            step = ResolutionStep()
-            with pytest.raises(RuntimeError, match="GEOMETRY VIOLATION: Thinnest feature.*is smaller than minimum element size"):
-                step.execute(container)
+    with patch.dict("sys.modules", {"gmsh": mock_gmsh}), \
+         patch("src.steps.resolution.get_min_feature_size", return_value=0.05):
+        step = ResolutionStep()
+        with pytest.raises(RuntimeError, match="GEOMETRY VIOLATION: Thinnest feature.*is smaller than minimum element size"):
+            step.execute(container)
 
 
 def test_resolution_step_success():
@@ -157,10 +157,10 @@ def test_resolution_step_success():
     mock_gmsh = MagicMock()
     mock_gmsh.is_initialized.return_value = True
 
-    with patch.dict("sys.modules", {"gmsh": mock_gmsh}):
-        with patch("src.steps.resolution.get_min_feature_size", return_value=0.2):
-            step = ResolutionStep()
-            step.execute(container)
+    with patch.dict("sys.modules", {"gmsh": mock_gmsh}), \
+         patch("src.steps.resolution.get_min_feature_size", return_value=0.2):
+        step = ResolutionStep()
+        step.execute(container)
 
     assert container.grid is not None
     assert container.grid.nx == 5
