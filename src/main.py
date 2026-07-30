@@ -10,11 +10,11 @@ from jsonschema import ValidationError, validate
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.pipeline.orchestrator import Orchestrator
 from src.state.mesh_generator_state import SovereignContainer
-from src.steps.boundary_conditions import BoundaryConditionsStep
 from src.steps.categorization import CategorizationStep
 from src.steps.ingestion import IngestionStep
 from src.steps.resolution import ResolutionStep
 from src.steps.tracing import TracingStep
+from src.steps.voxelization import VoxelizationStep
 from src.utils.mask_visualizer import generate_mask_snapshot
 
 # Configure logging
@@ -121,14 +121,14 @@ def main():
             TracingStep(),
             ResolutionStep(),
             CategorizationStep(),
-            BoundaryConditionsStep()
+            VoxelizationStep()
         ])
         pipeline.run(container)
 
         # 5. Serialize Output Payload
         boundary_map = getattr(container, "boundary_map", getattr(container, "bc_map", config['boundary_map']))
 
-        bc_list = []
+        boundary_conditions_list = []
         for bc in (container.boundary_conditions or []):
             item = {
                 "location": bc.location,
@@ -136,7 +136,7 @@ def main():
             }
             if hasattr(bc, "surface_id") and bc.surface_id is not None:
                 item["surface_id"] = str(bc.surface_id)
-            bc_list.append(item)
+            boundary_conditions_list.append(item)
 
         output_data = {
             "inputs": {
@@ -158,7 +158,7 @@ def main():
                     "nx": container.grid.nx, "ny": container.grid.ny, "nz": container.grid.nz
                 } if container.grid else None,
                 "mask": container.mask if container.mask is not None else [],
-                "boundary_conditions": bc_list
+                "boundary_conditions": boundary_conditions_list
             }
         }
 

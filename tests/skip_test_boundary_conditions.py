@@ -6,7 +6,7 @@ import pytest
 
 import src.steps.categorization as categorization_module
 from src.state.mesh_generator_state import GridState, SovereignContainer
-from src.steps.boundary_conditions import BoundaryConditionsStep
+from src.steps.voxelization import VoxelizationStep
 
 # --- LITERATE TEST SUITE ---
 
@@ -16,7 +16,7 @@ def test_boundary_conditions_constitution_violation():
     Verify that the system halts immediately if the required pre-requisites 
     (grid state or voxel mask) are missing from the SovereignContainer.
     """
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
@@ -69,7 +69,7 @@ def test_boundary_conditions_all_faces():
     container.mask[1 + 3*(1 + 3*2)] = -1 # z_max branch (i=1, j=1, k=2)
     container.mask[1 + 3*(1 + 3*1)] = -1 # Default 'wall' branch (Center cell: i=1, j=1, k=1)
 
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     step.execute(container)
     
     # Verify that every branch was traversed by inspecting the resulting locations
@@ -85,7 +85,7 @@ def test_boundary_conditions_missing_map_key():
     Verify that if a boundary surface is identified but not defined in the configuration 
     (bc_map), the system raises a KeyError to prevent undefined physical behavior.
     """
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
@@ -107,7 +107,7 @@ def test_boundary_conditions_gmsh_missing_cache():
     Verify that if the Gmsh engine is enabled, the pipeline enforces the existence
     of the global mesh vertex cache.
     """
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
@@ -132,7 +132,7 @@ def test_boundary_conditions_degenerate_tetrahedron_skip():
     Verify that the voxelizer gracefully skips degenerate tetrahedra (volume = 0)
     that cause singular matrix inversion failures rather than crashing the pipeline.
     """
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
@@ -170,7 +170,7 @@ def test_gmsh_voxelization_full_classification():
         boundary_map=bc_map
     )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     
     # Scenario A: Wall / Interface Classification (Exactly 1 corner inside out of 8)
     wall_tet = np.array([[
@@ -217,7 +217,7 @@ def test_boundary_conditions_legacy_path():
     Verify that when use_gmsh is False, the pipeline skips the complex voxelization
     loop and proceeds directly to mapping existing mask data.
     """
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     container = SovereignContainer(
         step_file="test.step",
         max_element_size=0.1,
@@ -254,7 +254,7 @@ def test_invalid_tolerance_raises_error():
     container.mask = [1]
     categorization_module._GMSH_MESH_CACHE = {"tets_vertices": np.zeros((1, 4, 3))}
     
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     
     with pytest.raises(ValueError, match="CONSTITUTION VIOLATION: Invalid tolerance"):
         step.execute(container)
@@ -286,7 +286,7 @@ def test_optimization_branch_coverage():
     ])
     categorization_module._GMSH_MESH_CACHE = {"tets_vertices": np.array([tet, tet])}
     
-    step = BoundaryConditionsStep()
+    step = VoxelizationStep()
     step.execute(container)
     
     assert container.mask is not None
