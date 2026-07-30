@@ -8,6 +8,7 @@ import numpy as np
 # Force headless rendering backend to prevent X11 display connection errors
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +21,12 @@ def generate_mask_snapshot(
 ):
     """
     Parses the pipeline output dictionary and saves a 3D voxel mask snapshot.
-    Also extracts and saves a perfectly aligned snapshot of the raw STEP geometry if available.
     
     Optimizations implemented to prevent GitHub Actions CI timeouts:
       1. Hard-capped maximum axes limits to protect rendering workflows.
       2. Spatial grid striding (downsampling) to keep total voxel count manageable.
-      3. Dynamic deflection mesh sizing based on physical bounding box scale.
-      4. Standard native (X, Y, Z) mapping and explicit box aspect ratios to 
-         align Matplotlib outputs directly with the true STEP file coordinate space.
+      3. Standard native (X, Y, Z) mapping and explicit box aspect ratios to 
+         align Matplotlib outputs directly with the true domain coordinate space.
     """
     logger.info("Initializing optimized 3D voxel mask visualization...")
     
@@ -36,7 +35,6 @@ def generate_mask_snapshot(
         grid = results.get("grid", {})
         mask_1d = results.get("mask", [])
         mesh_snapshot_path = results.get("mesh_snapshot_path", "")
-        cad_solid = output_data.get("cad_solid") or results.get("cad_solid")
         
         if not grid or not mask_1d:
             logger.warning("Voxel visualizer skipped: 'grid' or 'mask' missing.")
@@ -90,7 +88,6 @@ def generate_mask_snapshot(
         x_span = grid["x_max"] - grid["x_min"]
         y_span = grid["y_max"] - grid["y_min"]
         z_span = grid["z_max"] - grid["z_min"]
-        max_span = max(x_span, y_span, z_span)
 
         # Initialize Voxel Plot
         fig = plt.figure(figsize=(10, 8), dpi=150)
@@ -115,7 +112,6 @@ def generate_mask_snapshot(
         ax.set_zlabel("Z Axis (CAD Z)", fontsize=9)
         
         # Legend
-        from matplotlib.patches import Patch
         legend_elements = [
             Patch(facecolor=(0.68, 0.85, 0.90, 0.6), edgecolor='gray', label='Fluid (1)'),
             Patch(facecolor=(0.50, 0.50, 0.50, 0.9), edgecolor='gray', label='Solid (0)'),
@@ -127,104 +123,6 @@ def generate_mask_snapshot(
         plt.savefig(destination_path, bbox_inches='tight', pad_inches=0.3, dpi=150)
         plt.close(fig)
         logger.info(f"Voxel verification chart saved: {destination_path}")
-
-        # --- CLEAN NATIVE STEP CAD SNAPSHOT GENERATION ---
-        # Only attempt OCC extraction if cad_solid is a valid TopoDS_Shape object (not a string backend marker)
-        if cad_solid is not None and not isinstance(cad_solid, str):
-            try:
-                from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-                from OCC.Core.BRep import BRep_Tool
-                from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
-                from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
-                from OCC.Core.TopAbs import TopAbs_EDGE, TopAbs_FACE
-                from OCC.Core.TopExp import TopExp_Explorer
-                from OCC.Core.TopLoc import TopLoc_Location
-
-                logger.info("Extracting CAD boundary surfaces for aligned visualization...")
-
-                # DYNAMIC DEFLECTION SCALE: Adapt mesh deflection based on model scale (0.5% of max span)
-                dynamic_deflection = max(0.001, 0.005 * max_span)
-                BRepMesh_IncrementalMesh(cad_solid, dynamic_deflection)
-
-                explorer_face = TopExp_Explorer(cad_solid, TopAbs_FACE)
-                polygons = []
-
-                while explorer_face.More():
-                    face = explorer_face.Current()
-                    explorer_face.Next()
-
-                    loc = TopLoc_Location()
-                    triangulation = BRep_Tool.Triangulation(face, loc)
-                    if triangulation:
-                        trsf = loc.Transformation()
-
-                        nodes = triangulation.Nodes()
-                        triangles = triangulation.Triangles()
-
-                        for i in range(1, triangulation.NbTriangles() + 1):
-                            tri = triangles.Value(i)
-                            idx1, idx2, idx3 = tri.Get()
-
-                            p1 = nodes.Value(idx1).Transformed(trsf)
-                            p2 = nodes.Value(idx2).Transformed(trsf)
-                            p3 = nodes.Value(idx3).Transformed(trsf)
-
-                            polygons.append([
-                                [p1.X(), p1.Y(), p1.Z()],
-                                [p2.X(), p2.Y(), p2.Z()],
-                                [p3.X(), p3.Y(), p3.Z()]
-                            ])
-
-                if polygons:
-                    fig_cad = plt.figure(figsize=(10, 8), dpi=150)
-                    ax_cad = fig_cad.add_subplot(111, projection='3d')
-                    ax_cad.view_init(elev=elev, azim=azim)
-
-                    poly_collection = Poly3DCollection(polygons, facecolors='lightgray',
-                                                    edgecolors='none', alpha=0.5)
-                    ax_cad.add_collection3d(poly_collection)
-
-                    explorer_edge = TopExp_Explorer(cad_solid, TopAbs_EDGE)
-                    while explorer_edge.More():
-                        edge = explorer_edge.Current()
-                        explorer_edge.Next()
-
-                        curve = BRepAdaptor_Curve(edge)
-                        first_param = curve.FirstParameter()
-                        last_param = curve.LastParameter()
-
-                        loc_edge = edge.Location()
-                        trsf_edge = loc_edge.Transformation()
-
-                        u_samples = np.linspace(first_param, last_param, 50)
-                        x_pts, y_pts, z_pts = [], [], []
-
-                        for u in u_samples:
-                            pt = curve.Value(u).Transformed(trsf_edge)
-                            x_pts.append(pt.X())
-                            y_pts.append(pt.Y())
-                            z_pts.append(pt.Z())
-
-                        ax_cad.plot(x_pts, y_pts, z_pts, color='blue', linewidth=1.2)
-
-                    ax_cad.set_xlim(grid["x_min"], grid["x_max"])
-                    ax_cad.set_ylim(grid["y_min"], grid["y_max"])
-                    ax_cad.set_zlim(grid["z_min"], grid["z_max"])
-                    ax_cad.set_box_aspect((x_span, y_span, z_span))
-
-                    ax_cad.set_title("CAD Structural Geometry Verification (STEP Native)",
-                                    fontsize=12, fontweight='bold', pad=15)
-                    ax_cad.set_xlabel("X Axis (CAD X)", fontsize=9)
-                    ax_cad.set_ylabel("Y Axis (CAD Y)", fontsize=9)
-                    ax_cad.set_zlabel("Z Axis (CAD Z)", fontsize=9)
-
-                    cad_img_path = os.path.join(save_dir, "cad_geometry_snapshot.png")
-                    plt.savefig(cad_img_path, bbox_inches='tight', pad_inches=0.3, dpi=150)
-                    plt.close(fig_cad)
-                    logger.info(f"CAD geometry snapshot successfully rendered: {cad_img_path}")
-
-            except (RuntimeError, ValueError, AttributeError, IndexError, TypeError, OSError) as cad_err:
-                logger.warning(f"Headless CAD boundary line parsing rendering skipped or unavailable: {cad_err!s}")
 
     except (ValueError, TypeError, RuntimeError, OSError, IndexError, KeyError, AttributeError) as e:
         error_msg = str(e)
