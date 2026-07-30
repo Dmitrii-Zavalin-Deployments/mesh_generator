@@ -2,6 +2,7 @@
 import pytest
 
 from src.state.mesh_generator_state import GridState, SovereignContainer
+from tests.dummies.dummy_harness import dummy_in, get_mock_config
 
 
 def test_grid_state_initialization():
@@ -25,17 +26,20 @@ def test_grid_state_initialization():
 
 
 def test_sovereign_container_initialization_and_defaults():
-    """Verifies SovereignContainer basic fields initialization and initial None state of computed fields."""
+    """Verifies SovereignContainer basic fields initialization using dummy harness structures and initial None state."""
+    d_in = dummy_in()
+    config = get_mock_config()
+
     container = SovereignContainer(
-        step_file="test_model.step",
-        max_element_size="1.5",
-        tolerance="1e-5",
-        min_element_size="0.1"
+        step_file=d_in["inputs"]["step_file"],
+        max_element_size=str(config["max_element_size"]),
+        tolerance=str(config["tolerance"]),
+        min_element_size=str(config["min_element_size"])
     )
 
-    assert container.step_file == "test_model.step"
-    assert container.max_element_size == 1.5
-    assert container.tolerance == 0.00001
+    assert container.step_file == "tests/dummies/sample_geometry.step"
+    assert container.max_element_size == 0.5
+    assert container.tolerance == 0.000001
     assert container.min_element_size == 0.1
 
     assert container.grid is None
@@ -46,8 +50,13 @@ def test_sovereign_container_initialization_and_defaults():
 
 def test_sovereign_container_grid_setter_and_validation():
     """Verifies grid property setter handles valid GridState and raises TypeError on invalid types."""
+    d_in = dummy_in()
+    config = get_mock_config()
     container = SovereignContainer(
-        step_file="test.step", max_element_size=1.0, tolerance=1e-4, min_element_size=0.1
+        step_file=d_in["inputs"]["step_file"],
+        max_element_size=config["max_element_size"],
+        tolerance=config["tolerance"],
+        min_element_size=config["min_element_size"]
     )
 
     # Valid assignment
@@ -66,8 +75,13 @@ def test_sovereign_container_grid_setter_and_validation():
 
 def test_sovereign_container_mask_setter_and_validation():
     """Verifies mask property setter handles valid lists and raises TypeError on invalid types."""
+    d_in = dummy_in()
+    config = get_mock_config()
     container = SovereignContainer(
-        step_file="test.step", max_element_size=1.0, tolerance=1e-4, min_element_size=0.1
+        step_file=d_in["inputs"]["step_file"],
+        max_element_size=config["max_element_size"],
+        tolerance=config["tolerance"],
+        min_element_size=config["min_element_size"]
     )
 
     # Valid assignment
@@ -85,8 +99,13 @@ def test_sovereign_container_mask_setter_and_validation():
 
 def test_sovereign_container_cad_solid_setter():
     """Verifies cad_solid property setter accepts arbitrary objects or None."""
+    d_in = dummy_in()
+    config = get_mock_config()
     container = SovereignContainer(
-        step_file="test.step", max_element_size=1.0, tolerance=1e-4, min_element_size=0.1
+        step_file=d_in["inputs"]["step_file"],
+        max_element_size=config["max_element_size"],
+        tolerance=config["tolerance"],
+        min_element_size=config["min_element_size"]
     )
 
     dummy_solid = object()
@@ -99,8 +118,13 @@ def test_sovereign_container_cad_solid_setter():
 
 def test_sovereign_container_bbox_setter_and_validation():
     """Verifies bbox property setter handles valid tuples and raises TypeError on invalid types."""
+    d_in = dummy_in()
+    config = get_mock_config()
     container = SovereignContainer(
-        step_file="test.step", max_element_size=1.0, tolerance=1e-4, min_element_size=0.1
+        step_file=d_in["inputs"]["step_file"],
+        max_element_size=config["max_element_size"],
+        tolerance=config["tolerance"],
+        min_element_size=config["min_element_size"]
     )
 
     # Valid assignment
