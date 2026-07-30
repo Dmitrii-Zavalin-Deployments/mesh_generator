@@ -1,6 +1,6 @@
 # tests/test_categorization.py
 from unittest.mock import MagicMock, patch
-
+import numpy as np
 import pytest
 
 from src.state.mesh_generator_state import GridState, SovereignContainer
@@ -76,10 +76,10 @@ def test_categorization_success_with_gmsh_mocks():
     # Test both uninitialized (False) and active context reset (True) branches
     mock_gmsh.is_initialized.side_effect = [False, True]
 
-    # Mock getNodes: 4 nodes with 3D coordinates
+    # Mock getNodes: 4 nodes with 3D coordinates returned as numpy array
     mock_gmsh.model.mesh.getNodes.return_value = (
         [1, 2, 3, 4],
-        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+        np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]),
         None
     )
     # Mock getElements: Type 4 (tetrahedron) elements
@@ -113,7 +113,7 @@ def test_run_gmsh_engine_missing_tet_elements():
 
     mock_gmsh = MagicMock()
     mock_gmsh.is_initialized.return_value = True
-    mock_gmsh.model.mesh.getNodes.return_value = ([1], [0.0, 0.0, 0.0], None)
+    mock_gmsh.model.mesh.getNodes.return_value = ([1], np.array([0.0, 0.0, 0.0]), None)
     # Return element type 2 (triangle) instead of 4 (tetrahedron)
     mock_gmsh.model.mesh.getElements.return_value = ([2], [[1]], [[1, 2, 3]])
     mock_gmsh.model.getBoundingBox.return_value = (0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
@@ -139,12 +139,12 @@ def test_run_gmsh_engine_visualization_exception():
     mock_gmsh.is_initialized.return_value = True
     mock_gmsh.model.mesh.getNodes.return_value = (
         [1, 2, 3, 4],
-        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+        np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]),
         None
     )
     mock_gmsh.model.mesh.getElements.return_value = ([4], [[1]], [[1, 2, 3, 4]])
     mock_gmsh.model.getBoundingBox.return_value = (0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-    
+
     # Trigger an exception during visualization draw step
     mock_gmsh.graphics.draw.side_effect = Exception("Offscreen render failure")
 
