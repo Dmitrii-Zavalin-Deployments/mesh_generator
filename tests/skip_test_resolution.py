@@ -36,9 +36,11 @@ def test_get_min_feature_size_edge_detection():
     # We verify the utility correctly identifies the smallest edge length.
     # To prevent low-level C++ deadlocks in headless environments, 
     # we isolate the system by mocking the topology explorer and property calculator.
-    with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
-         patch("src.steps.resolution.GProp_GProps") as mock_props, \
-         patch("src.steps.resolution.brepgprop.LinearProperties"):
+    with (
+        patch("src.steps.resolution.TopExp_Explorer") as mock_explorer,
+        patch("src.steps.resolution.GProp_GProps") as mock_props,
+        patch("src.steps.resolution.brepgprop.LinearProperties"),
+    ):
         
         # We simulate finding exactly two edges before terminating the iteration.
         mock_explorer.return_value.More.side_effect = [True, True, False]
@@ -53,9 +55,11 @@ def test_get_min_feature_size_edge_detection():
 def test_get_min_feature_size_bbox_fallback():
     # If no edges are present, the system calculates the smallest bounding box dimension.
     # We intercept the library call to ensure zero native memory leaks.
-    with patch("src.steps.resolution.TopExp_Explorer") as mock_explorer, \
-         patch("src.steps.resolution.Bnd_Box") as mock_bbox, \
-         patch("src.steps.resolution.brepbndlib"):
+    with (
+        patch("src.steps.resolution.TopExp_Explorer") as mock_explorer,
+        patch("src.steps.resolution.Bnd_Box") as mock_bbox,
+        patch("src.steps.resolution.brepbndlib"),
+    ):
         
         mock_explorer.return_value.More.return_value = False
         
@@ -95,12 +99,14 @@ def test_resolution_logs_on_success(caplog):
 
     # Logic: Grid resolution N is calculated as:
     #      N = Span / ElementSize = 10.0 / 1.0 = 10
-    with patch("src.steps.resolution.get_min_feature_size", return_value=1.0):
-        with caplog.at_level(logging.INFO):
-            step.execute(container)
-            
-            assert "ResolutionStep successful" in caplog.text
-            assert container.grid.nx == 10
+    with (
+        patch("src.steps.resolution.get_min_feature_size", return_value=1.0),
+        caplog.at_level(logging.INFO),
+    ):
+        step.execute(container)
+        
+        assert "ResolutionStep successful" in caplog.text
+        assert container.grid.nx == 10
 
 def test_resolution_logs_error_on_missing_bbox(caplog):
     # If the TracingStep was skipped, the container lacks a bbox.
@@ -108,18 +114,22 @@ def test_resolution_logs_error_on_missing_bbox(caplog):
     container = get_dummy_container(bbox=None)
     step = ResolutionStep()
     
-    with caplog.at_level(logging.ERROR):
-        with pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"):
-            step.execute(container)
+    with (
+        caplog.at_level(logging.ERROR),
+        pytest.raises(RuntimeError, match="CONSTITUTION VIOLATION"),
+    ):
+        step.execute(container)
 
 def test_resolution_logs_error_on_geometry_violation(caplog):
     # If the detected feature size (0.1) is smaller than the resolution floor (0.5),
     # the system must abort to prevent mesh aliasing.
-    container = get_dummy_container(bbox=(0,0,0,1,1,1), cad_solid=TopoDS_Shape())
+    container = get_dummy_container(bbox=(0, 0, 0, 1, 1, 1), cad_solid=TopoDS_Shape())
     step = ResolutionStep()
     
     # Validation: 0.1 < 0.5 triggers the GEOMETRY VIOLATION.
-    with patch("src.steps.resolution.get_min_feature_size", return_value=0.1):
-        with caplog.at_level(logging.ERROR):
-            with pytest.raises(RuntimeError, match="GEOMETRY VIOLATION"):
-                step.execute(container)
+    with (
+        patch("src.steps.resolution.get_min_feature_size", return_value=0.1),
+        caplog.at_level(logging.ERROR),
+        pytest.raises(RuntimeError, match="GEOMETRY VIOLATION"),
+    ):
+        step.execute(container)

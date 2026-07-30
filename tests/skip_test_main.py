@@ -46,10 +46,9 @@ def test_main_cli_argument_error():
     Verify that providing unexpected or structurally invalid flags 
     forces argparse to gracefully reject execution and exit the process.
     """
-    with patch("sys.argv", ["main.py", "--invalid-flag"]):
-        with pytest.raises(SystemExit) as exc:
-            main()
-        assert exc.value.code in [1, 2]
+    with patch("sys.argv", ["main.py", "--invalid-flag"]), pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code in [1, 2]
 
 def test_main_missing_arguments_error():
     """
@@ -57,10 +56,9 @@ def test_main_missing_arguments_error():
     Verify that omitting any of the mandatory CLI parameters (--input_output_folder,
     --input_file_name, --output_file_name) causes argparse to reject execution.
     """
-    with patch("sys.argv", ["main.py", "--input_output_folder", "valid_workspace"]):
-        with pytest.raises(SystemExit) as exc:
-            main()
-        assert exc.value.code in [1, 2]
+    with patch("sys.argv", ["main.py", "--input_output_folder", "valid_workspace"]), pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code in [1, 2]
 
 def test_main_file_not_found():
     """
@@ -68,15 +66,17 @@ def test_main_file_not_found():
     Verify that if the specified STEP geometry data is not found at the resolved 
     location, a critical validation exception blocks downstream processing.
     """
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "non_existent_workspace",
-        "--input_file_name", "missing.step",
-        "--output_file_name", "output.json"
-    ]), \
-         patch("os.path.isfile", return_value=False):
-        with pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION"):
-            main()
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "non_existent_workspace",
+            "--input_file_name", "missing.step",
+            "--output_file_name", "output.json"
+        ]),
+        patch("os.path.isfile", return_value=False),
+        pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION"),
+    ):
+        main()
 
 def test_main_happy_path():
     """
@@ -91,22 +91,23 @@ def test_main_happy_path():
     # Setup open mock to support safe handling across reads/writes
     m_open = mock_open(read_data='{}')
     
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "valid_workspace",
-        "--input_file_name", "geometry.step",
-        "--output_file_name", "mesh_generator_output.json"
-    ]), \
-         patch("os.path.isfile", return_value=True), \
-         patch("os.makedirs"), \
-         patch("builtins.open", m_open), \
-         patch("json.load", side_effect=[config_data, {}]), \
-         patch("json.dump") as mock_json_dump, \
-         patch("src.main.validate"), \
-         patch("src.main.SovereignContainer", return_value=stub_container), \
-         patch("src.main.generate_mask_snapshot") as mock_viz, \
-         patch("src.main.Orchestrator") as mock_orch:
-        
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "valid_workspace",
+            "--input_file_name", "geometry.step",
+            "--output_file_name", "mesh_generator_output.json"
+        ]),
+        patch("os.path.isfile", return_value=True),
+        patch("os.makedirs"),
+        patch("builtins.open", m_open),
+        patch("json.load", side_effect=[config_data, {}]),
+        patch("json.dump") as mock_json_dump,
+        patch("src.main.validate"),
+        patch("src.main.SovereignContainer", return_value=stub_container),
+        patch("src.main.generate_mask_snapshot") as mock_viz,
+        patch("src.main.Orchestrator") as mock_orch,
+    ):
         main()
         
         # Assertions: Verify orchestrator lifecycle run and file outputs
@@ -124,22 +125,23 @@ def test_main_absolute_input_path():
     config_data = get_mock_config()
     stub_container = SerializableStubContainer()
     
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "valid_workspace",
-        "--input_file_name", "/absolute/path/to/geometry.step",
-        "--output_file_name", "mesh_generator_output.json"
-    ]), \
-         patch("os.path.isfile", return_value=True), \
-         patch("os.makedirs"), \
-         patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[config_data, {}]), \
-         patch("json.dump"), \
-         patch("src.main.validate"), \
-         patch("src.main.SovereignContainer", return_value=stub_container), \
-         patch("src.main.generate_mask_snapshot"), \
-         patch("src.main.Orchestrator"):
-        
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "valid_workspace",
+            "--input_file_name", "/absolute/path/to/geometry.step",
+            "--output_file_name", "mesh_generator_output.json"
+        ]),
+        patch("os.path.isfile", return_value=True),
+        patch("os.makedirs"),
+        patch("builtins.open", mock_open(read_data='{}')),
+        patch("json.load", side_effect=[config_data, {}]),
+        patch("json.dump"),
+        patch("src.main.validate"),
+        patch("src.main.SovereignContainer", return_value=stub_container),
+        patch("src.main.generate_mask_snapshot"),
+        patch("src.main.Orchestrator"),
+    ):
         main()
 
 def test_main_absolute_output_path():
@@ -152,22 +154,23 @@ def test_main_absolute_output_path():
     config_data = get_mock_config()
     stub_container = SerializableStubContainer()
     
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "valid_workspace",
-        "--input_file_name", "geometry.step",
-        "--output_file_name", "/absolute/path/to/mesh_generator_output.json"
-    ]), \
-         patch("os.path.isfile", return_value=True), \
-         patch("os.makedirs"), \
-         patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[config_data, {}]), \
-         patch("json.dump"), \
-         patch("src.main.validate"), \
-         patch("src.main.SovereignContainer", return_value=stub_container), \
-         patch("src.main.generate_mask_snapshot"), \
-         patch("src.main.Orchestrator"):
-        
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "valid_workspace",
+            "--input_file_name", "geometry.step",
+            "--output_file_name", "/absolute/path/to/mesh_generator_output.json"
+        ]),
+        patch("os.path.isfile", return_value=True),
+        patch("os.makedirs"),
+        patch("builtins.open", mock_open(read_data='{}')),
+        patch("json.load", side_effect=[config_data, {}]),
+        patch("json.dump"),
+        patch("src.main.validate"),
+        patch("src.main.SovereignContainer", return_value=stub_container),
+        patch("src.main.generate_mask_snapshot"),
+        patch("src.main.Orchestrator"),
+    ):
         main()
 
 def test_main_validation_failure():
@@ -179,20 +182,21 @@ def test_main_validation_failure():
     dummy_in()
     config_data = get_mock_config()
     
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "valid_workspace",
-        "--input_file_name", "geometry.step",
-        "--output_file_name", "mesh_generator_output.json"
-    ]), \
-         patch("os.path.isfile", return_value=True), \
-         patch("os.makedirs"), \
-         patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[config_data, {}]), \
-         patch("src.main.validate", side_effect=ValidationError("Invalid Schema")):
-        
-        with pytest.raises(ValidationError):
-            main()
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "valid_workspace",
+            "--input_file_name", "geometry.step",
+            "--output_file_name", "mesh_generator_output.json"
+        ]),
+        patch("os.path.isfile", return_value=True),
+        patch("os.makedirs"),
+        patch("builtins.open", mock_open(read_data='{}')),
+        patch("json.load", side_effect=[config_data, {}]),
+        patch("src.main.validate", side_effect=ValidationError("Invalid Schema")),
+        pytest.raises(ValidationError),
+    ):
+        main()
 
 def test_main_visual_mask_fault_tolerance():
     """
@@ -205,22 +209,23 @@ def test_main_visual_mask_fault_tolerance():
     config_data = get_mock_config()
     stub_container = SerializableStubContainer()
     
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "valid_workspace",
-        "--input_file_name", "geometry.step",
-        "--output_file_name", "mesh_generator_output.json"
-    ]), \
-         patch("os.path.isfile", return_value=True), \
-         patch("os.makedirs"), \
-         patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[config_data, {}]), \
-         patch("json.dump") as mock_json_dump, \
-         patch("src.main.validate"), \
-         patch("src.main.SovereignContainer", return_value=stub_container), \
-         patch("src.main.generate_mask_snapshot", side_effect=Exception("Framebuffer timeout")), \
-         patch("src.main.Orchestrator"):
-        
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "valid_workspace",
+            "--input_file_name", "geometry.step",
+            "--output_file_name", "mesh_generator_output.json"
+        ]),
+        patch("os.path.isfile", return_value=True),
+        patch("os.makedirs"),
+        patch("builtins.open", mock_open(read_data='{}')),
+        patch("json.load", side_effect=[config_data, {}]),
+        patch("json.dump") as mock_json_dump,
+        patch("src.main.validate"),
+        patch("src.main.SovereignContainer", return_value=stub_container),
+        patch("src.main.generate_mask_snapshot", side_effect=Exception("Framebuffer timeout")),
+        patch("src.main.Orchestrator"),
+    ):
         # Test should pass smoothly despite the visualizer pipeline crash
         main()
         mock_json_dump.assert_called_once()
@@ -236,17 +241,20 @@ def test_main_strict_configuration_key_policy():
     # Explicitly pop a required parameter to break configuration integrity
     malformed_config.pop("max_element_size", None)
     
-    with patch("sys.argv", [
-        "main.py", 
-        "--input_output_folder", "valid_workspace",
-        "--input_file_name", "geometry.step",
-        "--output_file_name", "mesh_generator_output.json"
-    ]), \
-         patch("os.path.isfile", return_value=True), \
-         patch("os.makedirs"), \
-         patch("builtins.open", mock_open(read_data='{}')), \
-         patch("json.load", side_effect=[malformed_config, {}]), \
-         patch("src.main.validate"), pytest.raises(KeyError):
+    with (
+        patch("sys.argv", [
+            "main.py", 
+            "--input_output_folder", "valid_workspace",
+            "--input_file_name", "geometry.step",
+            "--output_file_name", "mesh_generator_output.json"
+        ]),
+        patch("os.path.isfile", return_value=True),
+        patch("os.makedirs"),
+        patch("builtins.open", mock_open(read_data='{}')),
+        patch("json.load", side_effect=[malformed_config, {}]),
+        patch("src.main.validate"),
+        pytest.raises(KeyError),
+    ):
         main()
 
 
@@ -258,30 +266,30 @@ class TestMainCoverage:
         mock_gmsh.isInitialized.return_value = True
         
         # Use localized patch.dict to clean up runtime environment safely
-        with patch.dict(sys.modules, {'gmsh': mock_gmsh}), \
-             patch("os.path.isfile", return_value=True), \
-             patch("os.makedirs"), \
-             patch("builtins.open", mock_open(read_data='{}')), \
-             patch("src.main.json.load", return_value={
-                 "tolerance": 1e-6, 
-                 "max_element_size": 0.5, 
-                 "min_element_size": 0.1, 
-                 "boundary_map": {}
-             }), \
-             patch("src.main.validate_json"), \
-             patch("src.main.Orchestrator"), \
-             patch("src.main.SovereignContainer"), \
-             patch("sys.argv", [
-                 'main.py', 
-                 '--input_output_folder', 'test_data',
-                 '--input_file_name', 'test.step',
-                 '--output_file_name', 'output.json'
-             ]):
-            
+        with (
+            patch.dict(sys.modules, {'gmsh': mock_gmsh}),
+            patch("os.path.isfile", return_value=True),
+            patch("os.makedirs"),
+            patch("builtins.open", mock_open(read_data='{}')),
+            patch("src.main.json.load", return_value={
+                "tolerance": 1e-6, 
+                "max_element_size": 0.5, 
+                "min_element_size": 0.1, 
+                "boundary_map": {}
+            }),
+            patch("src.main.validate_json"),
+            patch("src.main.Orchestrator"),
+            patch("src.main.SovereignContainer"),
+            patch("sys.argv", [
+                'main.py', 
+                '--input_output_folder', 'test_data',
+                '--input_file_name', 'test.step',
+                '--output_file_name', 'output.json'
+            ]),
+        ):
             try:
                 main()
             except (RuntimeError, AttributeError, TypeError, ImportError, OSError):
-                # Log expected mock isolation fallthrough exceptions instead of swallowing silently
                 pass
             
             assert mock_gmsh.isInitialized.called
@@ -291,30 +299,30 @@ class TestMainCoverage:
         mock_gmsh = MagicMock()
         mock_gmsh.isInitialized.return_value = False
         
-        with patch.dict(sys.modules, {'gmsh': mock_gmsh}), \
-             patch("os.path.isfile", return_value=True), \
-             patch("os.makedirs"), \
-             patch("builtins.open", mock_open(read_data='{}')), \
-             patch("src.main.json.load", return_value={
-                 "tolerance": 1e-6, 
-                 "max_element_size": 0.5, 
-                 "min_element_size": 0.1, 
-                 "boundary_map": {}
-             }), \
-             patch("src.main.validate_json"), \
-             patch("src.main.Orchestrator"), \
-             patch("src.main.SovereignContainer"), \
-             patch("sys.argv", [
-                 'main.py', 
-                 '--input_output_folder', 'test_data',
-                 '--input_file_name', 'test.step',
-                 '--output_file_name', 'output.json'
-             ]):
-            
+        with (
+            patch.dict(sys.modules, {'gmsh': mock_gmsh}),
+            patch("os.path.isfile", return_value=True),
+            patch("os.makedirs"),
+            patch("builtins.open", mock_open(read_data='{}')),
+            patch("src.main.json.load", return_value={
+                "tolerance": 1e-6, 
+                "max_element_size": 0.5, 
+                "min_element_size": 0.1, 
+                "boundary_map": {}
+            }),
+            patch("src.main.validate_json"),
+            patch("src.main.Orchestrator"),
+            patch("src.main.SovereignContainer"),
+            patch("sys.argv", [
+                'main.py', 
+                '--input_output_folder', 'test_data',
+                '--input_file_name', 'test.step',
+                '--output_file_name', 'output.json'
+            ]),
+        ):
             try:
                 main()
             except (RuntimeError, AttributeError, TypeError, ImportError, OSError):
-                # Log expected mock isolation fallthrough exceptions instead of swallowing silently
                 pass
             
             assert mock_gmsh.isInitialized.called
