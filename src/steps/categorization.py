@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import os
+
 import numpy as np
 
 from interfaces.base_interface import StepInterface

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import json
 import sys
-from jsonschema import validate, ValidationError
+
+from jsonschema import ValidationError, validate
+
 
 def main():
     schema_path = "schema/mesh_generator_output_schema.json"

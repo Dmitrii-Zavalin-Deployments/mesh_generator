@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import sys
+
 from jsonschema import ValidationError, validate
 
 # --- BOOTSTRAP ---
@@ -35,7 +36,7 @@ def validate_json(data, schema_path):
     try:
         validate(instance=data, schema=schema)
         logger.info(f"Schema validation passed: {schema_path}")
-    except ValidationError as e:
+    except ValidationError:
         logger.error(f"SCHEMA VIOLATION: {schema_path}")
         raise
 

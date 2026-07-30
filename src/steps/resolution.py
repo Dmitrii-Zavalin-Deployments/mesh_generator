@@ -1,4 +1,5 @@
 import logging
+
 import numpy as np
 
 from interfaces.base_interface import StepInterface
