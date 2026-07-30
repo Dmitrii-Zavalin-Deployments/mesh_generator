@@ -277,9 +277,9 @@ jobs:
           head -n 30 data/testing-input-output/mesh_generator_output.json
         
       - name: 🛡 Post-Execution Schema Compliance Audit
-          run: |
-            echo "--- Running Standalone JSON Schema Verification ---"
-            python src/utils/validate_schema.py
+        run: |
+          echo "--- Running Standalone JSON Schema Verification ---"
+          python src/utils/validate_schema.py
 
       - name: 💾 Sync Testing Assets to Repository
         if: always()
