@@ -3,6 +3,7 @@ import importlib
 import pkgutil
 
 import pytest
+from jsonschema import ValidationError
 
 from interfaces.base_interface import StepInterface
 from src import steps
@@ -29,8 +30,6 @@ class TestBaseInterface:
         # We define a 'RogueStep' class that attempts to introduce a helper method.
         # This violates the principle of 'Stateless Pipeline Execution', 
         # which requires steps to contain only the 'execute' entry point.
-        #
-        # Attempting to declare this class triggers our architectural gate:
         with pytest.raises(TypeError, match="CONSTITUTION VIOLATION"):
             class RogueStep(StepInterface):
                 def execute(self, container):
@@ -78,9 +77,7 @@ class TestBaseInterface:
         """
         
         # 1. Setup: We construct a pristine production container. 
-        # use_gmsh=False: We do not need the graphical engine for state logic tests.
         container = SovereignContainer(
-            use_gmsh=False,
             step_file="test_geometry.step",
             max_element_size=1.5,
             tolerance=1e-5,
@@ -89,7 +86,6 @@ class TestBaseInterface:
         )
 
         # 2. Logic: We define a ConcreteMockResolutionStep.
-        # This step correctly populates the container's GridState and mask.
         class ConcreteMockResolutionStep(StepInterface):
             def execute(self, target_container: SovereignContainer):
                 target_container.grid = GridState(
@@ -105,7 +101,6 @@ class TestBaseInterface:
         step_executor.execute(container)
 
         # 4. Verification: We confirm that data mutation persists exactly 
-        # as expected in the system layout.
         assert isinstance(container.grid, GridState), "Contract Broken: Container grid state type mismatch."
         assert container.grid.nx == 10, "Data Mutation Error: Voxel count (nx) did not persist."
         assert container.mask == [1, 0, 1, 1], "Data Mutation Error: Computational mask array mismatch."
@@ -117,10 +112,7 @@ class TestBaseInterface:
         It must reject direct execution attempts.
         """
         
-        # We define a container for the invocation attempt.
-        # use_gmsh=False: We do not need the graphical engine for security gate tests.
         container = SovereignContainer(
-            use_gmsh=False,
             step_file="test.step", 
             max_element_size=1.0, 
             tolerance=1e-5, 
@@ -128,8 +120,6 @@ class TestBaseInterface:
             boundary_map={}
         )
         
-        # Attempting to execute the base interface itself is forbidden.
-        # We expect a NotImplementedError, signaling the user must override this class.
         abstract_step = StepInterface()
         with pytest.raises(NotImplementedError):
             abstract_step.execute(container)
