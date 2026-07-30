@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 def generate_mask_snapshot(
     output_data: dict, 
     fallback_save_dir: str = None, 
-    elev: float = 30.0, 
-    azim: float = -60.0
+    elev: float = 35.264, 
+    azim: float = -45.0
 ):
     """
     Parses the pipeline output dictionary and saves a 3D voxel mask snapshot.

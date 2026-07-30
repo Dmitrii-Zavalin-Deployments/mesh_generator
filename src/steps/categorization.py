@@ -1,13 +1,10 @@
 import logging
+import multiprocessing
 import os
-
 import numpy as np
 
 from interfaces.base_interface import StepInterface
 from src.state.mesh_generator_state import SovereignContainer
-
-# CRITICAL FIX: 'import gmsh' removed from global scope to prevent 
-# test collection aborts in environments missing the Python wrapper.
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +13,6 @@ logger = logging.getLogger(__name__)
 # without violating SovereignContainer's __slots__ boundary policies.
 _GMSH_MESH_CACHE = {}
 
-# --- Module-Level Engines ---
-
 def _run_gmsh_engine(container: SovereignContainer):
     """
     Gmsh Implementation Layer 1: Geometry-Aware Unstructured Mesh Baking.
@@ -25,15 +20,11 @@ def _run_gmsh_engine(container: SovereignContainer):
     """
     logger.info("Starting Gmsh Engine categorization (Layer 1: Mesh Baking)...")
     
-    # DEFERRED IMPORT: Safely loaded inside method scope
     try:
         import gmsh
     except ImportError as e:
         logger.error("CRITICAL: Gmsh engine selected but Python bindings are not accessible.")
-        raise RuntimeError(
-            "Gmsh Python bindings missing. If you intended to use this engine, "
-            "ensure 'pip install gmsh' has been executed successfully."
-        ) from e
+        raise RuntimeError("Gmsh Python bindings missing.") from e
     
     # Defensive Initialization Guard against Sig 139 / double initialization collisions
     initialized_here = False
@@ -46,15 +37,15 @@ def _run_gmsh_engine(container: SovereignContainer):
         gmsh.initialize()
         initialized_here = True
     
-    # STABILIZATION PATCH 1: Complete progressive logging suppression
-    gmsh.option.setNumber("General.Terminal", 0)   # Mutes terminal output routing
-    gmsh.option.setNumber("General.Verbosity", 1)  # Mutes progress counters; allows only critical errors
+    # RE-APPLY MULTITHREADING AND OPTIMIZATION (Prevent wipe from hard-reset)
+    cores = multiprocessing.cpu_count()
+    gmsh.option.setNumber("General.NumThreads", cores)
+    gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+    gmsh.option.setNumber("General.Terminal", 0)   
+    gmsh.option.setNumber("General.Verbosity", 1)  
     
     try:
-        # Abstract model initialization to accept any geometry variation smoothly
         gmsh.model.add("geometry_model")
-        
-        # Import the STEP file
         gmsh.model.occ.importShapes(container.step_file)
         gmsh.model.occ.synchronize()
         
@@ -62,9 +53,7 @@ def _run_gmsh_engine(container: SovereignContainer):
         # Compute the bounding box of the imported model to dynamically target 
         # the rotation anchor and framing to its true geometric center and size.
         xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.getBoundingBox(-1, -1)
-        cx = (xmin + xmax) / 2.0
-        cy = (ymin + ymax) / 2.0
-        cz = (zmin + zmax) / 2.0
+        cx, cy, cz = (xmin + xmax) / 2.0, (ymin + ymax) / 2.0, (zmin + zmax) / 2.0
         
         gmsh.option.setNumber("General.RotationCenterX", cx)
         gmsh.option.setNumber("General.RotationCenterY", cy)
@@ -74,7 +63,7 @@ def _run_gmsh_engine(container: SovereignContainer):
         gmsh.option.setNumber("Mesh.CharacteristicLengthMax", container.max_element_size)
         gmsh.option.setNumber("Mesh.CharacteristicLengthMin", container.min_element_size)
         
-        # STABILIZATION PATCH 2: Loop Crash/Segfault Prevention
+        # Loop Crash/Segfault Prevention
         # Switch 2D algorithm to MeshAdapt (2) to cleanly resolve complex/imperfect non-manifold CAD seams
         gmsh.option.setNumber("Mesh.Algorithm", 2)
         
@@ -100,21 +89,12 @@ def _run_gmsh_engine(container: SovereignContainer):
         if tet_idx == -1:
             raise RuntimeError("POST-CONDITION VIOLATION: Gmsh failed to generate 3D tetrahedral elements.")
 
-        # Reconstruct coordinate map: tag -> numpy [x, y, z]
-        nodes_map = {}
-        for i, tag in enumerate(node_tags):
-            nodes_map[tag] = np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64)
+        nodes_map = {tag: np.array([coord[3*i], coord[3*i+1], coord[3*i+2]], dtype=np.float64) 
+                     for i, tag in enumerate(node_tags)}
 
-        # Reconstruct tetrahedral vertex matrix: Shape (N_tets, 4, 3)
         tets_nodes = element_node_tags[tet_idx].reshape(-1, 4)
-        tets_vertices = []
-        for tet in tets_nodes:
-            tets_vertices.append([nodes_map[node] for node in tet])
+        tets_vertices_arr = np.array([[nodes_map[node] for node in tet] for tet in tets_nodes], dtype=np.float64)
         
-        tets_vertices_arr = np.array(tets_vertices, dtype=np.float64)
-        logger.info(f"Layer 1 complete: Baked {len(tets_vertices_arr)} tetrahedra vertices matrix into global cache.")
-        
-        # Cache the pre-baked structures for Layer 2
         _GMSH_MESH_CACHE["nodes_map"] = nodes_map
         _GMSH_MESH_CACHE["tets_vertices"] = tets_vertices_arr
         
@@ -132,12 +112,12 @@ def _run_gmsh_engine(container: SovereignContainer):
             # Disable automatic trackball override to enforce custom 3D rotation angles
             gmsh.option.setNumber("General.Trackball", 0)
             
-            # Apply 3D Isometric View Rotations matching Matplotlib (elev=30, azim=-60)
-            gmsh.option.setNumber("General.RotationX", -60.0)
+            # EXACT MATHEMATICAL ISOMETRIC ROTATION (elev=35.264, azim=-45.0)
+            gmsh.option.setNumber("General.RotationX", -54.735)
             gmsh.option.setNumber("General.RotationY", 0.0)
-            gmsh.option.setNumber("General.RotationZ", -40.0)
+            gmsh.option.setNumber("General.RotationZ", -45.0)
             
-            # Control whitespace/border padding around model (30% buffer)
+            # Control border padding around model (30% buffer)
             gmsh.option.setNumber("General.DisplayBorderFactor", 0.3)
             
             # Resolve destination paths using the directory context of the input model
@@ -182,26 +162,11 @@ def _run_gmsh_engine(container: SovereignContainer):
         if initialized_here and gmsh.is_initialized():
             gmsh.finalize()
 
-
-# --- The Compliant Class ---
-
 class CategorizationStep(StepInterface):
-    """
-    S11: Spatial Categorization Controller.
-    
-    Delegates the categorization strategy to the Geometry-Aware Gmsh engine.
-    """
-    
-    __slots__ = () # Stateless: Logic only
-    
+    __slots__ = () 
     def execute(self, container: SovereignContainer):
-        """Dispatches logic to the Gmsh engine."""
         if container.grid is None:
-            raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None. ResolutionStep must precede CategorizationStep.")
-
+            raise RuntimeError("CONSTITUTION VIOLATION: 'grid' is None.")
         _run_gmsh_engine(container)
-
-        # Ensure we satisfy sovereign container contracts before leaving.
-        # Check strictly guarantees JSON schema compliance.
         if container.mask is None:
             raise RuntimeError("POST-CONDITION VIOLATION: Categorization Engine failed to populate container.mask")
