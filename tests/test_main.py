@@ -3,10 +3,11 @@ import json
 import os
 import sys
 from unittest.mock import MagicMock, patch
+
 import pytest
 from jsonschema import ValidationError
 
-from src.main import validate_json, main
+from src.main import main, validate_json
 
 
 def test_validate_json_missing_schema(caplog):
