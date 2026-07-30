@@ -37,7 +37,7 @@ def validate_json(data, schema_path):
         logger.info(f"Schema validation passed: {schema_path}")
     except ValidationError as e:
         logger.error(f"SCHEMA VIOLATION: {schema_path}")
-        raise e
+        raise
 
 
 def main():

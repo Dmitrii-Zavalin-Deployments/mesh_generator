@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def generate_mask_snapshot(
     output_data: dict, 
-    fallback_save_dir: str = None, 
+    fallback_save_dir: str | None = None, 
     elev: float = 35.264, 
     azim: float = -45.0
 ):

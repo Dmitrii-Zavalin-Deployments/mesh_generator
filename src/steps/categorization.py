@@ -77,7 +77,7 @@ def _run_gmsh_engine(container: SovereignContainer):
         # Extract Unstructured Mesh Topology (Type 4: 4-node Tetrahedron)
         # node_tags is a flat 1D array, coord is flat 3D float array [x1, y1, z1, x2, y2, z2, ...]
         node_tags, coord, _ = gmsh.model.mesh.getNodes()
-        element_types, element_tags, element_node_tags = gmsh.model.mesh.getElements(dim=3)
+        element_types, _element_tags, element_node_tags = gmsh.model.mesh.getElements(dim=3)
         
         # Find the indices corresponding to tetrahedral elements (Type 4 in Gmsh)
         tet_idx = -1
@@ -155,7 +155,7 @@ def _run_gmsh_engine(container: SovereignContainer):
             logger.info(f"Universal mesh snapshot saved successfully: {snapshot_path}")
         except Exception as ex:
             logger.error(f"CRITICAL VISUALIZATION FAILURE: {ex!s}")
-            raise ex
+            raise
 
     finally:
         # Guarantee memory unbinding only if the context was spun up within this frame execution
