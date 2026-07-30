@@ -151,7 +151,7 @@ def main():
         # --- VISUAL MASK VERIFICATION GATE ---
         try:
             generate_mask_snapshot(output_data, fallback_save_dir=workspace)
-        except (RuntimeError, OSError, ValueError, IOError) as viz_err:
+        except (RuntimeError, OSError, ValueError) as viz_err:
             logger.error(f"Voxel verification snapshot engine faulted: {viz_err!s}")
 
         # --- SERIALIZATION LAYER ---

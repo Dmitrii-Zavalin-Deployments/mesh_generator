@@ -280,7 +280,7 @@ class TestMainCoverage:
             
             try:
                 main()
-            except (RuntimeError, AttributeError, TypeError, ImportError, OSError) as e:
+            except (RuntimeError, AttributeError, TypeError, ImportError, OSError):
                 # Log expected mock isolation fallthrough exceptions instead of swallowing silently
                 pass
             
@@ -313,7 +313,7 @@ class TestMainCoverage:
             
             try:
                 main()
-            except (RuntimeError, AttributeError, TypeError, ImportError, OSError) as e:
+            except (RuntimeError, AttributeError, TypeError, ImportError, OSError):
                 # Log expected mock isolation fallthrough exceptions instead of swallowing silently
                 pass
             
