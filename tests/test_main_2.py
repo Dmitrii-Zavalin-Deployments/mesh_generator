@@ -106,19 +106,18 @@ def test_main_gmsh_import_error_in_finally():
         "--output_file_name", "output_test_importerror.json"
     ]
 
-    real_import = __import__
-    import_count = 0
-
-    def mock_import(name, *args, **kwargs):
-        nonlocal import_count
+    # Force an ImportError when the finally block executes `import gmsh`
+    original_import = __import__
+    def selective_import(name, *args, **kwargs):
         if name == "gmsh":
-            import_count += 1
-            if import_count > 1:
-                raise ImportError("No gmsh")
-        return real_import(name, *args, **kwargs)
+            # Check caller frame or simply fail if sys._getframe().f_back has 'finally' or main cleanup
+            import traceback
+            if any("finally" in line for line in traceback.format_stack()[-3:]):
+                raise ImportError("No gmsh in finally")
+        return original_import(name, *args, **kwargs)
 
     with patch.object(sys, 'argv', test_args), \
-         patch("builtins.__import__", side_effect=mock_import):
+         patch("builtins.__import__", side_effect=selective_import):
         main()
 
     output_file = os.path.join(test_dir, "output_test_importerror.json")

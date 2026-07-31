@@ -100,7 +100,12 @@ def test_voxelization_success_classifications():
 
 def test_voxelization_execution_invalid_tolerance():
     """Verifies that negative or None tolerance raises ValueError during step execution."""
-    container = SovereignContainer()
+    container = SovereignContainer(
+        step_file="tests/dummies/sample_geometry.step",
+        tolerance=1e-6,
+        max_element_size=0.5,
+        min_element_size=0.1
+    )
     container.grid = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1, 1, 1)
     _GMSH_MESH_CACHE["tets_vertices"] = np.zeros((1, 4, 3))
 
