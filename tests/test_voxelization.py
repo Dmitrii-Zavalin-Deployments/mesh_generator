@@ -40,7 +40,7 @@ def test_voxelization_missing_mesh_cache():
 
 @pytest.mark.parametrize("bad_tol", [None, -0.01])
 def test_voxelization_invalid_tolerance(bad_tol):
-    """Verifies that invalid tolerances (None or negative) raise ValueError."""
+    """Verifies that invalid tolerances (None or negative) raise ValueError during initialization."""
     with pytest.raises(ValueError):
         SovereignContainer(
             step_file="tests/dummies/sample_geometry.step",
@@ -48,18 +48,6 @@ def test_voxelization_invalid_tolerance(bad_tol):
             tolerance=bad_tol,
             min_element_size=0.1
         )
-    container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
-    
-    # Populate cache with a valid dummy tetrahedron to pass cache check
-    _GMSH_MESH_CACHE["tets_vertices"] = np.array([
-        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-    ], dtype=np.float64)
-    
-    step = VoxelizationStep()
-    with pytest.raises(ValueError, match="CONSTITUTION VIOLATION: Invalid tolerance"):
-        step.execute(container)
-    
-    _GMSH_MESH_CACHE.clear()
 
 
 def test_voxelization_degenerate_tetrahedron():
