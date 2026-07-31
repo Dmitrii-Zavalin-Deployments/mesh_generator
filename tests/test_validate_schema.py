@@ -1,11 +1,10 @@
 # tests/test_validate_schema.py
 import json
+import sys
 from unittest.mock import mock_open, patch
-
 from jsonschema import ValidationError
 
-# Adjust the import path depending on where your validation script is located (e.g., scripts.validate_schema)
-from scripts.validate_schema import main
+from src.utils.validate_schema import main
 
 
 def test_main_success(capsys):

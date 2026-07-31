@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# src/utils/validate_schema.py
 import json
 import sys
 
