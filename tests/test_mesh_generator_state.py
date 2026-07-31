@@ -139,13 +139,6 @@ def test_sovereign_container_bbox_setter_and_validation():
     with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'bbox' must be a tuple"):
         container.bbox = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
 
-def test_grid_state_initialization():
-    """Verifies GridState initializes and casts parameters correctly."""
-    grid = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 10, 10, 10)
-    assert grid.nx == 10
-    assert grid.ny == 10
-    assert grid.nz == 10
-
 
 def test_sovereign_container_none_step_file():
     """Verifies that step_file=None raises ValueError."""

@@ -19,7 +19,7 @@ def test_validate_json_missing_schema(caplog):
 def test_validate_json_validation_error():
     """Verifies that invalid schema payload raises ValidationError."""
     schema_path = "schema/mesh_generator_config_schema.json"
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         validate_json({"invalid": "data"}, schema_path)
 
 
