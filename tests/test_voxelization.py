@@ -98,8 +98,8 @@ def test_voxelization_success_classifications():
     
     _GMSH_MESH_CACHE.clear()
 
-def test_voxelization_invalid_tolerance():
-    """Verifies that negative or None tolerance raises ValueError."""
+def test_voxelization_execution_invalid_tolerance():
+    """Verifies that negative or None tolerance raises ValueError during step execution."""
     container = SovereignContainer()
     container.grid = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1, 1, 1)
     _GMSH_MESH_CACHE["tets_vertices"] = np.zeros((1, 4, 3))
