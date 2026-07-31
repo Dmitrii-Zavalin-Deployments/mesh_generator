@@ -67,7 +67,7 @@ def test_main_config_file_not_found(tmp_path):
     
     # Mock working directory search for config.json to fail
     with patch.object(sys, "argv", test_args), \
-         patch("os.path.exists", side_effect=lambda p: False if "config" in str(p) else os.path.exists(p)), \
+         patch("os.path.exists", side_effect=lambda p: False if "config" in str(p) else True), \
          pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION: Configuration file not found"):
         main()
 

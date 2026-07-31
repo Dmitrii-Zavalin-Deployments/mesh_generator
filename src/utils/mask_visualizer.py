@@ -54,7 +54,7 @@ def generate_mask_snapshot(
         
         # --- OPTIMIZATION: SAFETY CEILING & STRIDING ---
         MAX_AXIS_CEILING = 150
-        mask_3d = np.array(mask_1d, dtype=np.int8).reshape((nx, ny, nz), order='F')
+        mask_3d = np.array(mask_1d, dtype=np.int32).reshape((nx, ny, nz), order='F')
 
         total_voxels = nx * ny * nz
         if total_voxels > 1_000_000 or nx > MAX_AXIS_CEILING or ny > MAX_AXIS_CEILING or nz > MAX_AXIS_CEILING:
