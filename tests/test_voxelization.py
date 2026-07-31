@@ -41,12 +41,13 @@ def test_voxelization_missing_mesh_cache():
 @pytest.mark.parametrize("bad_tol", [None, -0.01])
 def test_voxelization_invalid_tolerance(bad_tol):
     """Verifies that invalid tolerances (None or negative) raise ValueError."""
-    container = SovereignContainer(
-        step_file="tests/dummies/sample_geometry.step",
-        max_element_size=0.5,
-        tolerance=bad_tol,
-        min_element_size=0.1
-    )
+    with pytest.raises(ValueError):
+        SovereignContainer(
+            step_file="tests/dummies/sample_geometry.step",
+            max_element_size=0.5,
+            tolerance=bad_tol,
+            min_element_size=0.1
+        )
     container.grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
     
     # Populate cache with a valid dummy tetrahedron to pass cache check

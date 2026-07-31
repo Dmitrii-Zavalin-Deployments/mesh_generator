@@ -53,6 +53,13 @@ class SovereignContainer:
         if min_element_size is None:
             raise ValueError("min_element_size cannot be None")
 
+        if float(tolerance) < 0:
+            raise ValueError("Tolerance cannot be negative")
+        if float(max_element_size) <= 0:
+            raise ValueError("Max element size must be positive")
+        if float(min_element_size) <= 0:
+            raise ValueError("Min element size must be positive")
+
         self.step_file = str(step_file)
         self.tolerance = float(tolerance)
         self.max_element_size = float(max_element_size)
