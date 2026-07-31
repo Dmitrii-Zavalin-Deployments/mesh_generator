@@ -1,9 +1,7 @@
-# src/utils/validate_schema.py
 import json
 import sys
-
-from jsonschema import ValidationError, validate
-
+import jsonschema
+from jsonschema import ValidationError
 
 def main():
     schema_path = "schema/mesh_generator_output_schema.json"
@@ -15,7 +13,7 @@ def main():
         with open(output_path, "r") as f:
             data = json.load(f)
         
-        validate(instance=data, schema=schema)
+        jsonschema.validate(instance=data, schema=schema)
         print("✅ Schema Compliance Audit PASSED: Output payload strictly adheres to schema contracts.")
     except ValidationError as e:
         print(f"❌ CONSTITUTION VIOLATION: Output payload failed schema validation: {e.message}", file=sys.stderr)
