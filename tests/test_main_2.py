@@ -95,3 +95,32 @@ def test_main_gmsh_already_finalized_in_finally():
     output_file = os.path.join(test_dir, "output_test_fin.json")
     if os.path.exists(output_file):
         os.remove(output_file)
+
+def test_main_gmsh_import_error_in_finally():
+    """Verifies ImportError handling when gmsh cannot be imported in finally block (lines 173-174)."""
+    test_dir = "tests/dummies"
+    test_args = [
+        "src/main.py",
+        "--input_output_folder", test_dir,
+        "--input_file_name", "sample_geometry.step",
+        "--output_file_name", "output_test_importerror.json"
+    ]
+
+    real_import = __import__
+    import_count = 0
+
+    def mock_import(name, *args, **kwargs):
+        nonlocal import_count
+        if name == "gmsh":
+            import_count += 1
+            if import_count > 1:
+                raise ImportError("No gmsh")
+        return real_import(name, *args, **kwargs)
+
+    with patch.object(sys, 'argv', test_args), \
+         patch("builtins.__import__", side_effect=mock_import):
+        main()
+
+    output_file = os.path.join(test_dir, "output_test_importerror.json")
+    if os.path.exists(output_file):
+        os.remove(output_file)
