@@ -1,5 +1,5 @@
 {
   "tolerance": 1,
-  "max_element_size": 1000,
-  "min_element_size": 100
+  "max_element_size": 100,
+  "min_element_size": 10
 }
