@@ -5,7 +5,6 @@ from src.state.mesh_generator_state import GridState, SovereignContainer
 from src.steps.categorization import _GMSH_MESH_CACHE
 from src.steps.voxelization import VoxelizationStep
 
-
 def test_voxelization_grid_none():
     """Verifies that executing VoxelizationStep with a None grid raises RuntimeError."""
     container = SovereignContainer(
@@ -97,3 +96,19 @@ def test_voxelization_success_classifications():
     assert len(container.mask) == 2  # nx * ny * nz = 2 * 1 * 1 = 2
     
     _GMSH_MESH_CACHE.clear()
+
+def test_voxelization_invalid_tolerance():
+    """Verifies that negative or None tolerance raises ValueError."""
+    container = SovereignContainer()
+    container.grid = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1, 1, 1)
+    _GMSH_MESH_CACHE["tets_vertices"] = np.zeros((1, 4, 3))
+
+    # Test negative tolerance
+    container.tolerance = -1e-5
+    with pytest.raises(ValueError, match="CONSTITUTION VIOLATION: Invalid tolerance"):
+        VoxelizationStep().execute(container)
+
+    # Test None tolerance
+    container.tolerance = None
+    with pytest.raises(ValueError, match="CONSTITUTION VIOLATION: Invalid tolerance"):
+        VoxelizationStep().execute(container)
