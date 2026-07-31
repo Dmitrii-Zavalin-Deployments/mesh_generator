@@ -1,7 +1,7 @@
 # tests/test_validate_schema.py
 import json
-import sys
 from unittest.mock import mock_open, patch
+
 from jsonschema import ValidationError
 
 from src.utils.validate_schema import main
