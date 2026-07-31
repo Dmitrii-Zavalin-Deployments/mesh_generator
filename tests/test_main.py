@@ -47,8 +47,7 @@ def test_main_step_file_not_found(tmp_path):
         "--output_file_name", "output.json"
     ]
     
-    with patch.object(sys, 'argv', test_args):
-        with pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION: STEP file not found"):
+    with patch.object(sys, "argv", test_args), pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION: STEP file not found"):
             main()
 
 
@@ -68,9 +67,9 @@ def test_main_config_file_not_found(tmp_path):
     
     # Mock working directory search for config.json to fail
     with patch.object(sys, 'argv', test_args), \
-         patch("os.path.exists", side_effect=lambda p: False if "config" in str(p) else os.path.exists(p)):
-        with pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION: Configuration file not found"):
-            main()
+    with patch.object(sys, "argv", test_args), \
+         patch("os.path.exists", side_effect=lambda p: False if "config" in str(p) else os.path.exists(p)), \
+         pytest.raises(FileNotFoundError, match="CONSTITUTION VIOLATION: Configuration file not found"):
 
 
 @patch("src.main.Orchestrator")
@@ -122,7 +121,7 @@ def class_test_main_success(mock_snapshot, mock_orchestrator_cls, tmp_path):
 
     with patch.object(sys, 'argv', test_args), \
          patch.dict("sys.modules", {"gmsh": mock_gmsh}), \
-         patch("os.path.exists", side_effect=lambda p: True if "config.json" in str(p) or "schema" in str(p) or os.path.exists(p) else False), \
+         patch("os.path.exists", side_effect=lambda p: bool("config.json" in str(p) or "schema" in str(p) or os.path.exists(p))), \
          patch("src.main.validate_json", return_value=None), \
          patch("src.main.SovereignContainer", return_value=mock_container_instance):
         
@@ -174,7 +173,7 @@ def test_main_absolute_paths_and_gmsh_already_initialized(tmp_path):
     with patch.object(sys, 'argv', test_args), \
          patch.dict("sys.modules", {"gmsh": mock_gmsh}), \
          patch("src.main.validate_json", return_value=None), \
-         patch("src.main.Orchestrator") as mock_orch, \
+         patch("src.main.Orchestrator"), \
          patch("src.main.generate_mask_snapshot") as mock_snap, \
          patch("os.path.exists", return_value=True):
         
