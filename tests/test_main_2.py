@@ -8,6 +8,7 @@ import pytest
 from jsonschema import ValidationError
 
 from src.main import main, validate_json
+from src.state.mesh_generator_state import GridState
 from tests.dummies.dummy_harness import get_mock_config
 
 
@@ -83,6 +84,7 @@ def test_main_gmsh_already_finalized_in_finally():
         def __init__(self, steps):
             pass
         def run(self, container):
+            container.grid = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1, 1, 1)
             if gmsh.is_initialized():
                 gmsh.finalize()
 
