@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import gmsh
 import pytest
+from jsonschema import ValidationError
 
 from src.main import main, validate_json
 from tests.dummies.dummy_harness import get_mock_config
