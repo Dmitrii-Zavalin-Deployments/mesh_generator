@@ -1,4 +1,3 @@
-# tests/test_validate_schema.py
 import json
 from unittest.mock import mock_open, patch
 

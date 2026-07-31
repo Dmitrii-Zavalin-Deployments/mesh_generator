@@ -1,4 +1,3 @@
-# tests/test_categorization.py
 from unittest.mock import MagicMock, patch
 
 import numpy as np

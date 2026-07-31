@@ -1,4 +1,3 @@
-# tests/test_mask_visualizer.py
 from unittest.mock import patch
 
 from src.utils.mask_visualizer import generate_mask_snapshot

@@ -1,4 +1,3 @@
-# tests/test_resolution.py
 from unittest.mock import MagicMock, patch
 
 import pytest

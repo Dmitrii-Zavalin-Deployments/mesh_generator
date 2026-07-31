@@ -1,4 +1,3 @@
-# tests/test_base_interface.py
 import pytest
 
 from interfaces.base_interface import StepInterface

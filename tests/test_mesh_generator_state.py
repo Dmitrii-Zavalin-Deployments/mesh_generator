@@ -1,4 +1,3 @@
-# tests/test_mesh_generator_state.py
 import pytest
 
 from src.state.mesh_generator_state import GridState, SovereignContainer
@@ -139,3 +138,101 @@ def test_sovereign_container_bbox_setter_and_validation():
     # Invalid assignment raises TypeError
     with pytest.raises(TypeError, match="CONSTITUTION VIOLATION: 'bbox' must be a tuple"):
         container.bbox = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+
+def test_grid_state_initialization():
+    """Verifies GridState initializes and casts parameters correctly."""
+    grid = GridState(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 10, 10, 10)
+    assert grid.nx == 10
+    assert grid.ny == 10
+    assert grid.nz == 10
+
+
+def test_sovereign_container_none_step_file():
+    """Verifies that step_file=None raises ValueError."""
+    with pytest.raises(ValueError, match="step_file cannot be None"):
+        SovereignContainer(
+            step_file=None,
+            tolerance=1e-6,
+            max_element_size=0.5,
+            min_element_size=0.1
+        )
+
+
+def test_sovereign_container_none_max_element_size():
+    """Verifies that max_element_size=None raises ValueError."""
+    with pytest.raises(ValueError, match="max_element_size cannot be None"):
+        SovereignContainer(
+            step_file="tests/dummies/sample_geometry.step",
+            tolerance=1e-6,
+            max_element_size=None,
+            min_element_size=0.1
+        )
+
+
+def test_sovereign_container_none_min_element_size():
+    """Verifies that min_element_size=None raises ValueError."""
+    with pytest.raises(ValueError, match="min_element_size cannot be None"):
+        SovereignContainer(
+            step_file="tests/dummies/sample_geometry.step",
+            tolerance=1e-6,
+            max_element_size=0.5,
+            min_element_size=None
+        )
+
+
+def test_sovereign_container_non_positive_max_element_size():
+    """Verifies that max_element_size <= 0 raises ValueError."""
+    with pytest.raises(ValueError, match="Max element size must be positive"):
+        SovereignContainer(
+            step_file="tests/dummies/sample_geometry.step",
+            tolerance=1e-6,
+            max_element_size=0.0,
+            min_element_size=0.1
+        )
+
+
+def test_sovereign_container_non_positive_min_element_size():
+    """Verifies that min_element_size <= 0 raises ValueError."""
+    with pytest.raises(ValueError, match="Min element size must be positive"):
+        SovereignContainer(
+            step_file="tests/dummies/sample_geometry.step",
+            tolerance=1e-6,
+            max_element_size=0.5,
+            min_element_size=-0.1
+        )
+
+
+def test_sovereign_container_property_setters_and_type_enforcement():
+    """Verifies property getters, setters, and type enforcement rules."""
+    container = SovereignContainer(
+        step_file="tests/dummies/sample_geometry.step",
+        tolerance=1e-6,
+        max_element_size=0.5,
+        min_element_size=0.1
+    )
+    
+    # Invalid Grid Type
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION"):
+        container.grid = "invalid_grid"
+        
+    # Invalid Mask Type
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION"):
+        container.mask = "invalid_mask"
+        
+    # Invalid BBox Type
+    with pytest.raises(TypeError, match="CONSTITUTION VIOLATION"):
+        container.bbox = [1, 2, 3]
+        
+    # Valid Assignments
+    grid = GridState(0, 1, 0, 1, 0, 1, 1, 1, 1)
+    container.grid = grid
+    assert container.grid == grid
+    
+    container.mask = [0, 1]
+    assert container.mask == [0, 1]
+    
+    container.cad_solid = "mock_solid"
+    assert container.cad_solid == "mock_solid"
+    
+    container.bbox = (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+    assert container.bbox == (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)

@@ -1,5 +1,3 @@
-# tests/test_orchestrator.py
-
 from interfaces.base_interface import StepInterface
 from src.pipeline.orchestrator import Orchestrator
 from src.state.mesh_generator_state import SovereignContainer

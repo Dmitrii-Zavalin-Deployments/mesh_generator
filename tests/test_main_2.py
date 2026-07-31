@@ -1,4 +1,3 @@
-# tests/test_main.py
 import json
 import os
 import sys

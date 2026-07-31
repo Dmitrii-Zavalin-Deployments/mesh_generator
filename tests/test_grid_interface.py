@@ -1,5 +1,3 @@
-# tests/test_grid_interface.py
-
 from src.state.mesh_generator_state import GridState
 
 
