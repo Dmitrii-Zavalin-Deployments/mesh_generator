@@ -1,7 +1,9 @@
 import json
 import sys
+
 import jsonschema
 from jsonschema import ValidationError
+
 
 def main():
     schema_path = "schema/mesh_generator_output_schema.json"
