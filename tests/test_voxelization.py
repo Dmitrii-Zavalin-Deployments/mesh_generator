@@ -5,6 +5,7 @@ from src.state.mesh_generator_state import GridState, SovereignContainer
 from src.steps.categorization import _GMSH_MESH_CACHE
 from src.steps.voxelization import VoxelizationStep
 
+
 def test_voxelization_grid_none():
     """Verifies that executing VoxelizationStep with a None grid raises RuntimeError."""
     container = SovereignContainer(
